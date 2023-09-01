@@ -58,6 +58,13 @@ def generate_urls(keys):
         urls.append(url)
     return urls
 
+def list_files_in_folder(folder_name):
+    s3 = boto3.client('s3')
+    files = []
+    result = s3.list_objects_v2(Bucket=bucket_name, Prefix=folder_name)
+    for content in result.get('Contents', []):
+        files.append(content['Key'])
+    return files
 
 def upload_image(image_data, object_name):
     # Get today's date

@@ -51,17 +51,20 @@ def publish_photo(access_token, account, creation_id):
     data = response.json()
     print(data)
 
-# testing for sending image to instagram
+
+
 def dailyPostToIG(igid):
-    # image_url, description, tags = awss3.generate_url("2023-08-29/dragontest.png")
-    # print(image_url, description, tags)
     today = datetime.now()
     formatted_date = today.strftime("%Y-%m-%d")
-    # need to find a way to get all images from s3 bucket folder.
-    # folder is based on formatted_date = today.strftime("%Y-%m-%d")
+    folder_name = formatted_date  # Assuming the folder name is the date
     
-    creation_id = create_container(IG_ACCESS_TOKEN, image_url, igid, description, tags)
-    publish_photo(IG_ACCESS_TOKEN, igid, creation_id)
+    # List all files in the folder
+    all_files = awss3.list_files_in_folder(folder_name)
+    
+    for file_key in all_files:
+        image_url, description, tags = awss3.generate_url(file_key)
+        creation_id = create_container(IG_ACCESS_TOKEN, image_url, igid, description, tags)
+        publish_photo(IG_ACCESS_TOKEN, igid, creation_id)
 
 
 # x/twitter
