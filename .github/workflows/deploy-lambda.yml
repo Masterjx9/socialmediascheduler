@@ -22,6 +22,10 @@ jobs:
       run: |
         pip install -r requirements.txt
 
+    - name: Create ZIP file
+      run: |
+        zip -r lambda_function_payload.zip . -x '*.git*'
+
     - name: Deploy to Lambda
       uses: appleboy/lambda-action@master
       with:
@@ -29,4 +33,4 @@ jobs:
         aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws_region: ${{ secrets.AWS_REGION }}
         function_name: PostToSocials
-        zip_file: ./  # Path to your code, assuming all necessary files are in the root
+        zip_file: lambda_function_payload.zip
