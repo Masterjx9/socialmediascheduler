@@ -9,8 +9,7 @@ from datetime import datetime
 dotenv.load_dotenv()
 
 IG_ACCESS_TOKEN = os.environ.get('IG_ACCESS_TOKEN')
-IG_ACCOUNT1_ID = os.environ.get('IG_ACCOUNT1_ID')
-IG_ACCOUNT2_ID = os.environ.get('IG_ACCOUNT2_ID')
+
 TWITTER_BEARER_TOKEN = os.environ.get('TWITTER_BEARER_TOKEN')
 TWITTER_APPID = os.environ.get('TWITTER_APPID')
 TWITTER_CONSUMER_KEY = os.environ.get('TWITTER_CONSUMER_KEY')
@@ -61,7 +60,13 @@ def dailyPostToIG(igid):
     # List all files in the folder
     all_files = awss3.list_files_in_folder(folder_name)
     
+    # Filter out the folder names
+    all_files = [file for file in all_files if not file.endswith('/')]
+    
+    print(all_files)
+    print(folder_name)
     for file_key in all_files:
+        print(file_key)
         image_url, description, tags = awss3.generate_url(file_key)
         creation_id = create_container(IG_ACCESS_TOKEN, image_url, igid, description, tags)
         publish_photo(IG_ACCESS_TOKEN, igid, creation_id)
