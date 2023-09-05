@@ -1,5 +1,6 @@
 import os
 import logging
+import json
 
 # Setup logging
 logger = logging.getLogger()
@@ -25,3 +26,7 @@ def lambda_handler(event, context):
             logger.warning("No valid scenario provided.")
     except Exception as e:
         logger.error(f"An error occurred: {e}")
+    return {
+        'statusCode': 200,
+        'body': json.dumps('Hello from Lambda!')
+    }

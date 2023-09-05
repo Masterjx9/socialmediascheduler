@@ -68,8 +68,8 @@ def dailyPostToIG(igid):
     for file_key in all_files:
         print(file_key)
         image_url, description, tags = awss3.generate_url(file_key)
-        creation_id = create_container(IG_ACCESS_TOKEN, image_url, igid, description, tags)
-        publish_photo(IG_ACCESS_TOKEN, igid, creation_id)
+        # creation_id = create_container(IG_ACCESS_TOKEN, image_url, igid, description, tags)
+        # publish_photo(IG_ACCESS_TOKEN, igid, creation_id)
 # dailyPostToIG(IG_ACCOUNT2_ID)
 
 # x/twitter
