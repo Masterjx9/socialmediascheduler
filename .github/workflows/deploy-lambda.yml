@@ -34,5 +34,3 @@ jobs:
         aws_region: ${{ secrets.AWS_REGION }}
         function_name: PostToSocials
         zip_file: lambda_function_payload.zip
-
-        
