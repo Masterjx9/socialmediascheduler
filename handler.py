@@ -28,5 +28,5 @@ def lambda_handler(event, context):
         logger.error(f"An error occurred: {e}")
     return {
         'statusCode': 200,
-        'body': json.dumps('Hello from Lambda!')
+        'body': "Finished Posting!"
     }
