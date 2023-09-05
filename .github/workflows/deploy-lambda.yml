@@ -22,10 +22,14 @@ jobs:
       run: |
         pip install -r requirements.txt -t ./package
 
-    - name: Prepare lambda deployment package
+    - name: Copy lambda function to package folder
       run: |
-        cp -r ./package/* .
-        zip -r lambda_function_payload.zip . -x '*.git*' 'package/*'
+        cp -r ./src/* ./package/
+
+    - name: Create ZIP file
+      run: |
+        cd package
+        zip -r ../lambda_function_payload.zip .
 
     - name: Deploy to Lambda
       uses: appleboy/lambda-action@master
