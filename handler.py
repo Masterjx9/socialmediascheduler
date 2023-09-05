@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# from main import dailyPostToIG, dailyPostToTwitter
+from main import dailyPostToIG, dailyPostToTwitter
 
 IG_ACCOUNT1_ID = os.environ.get('IG_ACCOUNT1_ID')
 IG_ACCOUNT2_ID = os.environ.get('IG_ACCOUNT2_ID')
