@@ -16,7 +16,7 @@ TWITTER_CONSUMER_KEY = os.environ.get('TWITTER_CONSUMER_KEY')
 TWITTER_CONSUMER_SECRET = os.environ.get('TWITTER_CONSUMER_SECRET')
 TWITTER_ACCESS_TOKEN = os.environ.get('TWITTER_ACCESS_TOKEN')
 TWITTER_ACCESS_TOKEN_SECRET = os.environ.get('TWITTER_ACCESS_TOKEN_SECRET')
-
+IG_ACCOUNT2_ID = os.environ.get('IG_ACCOUNT2_ID')
 def get_page_token(user_token):
     url = "https://graph.facebook.com/v17.0/pythonicit?fields=access_token"
     response = requests.get(url, params={"access_token": user_token})
@@ -70,7 +70,7 @@ def dailyPostToIG(igid):
         image_url, description, tags = awss3.generate_url(file_key)
         creation_id = create_container(IG_ACCESS_TOKEN, image_url, igid, description, tags)
         publish_photo(IG_ACCESS_TOKEN, igid, creation_id)
-
+dailyPostToIG(IG_ACCOUNT2_ID)
 
 # x/twitter
 def dailyPostToTwitter(payload):
