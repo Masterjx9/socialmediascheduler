@@ -13,7 +13,9 @@ dotenv.load_dotenv()
 aws_access_key_id = os.environ.get('AWS_ACCESS_KEY_ID')
 aws_secret_access_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
 region_name = os.environ.get('AWS_REGION')
-
+print(aws_access_key_id)
+print(aws_secret_access_key)
+print(region_name)
 s3 = boto3.client('s3',
                   aws_access_key_id=aws_access_key_id,
                   aws_secret_access_key=aws_secret_access_key,
