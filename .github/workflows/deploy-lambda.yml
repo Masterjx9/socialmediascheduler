@@ -20,16 +20,11 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt -t ./package
-
-    - name: Copy lambda function to package folder
-      run: |
-        cp -r ./src/* ./package/
+        pip install -r requirements.txt -t .
 
     - name: Create ZIP file
       run: |
-        cd package
-        zip -r ../lambda_function_payload.zip .
+        zip -r lambda_function_payload.zip . -x '*.git*'
 
     - name: Deploy to Lambda
       uses: appleboy/lambda-action@master
@@ -39,3 +34,5 @@ jobs:
         aws_region: ${{ secrets.AWS_REGION }}
         function_name: PostToSocials
         zip_file: lambda_function_payload.zip
+
+        
