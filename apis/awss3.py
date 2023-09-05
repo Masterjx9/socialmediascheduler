@@ -5,21 +5,20 @@ from io import BytesIO
 from PIL import Image
 from datetime import datetime
 
-
-
-
 dotenv.load_dotenv()
 
 aws_access_key_id = os.environ.get('AWS_ACCESS_KEY_ID')
 aws_secret_access_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
 region_name = os.environ.get('AWS_REGION')
-print(aws_access_key_id)
-print(aws_secret_access_key)
-print(region_name)
-s3 = boto3.client('s3',
-                  aws_access_key_id=aws_access_key_id,
-                  aws_secret_access_key=aws_secret_access_key,
-                  region_name=region_name)
+run_env = os.environ.get('RUN_ENV', 'local')
+
+if run_env == 'lambda':
+    s3 = boto3.client('s3', region_name=region_name)
+else:
+    s3 = boto3.client('s3',
+                      aws_access_key_id=aws_access_key_id,
+                      aws_secret_access_key=aws_secret_access_key,
+                      region_name=region_name)
 
 bucket_name = 'socialmediascheduler'
 
