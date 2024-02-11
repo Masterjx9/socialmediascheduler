@@ -51,7 +51,6 @@ def publish_photo(access_token, account, creation_id):
     print(data)
 
 
-
 def dailyPostToIG(igid):
     today = datetime.now()
     formatted_date = today.strftime("%Y-%m-%d")
@@ -90,6 +89,7 @@ def dailyPostToTwitter(payload):
         "https://api.twitter.com/2/tweets",
         json=payload,
     )
+
     # Check the x-access-level header
     if 'x-access-level' in response.headers:
         print(f"Access level: {response.headers['x-access-level']}")
@@ -102,3 +102,4 @@ def dailyPostToTwitter(payload):
         print(json.dumps(json_response, indent=4, sort_keys=True))
     else:
         print(f"Failed to tweet: {response.content}")
+# dailyPostToTwitter("Hello World")
