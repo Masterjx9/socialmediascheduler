@@ -1,9 +1,14 @@
 name: Deploy to AWS Lambda
 
+
+# on:
+#   push:
+#     branches:
+#       - main  # Trigger the workflow on push to the main branch
+
 on:
-  push:
-    branches:
-      - main  # Trigger the workflow on push to the main branch
+  workflow_dispatch:  # Trigger the workflow manually from the GitHub Actions UI
+
 
 jobs:
   deploy:
