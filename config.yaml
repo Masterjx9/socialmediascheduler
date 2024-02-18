@@ -1,0 +1,6 @@
+# Default Settings configuration
+DefaultSettings:
+  mode: local
+  photo_path: ""
+  video_path: ""
+

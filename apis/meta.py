@@ -1,5 +1,5 @@
 import datetime
-import awss3
+from apis import awss3
 import requests
 import os
 
@@ -8,39 +8,39 @@ import os
 This module is used to post pictures to Instagram and Facebook using the Facebook Graph API.
 
 # Variables required:
-- ig_id: The Instagram account ID
+- meta_id: The Instagram account ID
 - ig_access_token: The Instagram access token
 - method_of_access: The method of access to the pictures (aws or local)
 
 """
 
-def create_container(access_token, image_url, account, description, tags):
+def create_container(meta_access_token, image_url, meta_id, description, tags):
     hashtags = " ".join([f"#{tag}" for tag in tags.split()])
     caption = f"{description}\n\n{hashtags}"
-    url = f'https://graph.facebook.com/v17.0/{account}/media'
+    url = f'https://graph.facebook.com/v17.0/{meta_id}/media'
     
     payload = {
         "image_url": image_url,
         "caption": caption,
-        "access_token": access_token
+        "access_token": meta_access_token
     }
     response = requests.post(url, params=payload)
     data = response.json()
     print(data)
     return data["id"]
 
-def publish_media(access_token, account, creation_id):
-    url = f'https://graph.facebook.com/v17.0/{account}/media_publish'
+def publish_media(meta_access_token, meta_id, creation_id):
+    url = f'https://graph.facebook.com/v17.0/{meta_id}/media_publish'
     
     payload = {
         "creation_id": creation_id,
-        "access_token": access_token
+        "access_token": meta_access_token
     }
     response = requests.post(url, params=payload)
     data = response.json()
     print(data)
     
-def PostToIG(ig_id, ig_access_token, method_of_access, base_url=None, image_data=None):
+def PostToIG(meta_id, ig_access_token, method_of_access, base_url=None, image_data=None):
     if method_of_access == "aws":
         today = datetime.datetime.now()
         folder_name = today.strftime("%Y-%m-%d")  # Use the current date as the folder name
@@ -49,8 +49,8 @@ def PostToIG(ig_id, ig_access_token, method_of_access, base_url=None, image_data
 
         for file_name in image_files:
             image_url, description, tags = awss3.generate_url(file_name)
-            creation_id = create_container(ig_access_token, image_url, ig_id, description, tags)
-            publish_media(ig_access_token, ig_id, creation_id)
+            creation_id = create_container(ig_access_token, image_url, meta_id, description, tags)
+            publish_media(ig_access_token, meta_id, creation_id)
 
     elif method_of_access == "local":
         for image_info in image_data:  # image_data is a list of dicts with image info
@@ -59,7 +59,7 @@ def PostToIG(ig_id, ig_access_token, method_of_access, base_url=None, image_data
             description = image_info['description']
             tags = image_info['tags']
 
-            creation_id = create_container(ig_access_token, image_url, ig_id, description, tags)
-            publish_media(ig_access_token, ig_id, creation_id)
+            creation_id = create_container(ig_access_token, image_url, meta_id, description, tags)
+            publish_media(ig_access_token, meta_id, creation_id)
 
     return "Pictures posted to IG successfully!"
