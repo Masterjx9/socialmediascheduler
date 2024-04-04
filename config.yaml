@@ -1,6 +1,8 @@
-# Default Settings configuration
 DefaultSettings:
+  database_path: database_jay.sqlite3
   mode: local
-  photo_path: ""
-  video_path: ""
-
+  photo_path: C:/users/rkerrigan/pictures
+  default_photo_time: "7:00:00 AM"
+  video_path: C:/users/rkerrigan/videos
+  default_video_time: "7:00:00 AM"
+current_user: '1'
