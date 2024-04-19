@@ -53,7 +53,7 @@ def initialize_main_window():
     make_buttons()
     month_generator()
     root.mainloop()
-    
+
 # Function to select a user
 def select_user():
     with open('config.yaml', 'r') as f:
@@ -376,15 +376,26 @@ def add_post(root):
         cur = conn.cursor()
         if schedule_option.get() == "2":
             specific_day = date_cal.get_date()
-            # specific_time = specific_time_picker.get()  # Update this based on how AnalogPicker provides the selected time
-            print("Specific day:", specific_day)
-            # print("Specific time:", specific_time)
-            # Add validation and database insertion logic here
+
+            # Convert specific_day to datetime object
+            specific_day_obj = datetime.strptime(specific_day, "%m/%d/%y")
+
+            # Convert specific_day_obj to Unix timestamp
+            specific_day_timestamp = specific_day_obj.timestamp()
+
+            # Get current datetime
+            now = datetime.now()
+
+            # Convert current datetime to Unix timestamp
+            now_timestamp = now.timestamp()
+
+            print("Specific day timestamp:", specific_day_timestamp)
+            print("Current datetime timestamp:", now_timestamp)
             
-            # convert the specific_day to UNIX time
-            specific_day = datetime(specific_day.year, specific_day.month, specific_day.day).replace(tzinfo=timezone.utc).timestamp()
             print(specific_day)
-            # cur.execute("INSERT INTO content (content_type, post_date) VALUES (?, ?)", ("Post", specific_day))
+            cur.execute("INSERT INTO content (content_id, user_id, content_type, content_data, post_date, published) VALUES (?, ?, ?, ?, ?, ?)", (2,1,"post", "post_content", specific_day_timestamp, 0))
+            conn.commit()
+            # cur.execute("INSERT INTO content (content_type, post_date) VALUES (?, ?)", ("Post", specific_day_timestamp))
 
         post_popup.destroy()
 
