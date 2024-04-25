@@ -7,7 +7,7 @@ from tkinter import filedialog, \
 import webbrowser
 from tkcalendar import Calendar as tkcalendar
 from tktimepicker import SpinTimePickerOld, AnalogPicker, AnalogThemes, constants
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, time
 import calendar
 import sqlite3
 import yaml
@@ -374,27 +374,59 @@ def add_post(root):
 
         conn = sqlite3.connect('database_jay.sqlite3')
         cur = conn.cursor()
+        if schedule_option.get() == "1A":
+            last_post_date = cur.execute("SELECT post_date FROM content WHERE content_type = 'post' ORDER BY post_date DESC LIMIT 1").fetchone()
+            print("Last post date:", last_post_date)
+            last_post_date_str = datetime.fromtimestamp(last_post_date[0]).strftime("%m/%d/%y")
+            print("Last post date (formatted):", last_post_date_str)
+            
+            all_content = cur.execute("SELECT * FROM content")
+            print(all_content.fetchall())
+            
+
+            print("Complete Time:", specific_time_picker.time())
+            
+            # cur.execut("INSERT INTO content (content_type, post_date) VALUES (?, ?)", ("Post", last_post_date) #Needs to be + next day
+        if schedule_option.get() == "1B":
+            cur.execute("SELECT post_date FROM content ORDER BY post_date DESC LIMIT 1")
+            last_post_date = cur.fetchone()
+            print("Last post date:", last_post_date)
         if schedule_option.get() == "2":
             specific_day = date_cal.get_date()
 
-            # Convert specific_day to datetime object
             specific_day_obj = datetime.strptime(specific_day, "%m/%d/%y")
 
-            # Convert specific_day_obj to Unix timestamp
-            specific_day_timestamp = specific_day_obj.timestamp()
+            # Get the time from the time picker
+            time_tuple = specific_time_picker.time()  # e.g., (1, 0, 'a.m')
 
-            # Get current datetime
-            now = datetime.now()
+            # Convert the time tuple to a datetime.time object
+            hour = time_tuple[0] % 12 + (12 if time_tuple[2] == 'p.m' else 0)
+            minute = time_tuple[1]
+            selected_time = time(hour, minute)
 
-            # Convert current datetime to Unix timestamp
-            now_timestamp = now.timestamp()
+            # Combine the date and time
+            complete_datetime = datetime.combine(specific_day_obj, selected_time)
 
-            print("Specific day timestamp:", specific_day_timestamp)
-            print("Current datetime timestamp:", now_timestamp)
+            print("Complete Time:", complete_datetime)
             
-            print(specific_day)
-            cur.execute("INSERT INTO content (content_id, user_id, content_type, content_data, post_date, published) VALUES (?, ?, ?, ?, ?, ?)", (2,1,"post", "post_content", specific_day_timestamp, 0))
-            conn.commit()
+
+            # Convert the datetime object to a Unix timestamp
+            unix_timestamp = complete_datetime.timestamp()
+
+            print("Unix Timestamp:", unix_timestamp)
+
+            # # Get current datetime
+            # now = datetime.now()
+
+            # # Convert current datetime to Unix timestamp
+            # now_timestamp = now.timestamp()
+
+            # print("Specific day timestamp:", specific_day_timestamp)
+            # print("Current datetime timestamp:", now_timestamp)
+            
+            # print(specific_day)
+            # cur.execute("INSERT INTO content (content_id, user_id, content_type, content_data, post_date, published) VALUES (?, ?, ?, ?, ?, ?)", (2,1,"post", "post_content", specific_day_timestamp, 0))
+            # conn.commit()
             # cur.execute("INSERT INTO content (content_type, post_date) VALUES (?, ?)", ("Post", specific_day_timestamp))
 
         post_popup.destroy()
