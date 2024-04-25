@@ -69,6 +69,8 @@ The Social Media Scheduler is an application that allows users to schedule and m
 
 Contributions are welcome! If you have any ideas, suggestions, or bug reports, please open an issue or submit a pull request.
 
+You can also read the notes.md file for more information on the project. - [notes.md](notes.md)
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
