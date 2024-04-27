@@ -28,7 +28,7 @@ The Social Media Scheduler is an application that allows users to schedule and m
 2. Install the required dependencies:
 
     ```bash
-    npm install
+    pip install -r requirements.txt
     ```
 
 3. Set up API credentials:
@@ -53,10 +53,10 @@ The Social Media Scheduler is an application that allows users to schedule and m
       TWITTER_API_KEY=your-api-key
       ```
 
-5. Start the application:
+5. Start local tkinter management application:
 
     ```bash
-    npm start
+    python gui/__init__.py
     ```
 
 ## Usage
