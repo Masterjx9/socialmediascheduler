@@ -2,14 +2,14 @@
 
 ## Immediate Goals
 - Finish all basic CRUD designs for tkinter app
-  - Fix timezones
+  - Fix timezones - **completed**
   - CREATE
     - Posting
-      - Finish submit_post() function for 1A and 1B options - completed
+      - Finish submit_post() function for 1A and 1B options - **completed**
     - Video
-      - Finish submit_video() function
+      - Finish submit_video() function - **completed**
     - Picture
-      - Finish submit_photo() function
+      - Finish submit_photo() function - **completed**
   - READ
     - Create way to click on an item in the calendar and it bring a popup to modify its data.
   - UPDATE

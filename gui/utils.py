@@ -17,8 +17,8 @@ import yaml
                     
 print("Current Timezone: ", time_module.tzname)
 
-def add_photo():
-    with open('config.yaml', 'r') as f:
+def add_photo(config_path):
+    with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     
     # check if there is a default path for photos
@@ -51,9 +51,9 @@ def add_photo():
         print("Scheduling option:", schedule_option.get())
         
         if schedule_option.get() == "2":
-            submit_content("image", file_path[0], schedule_option, specific_time_picker, date_cal)
+            submit_content(config_path, "image", file_path[0], schedule_option, specific_time_picker, date_cal)
         else:
-            submit_content("image", file_path[0], schedule_option, specific_time_picker)
+            submit_content(config_path, "image", file_path[0], schedule_option, specific_time_picker)
 
         add_photo_popup.destroy()
 
@@ -63,8 +63,8 @@ def add_photo():
     add_photo_popup.grab_set()
     add_photo_popup.wait_window(add_photo_popup)
 
-def add_video():
-    with open('config.yaml', 'r') as f:
+def add_video(config_path):
+    with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     
     # check if there is a default path for videos
@@ -97,9 +97,9 @@ def add_video():
         print("Scheduling option:", schedule_option.get())
         
         if schedule_option.get() == "2":
-            submit_content("video", file_path[0], schedule_option, specific_time_picker, date_cal)
+            submit_content(config_path, "video", file_path[0], schedule_option, specific_time_picker, date_cal)
         else:
-            submit_content("video", file_path[0], schedule_option, specific_time_picker)
+            submit_content(config_path, "video", file_path[0], schedule_option, specific_time_picker)
 
         add_video_popup.destroy()
     
@@ -109,7 +109,7 @@ def add_video():
     add_video_popup.grab_set()
     add_video_popup.wait_window(add_video_popup)
     
-def add_post(root):
+def add_post(config_path):
     post_popup = Toplevel(root)
     post_popup.title("Add a Post")
 
@@ -136,9 +136,9 @@ def add_post(root):
         print("Scheduling option:", schedule_option.get())
 
         if schedule_option.get() == "2":
-            submit_content("post", post_content, schedule_option, specific_time_picker, date_cal)
+            submit_content(config_path, "post", post_content, schedule_option, specific_time_picker, date_cal)
         else:
-            submit_content("post", post_content, schedule_option, specific_time_picker)
+            submit_content(config_path, "post", post_content, schedule_option, specific_time_picker)
 
         post_popup.destroy()
 
@@ -191,14 +191,12 @@ def build_calendar_time(container):
     return date_cal, specific_time_picker, schedule_frame
     
 # Function to submit the content to the database
-def submit_content(content_type, content_data, schedule_option, specific_time_picker, date_cal=None):
-    with open('config.yaml', 'r') as f:
-        config = yaml.safe_load(f)
-    conn = sqlite3.connect(config['DefaultSettings']['database_path'])
-    cur = conn.cursor()
-    with open('config.yaml', 'r') as f:
+def submit_content(config_path, content_type, content_data, schedule_option, specific_time_picker, date_cal=None):
+    with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     my_tz = pytz.timezone(config['DefaultSettings']['timezone'])
+    conn = sqlite3.connect(config['DefaultSettings']['database_path'])
+    cur = conn.cursor()
     
     if schedule_option.get() == "1A":
         last_post_date = cur.execute(f"SELECT post_date FROM content WHERE content_type = '{content_type}' ORDER BY post_date DESC LIMIT 1").fetchone()

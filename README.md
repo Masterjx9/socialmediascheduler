@@ -43,8 +43,10 @@ The Social Media Scheduler is an application that allows users to schedule and m
 
     - Create a `.env` file in the root directory of the project.
     - Add the following environment variables to the `.env` file:
+        - Or use the sample.env to get started
 
       ```plaintext
+      CONFIG_PATH = config.yaml
       META_FACEBOOK_API_KEY=your-api-key
       META_FACEBOOK_API_SECRET=your-api-secret
       YOUTUBE_API_KEY=your-api-key

@@ -16,7 +16,7 @@ def print_month_year(month, year):
     month_year_label = tk.Label(calendar_frame, text=f"{written_month} {year}", font=("Arial", 20))
     month_year_label.grid(column=2, row=0, columnspan=3)
 
-def switch_months(direction):
+def switch_months(config_path, direction):
     global month, year
     if direction == 1 and month == 12:
         month = 1
@@ -26,23 +26,23 @@ def switch_months(direction):
         year -= 1
     else:
         month += direction
-    rebuild_calendar()
+    rebuild_calendar(config_path)
 
-def rebuild_calendar():
+def rebuild_calendar(config_path):
     global calendar_frame
     for widget in calendar_frame.winfo_children():
         widget.destroy()
     print_month_year(month, year)
-    make_buttons()
-    month_generator()
+    make_buttons(config_path)
+    month_generator(config_path)
 
-def make_buttons():
-    go_back = tk.Button(calendar_frame, text="<", command=lambda: switch_months(-1))
+def make_buttons(config_path):
+    go_back = tk.Button(calendar_frame, text="<", command=lambda: switch_months(config_path, -1))
     go_back.grid(column=0, row=0)
-    go_forward = tk.Button(calendar_frame, text=">", command=lambda: switch_months(1))
+    go_forward = tk.Button(calendar_frame, text=">", command=lambda: switch_months(config_path, 1))
     go_forward.grid(column=6, row=0)
 
-def month_generator():
+def month_generator(config_path):
     # Calendar header for days of the week
     day_names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     for i, name in enumerate(day_names):
@@ -55,7 +55,7 @@ def month_generator():
     day_counter = 0
     start_counting = False
 
-    with open('config.yaml', 'r') as f:
+    with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     
     database_path = config.get('DefaultSettings').get('database_path')

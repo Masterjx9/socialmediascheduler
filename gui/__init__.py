@@ -16,7 +16,7 @@ import utils
 root.withdraw()
 
 # Load the content scheduler window
-def initialize_main_window():
+def initialize_main_window(config_path):
     global calendar_frame, month_year_label, month, year
     root.title("Content Scheduler")
     root.geometry("500x400")  
@@ -30,13 +30,13 @@ def initialize_main_window():
 
     content_menu = Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label="Content", menu=content_menu)
-    content_menu.add_command(label="Add Photo", command=utils.add_photo)
-    content_menu.add_command(label="Add Video", command=utils.add_video)
-    content_menu.add_command(label="Add Post", command=lambda: utils.add_post(root))
+    content_menu.add_command(label="Add Photo", command=lambda: utils.add_photo(config_path))
+    content_menu.add_command(label="Add Video", command=lambda: utils.add_video(config_path))
+    content_menu.add_command(label="Add Post", command=lambda: utils.add_post(config_path))
 
     settings_menu = Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label="Settings", menu=settings_menu)
-    settings_menu.add_command(label="Manage Settings", command= open_settings)
+    settings_menu.add_command(label="Manage Settings", command=lambda: open_settings(config_path))
 
     help_menu = Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label="Help", menu=help_menu)
@@ -47,13 +47,13 @@ def initialize_main_window():
     year = date.today().year
 
     utils_calendar.print_month_year(month, year)
-    utils_calendar.make_buttons()
-    utils_calendar.month_generator()
+    utils_calendar.make_buttons(config_path)
+    utils_calendar.month_generator(config_path)
     root.mainloop()
 
 # Function to select a user
-def select_user():
-    with open('config.yaml', 'r') as f:
+def select_user(config_path):
+    with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
 
 
@@ -63,7 +63,7 @@ def select_user():
         user_selection_popup.title("User Selection")
         user_selection_popup.geometry("300x200")  # Adjust size as needed
 
-        with open('config.yaml', 'r') as f:
+        with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
         
         conn = sqlite3.connect(config['DefaultSettings']['database_path'])
@@ -91,7 +91,7 @@ def select_user():
                 user_id = cur.lastrowid
                 conn.close()
                 config['current_user'] = user_id
-                with open('config.yaml', 'w') as f:
+                with open(config_path, 'w') as f:
                     yaml.safe_dump(config, f)
                 user_selection_popup.destroy()
                 root.deiconify()  # Show the root window
@@ -102,7 +102,7 @@ def select_user():
         def select_user():
             if selected_user.get():
                 config['current_user'] = selected_user.get()
-                with open('config.yaml', 'w') as f:
+                with open(config_path, 'w') as f:
                     yaml.safe_dump(config, f)
                 user_selection_popup.destroy()
                 root.deiconify()  # Show the root window
@@ -116,15 +116,15 @@ def select_user():
         user_selection_popup.grab_set()
         user_selection_popup.wait_window()
         root.deiconify()  
-        initialize_main_window()
+        initialize_main_window(config_path)
     else:
         root.deiconify()  # Show the root window if a user is already selected
-        initialize_main_window()
+        initialize_main_window(config_path)
 
 # Function to open the Manage Accounts popup
 def open_accounts(root):
     # Load current user from config.yaml
-    with open('config.yaml', 'r') as f:
+    with open("config.yaml", 'r') as f:
         config = yaml.safe_load(f)
     print(config)
     current_user_id = config.get('current_user')
@@ -161,7 +161,7 @@ def open_accounts(root):
         
         # Update the current user in the config.yaml file
         config['current_user'] = selected_user.get()
-        with open('config.yaml', 'w') as f:
+        with open(config_path, 'w') as f:
             yaml.safe_dump(config, f)
         
         print("Selected user:", selected_user.get())
@@ -176,12 +176,12 @@ def open_accounts(root):
 def open_support():
     webbrowser.open('https://github.com/Masterjx9/socialmediascheduler/issues')
 
-def open_settings():
+def open_settings(config_path):
     settings_popup = Toplevel(root)
     settings_popup.title("Manage Settings")
 
     # Load current settings
-    with open('config.yaml', 'r') as f:
+    with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
 
     # Create entry widgets for each setting
@@ -217,7 +217,7 @@ def open_settings():
         config['DefaultSettings']['video_path'] = video_entry.get()
 
         # Write updated config back to file
-        with open('config.yaml', 'w') as f:
+        with open(config_path, 'w') as f:
             yaml.dump(config, f)
 
         settings_popup.destroy()
@@ -229,6 +229,6 @@ def open_settings():
     settings_popup.grab_set()
     settings_popup.wait_window(settings_popup)
 
-def create_app():    
-    select_user()
+def create_app(config_path):    
+    select_user(config_path)
     root.mainloop()    
