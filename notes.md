@@ -2,9 +2,10 @@
 
 ## Immediate Goals
 - Finish all basic CRUD designs for tkinter app
+  - Fix timezones
   - CREATE
     - Posting
-      - Finish submit_post() function for 1A and 1B options
+      - Finish submit_post() function for 1A and 1B options - completed
     - Video
       - Finish submit_video() function
     - Picture

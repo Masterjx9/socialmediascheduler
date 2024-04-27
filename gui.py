@@ -7,11 +7,14 @@ from tkinter import filedialog, \
 import webbrowser
 from tkcalendar import Calendar as tkcalendar
 from tktimepicker import SpinTimePickerOld, AnalogPicker, AnalogThemes, constants
-from datetime import date, datetime, timezone, time
+from datetime import date, datetime, timezone, time, timedelta
+import time as time_module
 import calendar
 import sqlite3
 import yaml
+import pytz
 
+print("Current Timezone: ", time_module.tzname)
 # First thing to do is to create a root window, then hide it until the user selects a user or a user is already selected
 root = tk.Tk()
 root.withdraw()
@@ -374,23 +377,60 @@ def add_post(root):
 
         conn = sqlite3.connect('database_jay.sqlite3')
         cur = conn.cursor()
+        my_tz = pytz.timezone('US/Pacific')
         if schedule_option.get() == "1A":
             last_post_date = cur.execute("SELECT post_date FROM content WHERE content_type = 'post' ORDER BY post_date DESC LIMIT 1").fetchone()
             print("Last post date:", last_post_date)
             last_post_date_str = datetime.fromtimestamp(last_post_date[0]).strftime("%m/%d/%y")
             print("Last post date (formatted):", last_post_date_str)
             
-            all_content = cur.execute("SELECT * FROM content")
-            print(all_content.fetchall())
+            # Get the next day
+            next_day = datetime.strptime(last_post_date_str, "%m/%d/%y") + timedelta(days=1)
+            print("Next day:", next_day)
             
-
-            print("Complete Time:", specific_time_picker.time())
             
-            # cur.execut("INSERT INTO content (content_type, post_date) VALUES (?, ?)", ("Post", last_post_date) #Needs to be + next day
+            time_tuple = specific_time_picker.time()  # e.g., (1, 0, 'a.m')
+            
+            # Convert the time tuple to a datetime.time object
+            hour = time_tuple[0] % 12 + (12 if time_tuple[2] == 'p.m' else 0)
+            minute = time_tuple[1]
+            selected_time = time(hour, minute)
+            
+            # Combine the date and time
+            complete_datetime = datetime.combine(next_day, selected_time)
+            complete_datetime = my_tz.localize(complete_datetime)
+            print("Complete Time:", complete_datetime)
+            
+            
+            cur.execute("INSERT INTO content (user_id, content_type, content_data, post_date, published) VALUES (?, ?, ?, ?, ?)", (1,"post", post_content, complete_datetime.timestamp(), 0))
+            conn.commit()
         if schedule_option.get() == "1B":
             cur.execute("SELECT post_date FROM content ORDER BY post_date DESC LIMIT 1")
             last_post_date = cur.fetchone()
             print("Last post date:", last_post_date)
+            last_post_date_str = datetime.fromtimestamp(last_post_date[0], timezone.utc).strftime("%m/%d/%y")
+            print("Last post date (formatted):", last_post_date_str)
+            
+            # Get the next day
+            next_day = datetime.strptime(last_post_date_str, "%m/%d/%y") + timedelta(days=1)
+            print("Next day:", next_day)
+            
+            # Get the time from the time picker
+            time_tuple = specific_time_picker.time()  # e.g., (1, 0, 'a.m')
+            
+            # Convert the time tuple to a datetime.time object
+            hour = time_tuple[0] % 12 + (12 if time_tuple[2] == 'p.m' else 0)
+            minute = time_tuple[1]
+            selected_time = time(hour, minute)
+            
+            # Combine the date and time
+            complete_datetime = datetime.combine(next_day, selected_time)
+            complete_datetime = my_tz.localize(complete_datetime)
+            print("Complete Time:", complete_datetime)
+            
+            cur.execute("INSERT INTO content (user_id, content_type, content_data, post_date, published) VALUES (?, ?, ?, ?, ?)", (1,"post", post_content, complete_datetime.timestamp(), 0))
+            conn.commit()
+            
         if schedule_option.get() == "2":
             specific_day = date_cal.get_date()
 
@@ -406,28 +446,16 @@ def add_post(root):
 
             # Combine the date and time
             complete_datetime = datetime.combine(specific_day_obj, selected_time)
-
+            complete_datetime = my_tz.localize(complete_datetime)
             print("Complete Time:", complete_datetime)
-            
 
             # Convert the datetime object to a Unix timestamp
             unix_timestamp = complete_datetime.timestamp()
 
             print("Unix Timestamp:", unix_timestamp)
-
-            # # Get current datetime
-            # now = datetime.now()
-
-            # # Convert current datetime to Unix timestamp
-            # now_timestamp = now.timestamp()
-
-            # print("Specific day timestamp:", specific_day_timestamp)
-            # print("Current datetime timestamp:", now_timestamp)
             
-            # print(specific_day)
-            # cur.execute("INSERT INTO content (content_id, user_id, content_type, content_data, post_date, published) VALUES (?, ?, ?, ?, ?, ?)", (2,1,"post", "post_content", specific_day_timestamp, 0))
-            # conn.commit()
-            # cur.execute("INSERT INTO content (content_type, post_date) VALUES (?, ?)", ("Post", specific_day_timestamp))
+            cur.execute("INSERT INTO content (user_id, content_type, content_data, post_date, published) VALUES (?, ?, ?, ?, ?)", (1,"post", post_content, unix_timestamp, 0))
+            conn.commit()
 
         post_popup.destroy()
 
@@ -520,7 +548,7 @@ def month_generator():
                         entries = cur.fetchall()
                         print(entries)
                         # Convert each UNIX time in the results back to the desired datetime string format
-                        content_text = "\n".join([f"{entry[0]} - {datetime.utcfromtimestamp(entry[1]).strftime('%Y-%m-%d %H:%M')}" for entry in entries])
+                        content_text = "\n".join([f"{entry[0]} - {datetime.fromtimestamp(entry[1], tz=timezone.utc).strftime('%Y-%m-%d %H:%M')}" for entry in entries])
 
                         tk.Label(day_frame, text=f"{day_counter}\n{content_text}").pack()
 
