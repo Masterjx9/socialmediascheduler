@@ -56,7 +56,7 @@ The Social Media Scheduler is an application that allows users to schedule and m
 5. Start local tkinter management application:
 
     ```bash
-    python gui/__init__.py
+    python manage.py
     ```
 
 ## Usage

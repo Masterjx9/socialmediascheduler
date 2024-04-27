@@ -228,7 +228,7 @@ def open_settings():
 
     settings_popup.grab_set()
     settings_popup.wait_window(settings_popup)
-    
-select_user()
 
-root.mainloop()    
+def create_app():    
+    select_user()
+    root.mainloop()    
