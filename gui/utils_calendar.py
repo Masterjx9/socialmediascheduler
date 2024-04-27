@@ -4,8 +4,8 @@ import calendar
 import yaml
 import sqlite3
 from globals import calendar_frame, month_year_label, month, year
-
-
+import utils
+import pytz
 
 textObjectDict = {}
 saveDict = {}
@@ -58,6 +58,7 @@ def month_generator(config_path):
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     
+    my_tz = pytz.timezone(config['DefaultSettings']['timezone'])
     database_path = config.get('DefaultSettings').get('database_path')
     conn = sqlite3.connect(database_path)
     
@@ -80,15 +81,27 @@ def month_generator(config_path):
                         end_of_day = start_of_day + 86400
 
                         # Query the database for content within the start and end of the selected day
-                        cur.execute("SELECT content_type, post_date FROM content WHERE post_date >= ? AND post_date < ?", (start_of_day, end_of_day))
+                        cur.execute("SELECT content_id, content_type, post_date FROM content WHERE post_date >= ? AND post_date < ?", (start_of_day, end_of_day))
                         entries = cur.fetchall()
-                        print(entries)
-                        # Convert each UNIX time in the results back to the desired datetime string format
-                        content_text = "\n".join([f"{entry[0]} - {datetime.fromtimestamp(entry[1], tz=timezone.utc).strftime('%Y-%m-%d %H:%M')}" for entry in entries])
+                        tk.Label(day_frame, text=f"{day_counter}").pack()
+                        for entry in entries:
+                            content_id = entry[0]
+                            content_type = entry[1]
+                            content_date = entry[2]
+                            print(content_id)
+                            print(content_type)
+                            print(content_date)
+                            content_text = f"{content_type} - {datetime.fromtimestamp(content_date, tz=my_tz).strftime('%Y-%m-%d %H:%M')}"
+                            content_label = tk.Label(day_frame, text=f"{content_text}")
+                            if content_type == "image":
+                                content_label.bind("<Button-1>", lambda event, mode="calendar", cid=content_id: utils.add_photo(mode, cid))
+                            if content_type == "video":
+                                content_label.bind("<Button-1>", lambda event, mode="calendar", cid=content_id: utils.add_video(mode, cid))
+                            if content_type == "post":
+                                content_label.bind("<Button-1>", lambda event, mode="calendar", cid=content_id: utils.add_post(mode, cid))
+                            content_label.bind("<Button-3>", lambda event, cid=content_id: utils.delete_content(cid))
+                            content_label.pack()
 
-                        tk.Label(day_frame, text=f"{day_counter}\n{content_text}").pack()
-
-       
 
                     else:
                         tk.Label(day_frame, text="").pack()

@@ -26,7 +26,7 @@ def initialize_main_window(config_path):
 
     accounts_menu = Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label="Accounts", menu=accounts_menu)
-    accounts_menu.add_command(label="Manage Accounts", command=lambda: open_accounts(root))
+    accounts_menu.add_command(label="Manage Accounts", command=lambda: open_accounts(root, config_path))
 
     content_menu = Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label="Content", menu=content_menu)
@@ -84,7 +84,7 @@ def select_user(config_path):
         def create_new_user():
             name = new_user_name.get()
             if name:
-                conn = sqlite3.connect('database_jay.sqlite3')
+                conn = sqlite3.connect(config['DefaultSettings']['database_path'])
                 cur = conn.cursor()
                 cur.execute("INSERT INTO users (name) VALUES (?)", (name,))
                 conn.commit()
@@ -122,9 +122,9 @@ def select_user(config_path):
         initialize_main_window(config_path)
 
 # Function to open the Manage Accounts popup
-def open_accounts(root):
+def open_accounts(root, config_path):
     # Load current user from config.yaml
-    with open("config.yaml", 'r') as f:
+    with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     print(config)
     current_user_id = config.get('current_user')
@@ -140,7 +140,7 @@ def open_accounts(root):
     post_popup.title("Manage Accounts")
     
     # Fetch users from the database
-    conn = sqlite3.connect('database_jay.sqlite3')
+    conn = sqlite3.connect(config['DefaultSettings']['database_path'])
     cur = conn.cursor()
     cur.execute("SELECT * FROM users")
     users = cur.fetchall()
@@ -154,7 +154,7 @@ def open_accounts(root):
     for user in users:
         Radiobutton(post_popup, text=user[1], variable=selected_user, value=user[0]).pack(anchor='w')
     
-    def submit_user():
+    def submit_user(config_path):
         if not selected_user.get():
             messagebox.showerror("Error", "Please select a user.")
             return
@@ -167,7 +167,7 @@ def open_accounts(root):
         print("Selected user:", selected_user.get())
         post_popup.destroy()
     
-    submit_button = Button(post_popup, text="Submit User", command=submit_user)
+    submit_button = Button(post_popup, text="Submit User", command=lambda: submit_user(config_path))
     submit_button.pack(pady=5)
     
     post_popup.grab_set()
@@ -178,6 +178,7 @@ def open_support():
 
 def open_settings(config_path):
     settings_popup = Toplevel(root)
+    settings_popup.geometry("300x300")
     settings_popup.title("Manage Settings")
 
     # Load current settings
@@ -189,25 +190,37 @@ def open_settings(config_path):
     database_label.pack()
     database_entry = Entry(settings_popup)
     database_entry.pack()
-    database_entry.insert(0, config['DefaultSettings']['database_path'])  # Prefill with current setting
+    database_entry.insert(0, config['DefaultSettings']['database_path'])  
 
     mode_label = Label(settings_popup, text="Mode:")
     mode_label.pack()
     mode_entry = Entry(settings_popup)
     mode_entry.pack()
-    mode_entry.insert(0, config['DefaultSettings']['mode'])  # Prefill with current setting
+    mode_entry.insert(0, config['DefaultSettings']['mode'])  
 
     photo_label = Label(settings_popup, text="Photo Path:")
     photo_label.pack()
     photo_entry = Entry(settings_popup)
     photo_entry.pack()
-    photo_entry.insert(0, config['DefaultSettings']['photo_path'])  # Prefill with current setting
+    photo_entry.insert(0, config['DefaultSettings']['photo_path'])  
 
     video_label = Label(settings_popup, text="Video Path:")
     video_label.pack()
     video_entry = Entry(settings_popup)
     video_entry.pack()
-    video_entry.insert(0, config['DefaultSettings']['video_path'])  # Prefill with current setting
+    video_entry.insert(0, config['DefaultSettings']['video_path'])  
+    
+    default_video_time_label = Label(settings_popup, text="Default Video Time:")
+    default_video_time_label.pack()
+    default_video_time_entry = Entry(settings_popup)
+    default_video_time_entry.pack()
+    default_video_time_entry.insert(0, config['DefaultSettings']['default_video_time'])
+    
+    default_timezone_label = Label(settings_popup, text="Default Timezone:")
+    default_timezone_label.pack()
+    default_timezone_entry = Entry(settings_popup)
+    default_timezone_entry.pack()
+    default_timezone_entry.insert(0, config['DefaultSettings']['timezone'])
 
     def save_settings():
         # Update config with values from entry widgets
