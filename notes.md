@@ -19,6 +19,12 @@
   - Delete
     - Create delete by right clicking on a item and choosing delete which will delete it from the database. This will only be for content that hasn't been posted - **completed**
 
+## Immediate Goals
+- Setup a way to Add and delete social media accounts
+  - Add a way to add social media accounts to the database - **completed**
+    - Fix issue where the account_id needs to to the column based on the social_media_accounts table
+  - Add a way to delete social media accounts from the database - **completed**
+  
 ## Next Set of Goals
 - Test Creating a post and it showing up in twitter/x
 - Implement Threads api (just came out)

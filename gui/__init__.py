@@ -3,7 +3,7 @@ from tkinter import filedialog, \
                     Text, Menu, \
                     Toplevel, Radiobutton, \
                     StringVar, messagebox, \
-                    Entry, Button, Label
+                    Entry, Button, Label, OptionMenu
 import webbrowser
 from datetime import date
 import yaml
@@ -27,6 +27,7 @@ def initialize_main_window(config_path):
     accounts_menu = Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label="Accounts", menu=accounts_menu)
     accounts_menu.add_command(label="Manage Accounts", command=lambda: open_accounts(root, config_path))
+    accounts_menu.add_command(label="Manage Social Media Accounts", command=lambda: manage_social_accounts(root, config_path))
 
     content_menu = Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label="Content", menu=content_menu)
@@ -173,6 +174,226 @@ def open_accounts(root, config_path):
     post_popup.grab_set()
     post_popup.wait_window(post_popup)
 
+def manage_social_accounts(root, config_path):
+    # Load current user from config.yaml
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+    print(config)
+    current_user_id = config.get('current_user')
+    print(current_user_id)
+
+    # If no current user, prompt for selection or creation
+    if not current_user_id:
+        # Code to prompt for user selection or creation goes here
+        pass
+
+    # Continue with opening the Manage Accounts popup
+    post_popup = Toplevel(root, width=500, height=500)
+    post_popup.title("Manage Social Media Accounts")
+    
+    # Fetch users from the database
+    conn = sqlite3.connect(config['DefaultSettings']['database_path'])
+    cur = conn.cursor()
+
+    social_accounts = cur.execute("SELECT * FROM social_media_accounts WHERE user_id = ?", (current_user_id,)).fetchall()
+
+    meta_accounts_count = 0
+    twitter_accounts_count = 0
+
+    for account in social_accounts:
+        print(account[2])
+        if account[2] == 'Meta':
+            meta_accounts_data = cur.execute("SELECT * FROM meta_accounts WHERE account_id = ?", (account[0],)).fetchall()
+            meta_accounts_count += len(meta_accounts_data)
+            for m_account in meta_accounts_data:
+                print(f"Meta/Instagram Account: meta_id = {m_account[0]}")
+        if account[2] == 'Twitter':
+            twitter_accounts_data = cur.execute("SELECT * FROM twitter_accounts WHERE account_id = ?", (account[0],)).fetchall()
+            twitter_accounts_count += len(twitter_accounts_data)
+            for t_account in twitter_accounts_data:
+                print(f"X/Twitter Account: twitter_consumer_key = {t_account[0]}")
+
+    # social media accounts
+    social_accounts_label = Label(post_popup, text="Social Media Accounts")
+    social_accounts_label.pack()
+
+    def update_accounts_list(*args):
+        option = show_accounts_type.get()
+
+        # Clear the listbox
+        accounts_list.delete(0, 'end')
+
+        # Fetch the accounts from the database
+        if option == 'Meta/Instagram':
+            social_accounts = cur.execute("SELECT * FROM social_media_accounts WHERE user_id = ?", (current_user_id,)).fetchall()
+            for account in social_accounts:
+                accounts_data = cur.execute("SELECT * FROM meta_accounts WHERE account_id = ?", (account[0],)).fetchall()
+                for account in accounts_data:
+                    print(account[0])
+                    print(account[1])
+                    print(account[1])
+                    print(account[1])
+                    print(account[1])
+                    print(account[1])
+                    print(account[2])
+                    print(account[3])
+                    print(account[4])
+                    accounts_list.insert('end', f"Meta/Instagram Account: {account[1]}")
+        elif option == 'X/Twitter':
+            social_accounts = cur.execute("SELECT * FROM social_media_accounts WHERE user_id = ?", (current_user_id,)).fetchall()
+            for account in social_accounts:
+                accounts_data = cur.execute("SELECT * FROM twitter_accounts WHERE account_id = ?", (account[0],)).fetchall()
+                for account in accounts_data:
+                    accounts_list.insert('end', f"X/Twitter Account: {account[1]}")
+
+
+    # Create an OptionMenu to choose the option
+    show_accounts_type = StringVar()
+    show_accounts_type.set("Meta/Instagram")
+    show_accounts_type.trace('w', update_accounts_list)
+    show_accounts_type_options = ["Meta/Instagram", "X/Twitter"]
+    show_accounts_type_dropdown = OptionMenu(post_popup, show_accounts_type, *show_accounts_type_options)
+    show_accounts_type_dropdown.pack()
+    
+    # Create a Listbox to display the accounts
+    accounts_list = tk.Listbox(post_popup, height=20, width=200)
+    accounts_list.pack()
+    
+    update_accounts_list()
+    
+    create_account_button = Button(post_popup, text="Create Account", command=lambda: create_social_account(config_path))
+    create_account_button.pack(pady=5)
+    
+    def create_social_account(config_path):
+        social_account_popup = Toplevel(post_popup)
+        social_account_popup.title("Create Social Media Account")
+        
+        account_type_label = Label(social_account_popup, text="Select Account Type:")
+        account_type_label.pack()
+        
+        account_type = StringVar()
+        account_type.set("Meta/Instagram")
+        account_type_options = ["Meta/Instagram", "X/Twitter"]
+        account_type_dropdown = OptionMenu(social_account_popup, account_type, *account_type_options, command=lambda x: update_fields(account_type.get(), field_frame))
+        account_type_dropdown.pack()   
+        
+        
+        # Frame to hold dynamically changing fields
+        field_frame = tk.Frame(social_account_popup)
+        field_frame.pack()
+    
+        def update_fields(selection, frame):
+            # Clear current fields
+            print(selection)
+            for widget in frame.winfo_children():
+                widget.destroy()
+
+            account_name_label = Label(frame, text="Account Name:")
+            account_name_label.pack()
+            account_name_entry = Entry(frame)
+            account_name_entry.pack()
+
+            if selection == "Meta/Instagram":
+                meta_id_label = Label(frame, text="Meta ID:")
+                meta_id_label.pack()
+                meta_id_entry = Entry(frame)
+                meta_id_entry.pack()
+
+                meta_token_label = Label(frame, text="Meta Token:")
+                meta_token_label.pack()
+                meta_token_entry = Entry(frame)
+                meta_token_entry.pack()
+            
+            elif selection == "X/Twitter":
+                consumer_key_label = Label(frame, text="Twitter Consumer Key:")
+                consumer_key_label.pack()
+                consumer_key_entry = Entry(frame)
+                consumer_key_entry.pack()
+
+                consumer_secret_label = Label(frame, text="Twitter Consumer Secret:")
+                consumer_secret_label.pack()
+                consumer_secret_entry = Entry(frame)
+                consumer_secret_entry.pack()
+
+                access_token_label = Label(frame, text="Twitter Access Token:")
+                access_token_label.pack()
+                access_token_entry = Entry(frame)
+                access_token_entry.pack()
+
+                access_token_secret_label = Label(frame, text="Twitter Access Token Secret:")
+                access_token_secret_label.pack()
+                access_token_secret_entry = Entry(frame)
+                access_token_secret_entry.pack()
+             
+        update_fields(account_type.get(), field_frame)
+        
+        # submit_button = Button(social_account_popup, text="Submit Account", command=submit_social_account)
+        submit_button = Button(social_account_popup, text="Submit Account", command=lambda: submit_social_account(account_type.get(), field_frame, post_popup, social_account_popup))
+        # submit_button = Button(social_account_popup, text="Submit Account", command=lambda: submit_social_account(account_type.get(), field_frame, config_path, post_popup, social_account_popup))
+        submit_button.pack(pady=5)
+        
+        def submit_social_account(account_type, frame, post_popup, social_account_popup):
+            # Fetch entered data from frame's children, which are the labels and entries
+            entries = [e for e in frame.winfo_children() if isinstance(e, Entry)]
+            values = [e.get() for e in entries]
+
+            if any(not value for value in values):
+                messagebox.showerror("Error", "Please enter all fields.")
+                return
+
+            conn = sqlite3.connect(config['DefaultSettings']['database_path'])
+            cur = conn.cursor()
+
+            # Process based on account type
+            if account_type == "Meta/Instagram":
+                # Assuming order is Account Name, Meta ID, Meta Token
+                cur.execute("INSERT INTO meta_accounts (account_id, account_name, meta_id, meta_token) VALUES (?, ?, ?, ?)", (current_user_id, values[0], values[1], values[2]))
+            elif account_type == "X/Twitter":
+                # Assuming order is Account Name, Consumer Key, Consumer Secret, Access Token, Access Token Secret
+                cur.execute("INSERT INTO twitter_accounts (account_id, account_name, twitter_consumer_key, twitter_consumer_secret, twitter_access_token, twitter_access_token_secret) VALUES (?, ?, ?, ?, ?, ?)", (current_user_id, values[0], values[1], values[2], values[3], values[4]))
+
+            conn.commit()
+            conn.close()
+
+            social_account_popup.destroy()
+            post_popup.destroy()
+            
+
+    
+    def delete_social_account():
+        selected_index = accounts_list.curselection()
+        if not selected_index:
+            messagebox.showerror("Error", "No account selected")
+            return
+        selected_account = accounts_list.get(selected_index[0])
+        account_id = selected_account.split(': ')[1]  # Assumes format "Account Type: account_id = XYZ"
+
+        # Confirm deletion
+        social_account_delete = messagebox.askyesno("Delete Account", f"Are you sure you want to delete this account: {selected_account}?")
+        if social_account_delete:
+            conn = sqlite3.connect(config['DefaultSettings']['database_path'])
+            cur = conn.cursor()
+
+            # Delete account based on type inferred from the listbox text
+            if "Meta/Instagram" in selected_account:
+                cur.execute("DELETE FROM meta_accounts WHERE account_id = ?", (account_id,))
+                cur.execute("DELETE FROM social_media_accounts WHERE account_id = ?", (account_id,))
+            elif "X/Twitter" in selected_account:
+                cur.execute("DELETE FROM twitter_accounts WHERE account_id = ?", (account_id,))
+                cur.execute("DELETE FROM social_media_accounts WHERE account_id = ?", (account_id,))
+
+            conn.commit()
+            conn.close()
+
+        # Update list
+        accounts_list.delete(selected_index[0])
+        messagebox.showinfo("Success", "Account deleted successfully.")
+    delete_account_button = Button(post_popup, text="Delete Account", command=delete_social_account)
+    delete_account_button.pack(pady=5)
+    
+    post_popup.grab_set()
+    post_popup.wait_window(post_popup)
+    
 def open_support():
     webbrowser.open('https://github.com/Masterjx9/socialmediascheduler/issues')
 
