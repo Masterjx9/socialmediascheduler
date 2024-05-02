@@ -227,24 +227,18 @@ def manage_social_accounts(root, config_path):
         if option == 'Meta/Instagram':
             social_accounts = cur.execute("SELECT * FROM social_media_accounts WHERE user_id = ?", (current_user_id,)).fetchall()
             for account in social_accounts:
+                print(account)
                 accounts_data = cur.execute("SELECT * FROM meta_accounts WHERE account_id = ?", (account[0],)).fetchall()
                 for account in accounts_data:
-                    print(account[0])
-                    print(account[1])
-                    print(account[1])
-                    print(account[1])
-                    print(account[1])
-                    print(account[1])
-                    print(account[2])
-                    print(account[3])
-                    print(account[4])
-                    accounts_list.insert('end', f"Meta/Instagram Account: {account[1]}")
+                    print(account)
+                    accounts_list.insert('end', f"Meta/Instagram Account: {account[0]} - {account[3]}")
         elif option == 'X/Twitter':
             social_accounts = cur.execute("SELECT * FROM social_media_accounts WHERE user_id = ?", (current_user_id,)).fetchall()
             for account in social_accounts:
+                print(account)
                 accounts_data = cur.execute("SELECT * FROM twitter_accounts WHERE account_id = ?", (account[0],)).fetchall()
                 for account in accounts_data:
-                    accounts_list.insert('end', f"X/Twitter Account: {account[1]}")
+                    accounts_list.insert('end', f"X/Twitter Account: {account[0]} - {account[5]}")
 
 
     # Create an OptionMenu to choose the option
@@ -256,7 +250,7 @@ def manage_social_accounts(root, config_path):
     show_accounts_type_dropdown.pack()
     
     # Create a Listbox to display the accounts
-    accounts_list = tk.Listbox(post_popup, height=20, width=200)
+    accounts_list = tk.Listbox(post_popup, height=18, width=150)
     accounts_list.pack()
     
     update_accounts_list()
@@ -332,31 +326,38 @@ def manage_social_accounts(root, config_path):
         # submit_button = Button(social_account_popup, text="Submit Account", command=lambda: submit_social_account(account_type.get(), field_frame, config_path, post_popup, social_account_popup))
         submit_button.pack(pady=5)
         
-        def submit_social_account(account_type, frame, post_popup, social_account_popup):
-            # Fetch entered data from frame's children, which are the labels and entries
-            entries = [e for e in frame.winfo_children() if isinstance(e, Entry)]
-            values = [e.get() for e in entries]
+    def submit_social_account(account_type, frame, post_popup, social_account_popup):
+        # Fetch entered data from frame's children, which are the labels and entries
+        entries = [e for e in frame.winfo_children() if isinstance(e, Entry)]
+        values = [e.get() for e in entries]
 
-            if any(not value for value in values):
-                messagebox.showerror("Error", "Please enter all fields.")
-                return
+        if any(not value for value in values):
+            messagebox.showerror("Error", "Please enter all fields.")
+            return
 
-            conn = sqlite3.connect(config['DefaultSettings']['database_path'])
-            cur = conn.cursor()
+        conn = sqlite3.connect(config['DefaultSettings']['database_path'])
+        cur = conn.cursor()
 
-            # Process based on account type
-            if account_type == "Meta/Instagram":
-                # Assuming order is Account Name, Meta ID, Meta Token
-                cur.execute("INSERT INTO meta_accounts (account_id, account_name, meta_id, meta_token) VALUES (?, ?, ?, ?)", (current_user_id, values[0], values[1], values[2]))
-            elif account_type == "X/Twitter":
-                # Assuming order is Account Name, Consumer Key, Consumer Secret, Access Token, Access Token Secret
-                cur.execute("INSERT INTO twitter_accounts (account_id, account_name, twitter_consumer_key, twitter_consumer_secret, twitter_access_token, twitter_access_token_secret) VALUES (?, ?, ?, ?, ?, ?)", (current_user_id, values[0], values[1], values[2], values[3], values[4]))
+        # Insert into social_media_accounts table
+        cur.execute("INSERT INTO social_media_accounts (user_id, platform_name) VALUES (?, ?)", (current_user_id, account_type))
+        conn.commit()
 
-            conn.commit()
-            conn.close()
+        # Fetch the last inserted id
+        last_id = cur.lastrowid
 
-            social_account_popup.destroy()
-            post_popup.destroy()
+        # Process based on account type
+        if account_type == "Meta/Instagram":
+            # Assuming order is Account Name, Meta ID, Meta Token
+            cur.execute("INSERT INTO meta_accounts (account_id, account_name, meta_id, meta_access_token) VALUES (?, ?, ?, ?)", (last_id, values[0], values[1], values[2]))
+        elif account_type == "X/Twitter":
+            # Assuming order is Account Name, Consumer Key, Consumer Secret, Access Token, Access Token Secret
+            cur.execute("INSERT INTO twitter_accounts (account_id, account_name, twitter_consumer_key, twitter_consumer_secret, twitter_access_token, twitter_access_token_secret) VALUES (?, ?, ?, ?, ?, ?)", (last_id, values[0], values[1], values[2], values[3], values[4]))
+
+        conn.commit()
+        conn.close()
+
+        social_account_popup.destroy()
+        post_popup.destroy()
             
 
     
@@ -366,8 +367,8 @@ def manage_social_accounts(root, config_path):
             messagebox.showerror("Error", "No account selected")
             return
         selected_account = accounts_list.get(selected_index[0])
-        account_id = selected_account.split(': ')[1]  # Assumes format "Account Type: account_id = XYZ"
-
+        account_id = selected_account.split(': ')[1].split(' - ')[0]
+        print(f"Selected account: {selected_account}, account_id: {account_id}")
         # Confirm deletion
         social_account_delete = messagebox.askyesno("Delete Account", f"Are you sure you want to delete this account: {selected_account}?")
         if social_account_delete:
