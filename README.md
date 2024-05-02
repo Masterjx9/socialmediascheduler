@@ -22,7 +22,7 @@ The Social Media Scheduler is an application that allows users to schedule and m
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/your-username/social-media-scheduler.git
+    git clone https://github.com/Masterjx9/socialmediascheduler.git
     ```
 
 2. Install the required dependencies:
