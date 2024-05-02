@@ -1,7 +1,6 @@
 import datetime
 from apis import awss3
 import requests
-import os
 
 """_summary_
 
@@ -13,6 +12,12 @@ This module is used to post pictures to Instagram and Facebook using the Faceboo
 - method_of_access: The method of access to the pictures (aws or local)
 
 """
+def get_page_token(user_token):
+    url = "https://graph.facebook.com/v17.0/pythonicit?fields=access_token"
+    response = requests.get(url, params={"access_token": user_token})
+    data = response.json()
+    print(data)
+    return data["access_token"]
 
 def create_container(meta_access_token, image_url, meta_id, description, tags):
     hashtags = " ".join([f"#{tag}" for tag in tags.split()])

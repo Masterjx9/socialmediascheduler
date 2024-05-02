@@ -1,7 +1,12 @@
 import controller 
 import time
 import sqlite3
+import yaml
+import os
+CONFIG_PATH = os.environ.get('CONFIG_PATH')
 
+with open(CONFIG_PATH, 'r') as f:
+    config = yaml.safe_load(f)
 
 while True:
     # Connect to the database
