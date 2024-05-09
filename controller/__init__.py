@@ -13,14 +13,9 @@ PORT = 49150
 
 
 
-def local_handler(scenarios, accounts, creds, paths=None, posts=None):
-    if type(scenarios) == str:
-        scenarios = [scenarios]
-    if type(accounts) == str:
-        accounts = [accounts]
-
-    for scenario in scenarios:
-        if scenario == "instagram":
+def local_handler(scenario: str, creds: dict, content_type: str,  paths=None, post=None):
+    if scenario == "instagram":
+        if content_type == "image":
             class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 def __init__(self, *args, **kwargs):
                     super().__init__(*args, directory=paths["photo_path"], **kwargs)
@@ -38,45 +33,47 @@ def local_handler(scenarios, accounts, creds, paths=None, posts=None):
                 public_url = resp.json()["tunnels"][0]["public_url"]
 
 
-                for account in accounts["instagram"]:
-                    meta.PostToIG(creds["ig_id"], creds["ig_access_token"], "local", public_url, paths["photo_path"])
+                meta.PostToIG(creds["ig_id"], creds["ig_access_token"], "local", public_url, paths["photo_path"])
                 ngrok.terminate()
                 httpd.shutdown()
-                
-        elif scenario == "twitter":
-            for account in accounts["twitter"]:    
-                for post in posts:
-                    if posts["account"] == account:
-                        twitter.PostToTwitter(post["payload"], creds["twitter_consumer_key"], creds["twitter_consumer_secret"], creds["twitter_access_token"], creds["twitter_access_token_secret"])
+        if content_type == "post":
+            print("No setup for posting text to Instagram yet")
+        if content_type == "video":
+            print("No setup for posting videos to Instagram yet")
+            
+    if scenario == "twitter":  
+        twitter.PostToTwitter(post, creds["twitter_consumer_key"], creds["twitter_consumer_secret"], creds["twitter_access_token"], creds["twitter_access_token_secret"])
+    
+    if scenario == "youtube":
+        if content_type == "video":
+            print("No setup for posting videos to YouTube yet")
+        if content_type == "post":
+            print("No setup for posting text to YouTube yet")
+        if content_type == "image":
+            print("No setup for posting images to YouTube yet")
+
+    if scenario == "linkedin":
+        if content_type == "post":
+            print("No setup for posting text to LinkedIn yet")
+        if content_type == "image":
+            print("No setup for posting images to LinkedIn yet")
+        if content_type == "video":
+            print("No setup for posting videos to LinkedIn yet")
             
 
-
-# from main import dailyPostToIG, dailyPostToTwitter
-
-# IG_ACCOUNT1_ID = os.environ.get('IG_ACCOUNT1_ID')
-# IG_ACCOUNT2_ID = os.environ.get('IG_ACCOUNT2_ID')
-
-# def lambda_handler(event, ig_account):
-#     logger = logging.getLogger()
-#     logger.setLevel(logging.INFO)
-#     scenario = event.get('scenario', 'default')
-    
-#     try:
-#         if scenario == 'instagram':
-#             logger.info("Executing Instagram scenario.")
-#             if type(ig_account) == str:
-#                 dailyPostToIG(ig_account)
-#             elif type(ig_account) == list:
-#                 for account in ig_account:
-#                     dailyPostToIG(account)
-#         elif scenario == 'twitter':
-#             logger.info("Executing Twitter scenario.")
-#             dailyPostToTwitter()
-#         else:
-#             logger.warning("No valid scenario provided.")
-#     except Exception as e:
-#         logger.error(f"An error occurred: {e}")
-#     return {
-#         'statusCode': 200,
-#         'body': "Finished Posting!"
-#     }
+# This is a test 
+def lambda_handler(event: dict, context: dict):
+    scenario = event.get('scenario', 'default')
+    try:
+        if scenario == 'instagram':
+            meta.PostToIG()
+        elif scenario == 'twitter':
+            twitter.PostToTwitter()
+        else:
+            print("Invalid scenario")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    return {
+        'statusCode': 200,
+        'body': "Finished Posting!"
+    }

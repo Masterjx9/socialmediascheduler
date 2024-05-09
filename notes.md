@@ -23,11 +23,12 @@
       - Fix issue where the account_id for meta and twitter tables needs to referenced to the account_id in the social_media_accounts table - **completed**
     - Add a way to delete social media accounts from the database - **completed**
 
+- Test Creating a post and it showing up in twitter/x
+
 ## Immediate Goals
 
   
 ## Next Set of Goals
-- Test Creating a post and it showing up in twitter/x
 - Implement Threads api (just came out)
 - Use pyexe to create an executable file
 - Test Scheduler / Controller with database

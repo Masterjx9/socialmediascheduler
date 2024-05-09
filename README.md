@@ -47,20 +47,30 @@ The Social Media Scheduler is an application that allows users to schedule and m
 
       ```plaintext
       CONFIG_PATH = config.yaml
-      META_FACEBOOK_API_KEY=your-api-key
-      META_FACEBOOK_API_SECRET=your-api-secret
-      YOUTUBE_API_KEY=your-api-key
-      TIKTOK_API_KEY=your-api-key
-      INSTAGRAM_API_KEY=your-api-key
-      TWITTER_API_KEY=your-api-key
       ```
 
-5. Start local tkinter management application:
+5. Run the management application:
+- From python:
 
     ```bash
     python manage.py
     ```
+- From the executable:
+  - First create the executable using the following command:
+    ```bash
+    # Create the executable
+    pyinstaller --noconfirm --onedir --windowed --icon "logo.ico" --paths "/gui"
 
+    # Copy .env file
+    cp .env output/manage/.env
+
+    # Copy config.yaml file
+    cp config.yaml output/manage/config.yaml
+
+    # Copy default_database.sqlite3 file
+    cp default_database.sqlite3 output/manage/default_database.sqlite3
+    ```
+  - Then run the executable from the output folder
 ## Usage
 
 1. Sign in to your social media accounts within the application.
