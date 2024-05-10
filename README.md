@@ -31,15 +31,46 @@ The Social Media Scheduler is an application that allows users to schedule and m
     pip install -r requirements.txt
     ```
 
-3. Set up API credentials:
+3. Setup Ngrok (WIP):
 
-    - Meta/Facebook API: Follow the official documentation to obtain the required credentials.
-    - YouTube API: Follow the official documentation to obtain the required credentials.
-    - TikTok API: Follow the official documentation to obtain the required credentials.
-    - Instagram API: Follow the official documentation to obtain the required credentials.
-    - Twitter API: Follow the official documentation to obtain the required credentials.
+   - Ngrok is used for instagram API as it requires a public URL to be set up. This repo comes with ngrok for windows, mac, and linux.
+   - For now we recommend getting a free API key from ngrok and setting it up manually. Hopefully we will have a better solution in the future.
+   - You can get a free API key from here - https://dashboard.ngrok.com/signup
+   - Then go to the ngrok folder and run the following command to set up ngrok:
+     ```bash
+     .\ngrok config add-authtoken <YOUR_AUTH>
+     ```
+     or
+     ```bash
+     ngrok config add-authtoken <YOUR_AUTH>
+     ```
 
-4. Configure the application:
+4. Set up API credentials:
+
+    - Meta/Facebook/Instagram API: 
+      - You will need following:
+        - **App ID (Meta_ID)** - https://business.facebook.com/latest/settings/instagram_account - Will show you the App ID for your Instagram accounts
+        - **Access Token (Meta_Access_Token)** - https://developers.facebook.com/tools/explorer/ - Will show you the Access Token for your Instagram accounts
+        - Make sure to link your Instagram account to your Facebook page - https://www.facebook.com/business/help/connect-instagram-to-page
+    - Twitter API:
+      - https://developer.twitter.com/en/docs/authentication/oauth-1-0a/api-key-and-secret
+      - After creating your app in the developer portal, go to the keys link for the app which will look like this - https://developer.twitter.com/en/portal/projects/<projectid>/apps/<appid>/keys
+      - You will need following:
+        - **API Key (Twitter_Consumer_Key)**
+        - **API Secret Key (Twitter_Consumer_Secret)**
+        - **Access Token (Twitter_Access_Token)**
+        - **Access Token Secret (Twitter_Access_Token_Secret)**
+    - YouTube API: 
+      - You will need following:
+        - **API Key (YouTube_API_Key)** - https://console.developers.google.com/apis/credentials
+    - LinkedIn API:
+      - You will need following:
+        - **Client ID (LinkedIn_Client_ID)**
+        - **Client Secret (LinkedIn_Client_Secret)**
+        - **Redirect URL (LinkedIn_Redirect_URL)**
+      - You will need to create an app in the LinkedIn Developer portal - https://www.linkedin.com/developers/
+
+5. Configure the application:
 
     - Create a `.env` file in the root directory of the project.
     - Add the following environment variables to the `.env` file:
@@ -49,7 +80,7 @@ The Social Media Scheduler is an application that allows users to schedule and m
       CONFIG_PATH = config.yaml
       ```
 
-5. Run the management application:
+6. Run the management application:
 - From python:
 
     ```bash

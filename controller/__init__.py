@@ -7,35 +7,50 @@ import subprocess
 import requests
 import time
 from apis import meta, twitter
-
+import sys
+import platform
+import traceback
 # Start a simple HTTP server in a new thread
 PORT = 49150
+
+if sys.platform == "win32":
+    ngrok_platform = "ngrok_windows"
+if sys.platform == "linux":
+    ngrok_platform = "ngrok_linux"
+if sys.platform == "darwin":
+    if platform.processor() == "arm":
+        ngrok_platform = "ngrok_mac_apple"
+    else:
+        ngrok_platform = "ngrok_mac_intel"
 
 
 
 def local_handler(scenario: str, creds: dict, content_type: str,  paths=None, post=None):
     if scenario == "instagram":
         if content_type == "image":
-            class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
-                def __init__(self, *args, **kwargs):
-                    super().__init__(*args, directory=paths["photo_path"], **kwargs)
+            Handler = http.server.SimpleHTTPRequestHandler
+            httpd = socketserver.TCPServer(("", PORT), Handler)
+            thread = threading.Thread(target=httpd.serve_forever)
+            thread.start()
 
-            Handler = CustomHTTPRequestHandler
 
-            with socketserver.TCPServer(("", PORT), Handler) as httpd:
-                thread = threading.Thread(target=httpd.serve_forever)
-                thread.start()
-
-                ngrok = subprocess.Popen(["ngrok", "http", str(PORT)], stdout=subprocess.PIPE)
-                time.sleep(2)  # Give ngrok time to initialize
-
+            ngrok_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "ngrok", ngrok_platform)
+            print(ngrok_path)
+            ngrok = subprocess.Popen([ngrok_path, "http", str(PORT)], stdout=subprocess.PIPE)
+            time.sleep(2)  
+            try:
                 resp = requests.get("http://localhost:4040/api/tunnels")
                 public_url = resp.json()["tunnels"][0]["public_url"]
-
-
+                print(public_url)
                 meta.PostToIG(creds["ig_id"], creds["ig_access_token"], "local", public_url, paths["photo_path"])
                 ngrok.terminate()
                 httpd.shutdown()
+            except Exception as e:
+                traceback.print_exc()
+                ngrok.terminate()
+                httpd.shutdown()
+                sys.exit(1) 
+
         if content_type == "post":
             print("No setup for posting text to Instagram yet")
         if content_type == "video":

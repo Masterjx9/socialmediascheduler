@@ -45,7 +45,7 @@ def publish_media(meta_access_token, meta_id, creation_id):
     data = response.json()
     print(data)
     
-def PostToIG(meta_id, ig_access_token, method_of_access, base_url=None, image_data=None):
+def PostToIG(meta_id, ig_access_token, method_of_access, base_url=None, image_info=None):
     if method_of_access == "aws":
         today = datetime.datetime.now()
         folder_name = today.strftime("%Y-%m-%d")  # Use the current date as the folder name
@@ -58,13 +58,12 @@ def PostToIG(meta_id, ig_access_token, method_of_access, base_url=None, image_da
             publish_media(ig_access_token, meta_id, creation_id)
 
     elif method_of_access == "local":
-        for image_info in image_data:  # image_data is a list of dicts with image info
-            # Construct the image URL using the base URL and image path from the dict
-            image_url = f"{base_url}/{image_info['image_path']}"
-            description = image_info['description']
-            tags = image_info['tags']
+        # Construct the image URL using the base URL and image path from the dict
+        image_url = f"{base_url}/{image_info['image_path']}"
+        description = image_info['description']
+        tags = image_info['tags']
 
-            creation_id = create_container(ig_access_token, image_url, meta_id, description, tags)
-            publish_media(ig_access_token, meta_id, creation_id)
+        creation_id = create_container(ig_access_token, image_url, meta_id, description, tags)
+        publish_media(ig_access_token, meta_id, creation_id)
 
     return "Pictures posted to IG successfully!"
