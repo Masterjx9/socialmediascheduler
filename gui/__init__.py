@@ -11,6 +11,7 @@ import sqlite3
 from globals import root, calendar_frame, month_year_label, month, year
 import utils_calendar
 import utils
+from apis import linkedin
 
 # First thing to do is to create a root window, then hide it until the user selects a user or a user is already selected
 root.withdraw()
@@ -196,22 +197,42 @@ def manage_social_accounts(root, config_path):
     cur = conn.cursor()
 
     social_accounts = cur.execute("SELECT * FROM social_media_accounts WHERE user_id = ?", (current_user_id,)).fetchall()
+    social_accounts_keys = [description[0] for description in cur.description]
 
-    meta_accounts_count = 0
-    twitter_accounts_count = 0
-
+    social_accounts_dicts = []
     for account in social_accounts:
-        print(account[2])
-        if account[2] == 'Meta':
-            meta_accounts_data = cur.execute("SELECT * FROM meta_accounts WHERE account_id = ?", (account[0],)).fetchall()
-            meta_accounts_count += len(meta_accounts_data)
+        account_dict = dict(zip(social_accounts_keys, account))
+        social_accounts_dicts.append(account_dict)
+
+    print(social_accounts_dicts)
+
+
+
+    for account in social_accounts_dicts:
+        if account["platform_name"] == 'Meta/Instagram':
+            meta_accounts_data = cur.execute("SELECT * FROM meta_accounts WHERE account_id = ?", (account["account_id"],)).fetchall()
+            meta_accounts_keys = [description[0] for description in cur.description]
+            meta_account_dicts = []
             for m_account in meta_accounts_data:
-                print(f"Meta/Instagram Account: meta_id = {m_account[0]}")
-        if account[2] == 'Twitter':
-            twitter_accounts_data = cur.execute("SELECT * FROM twitter_accounts WHERE account_id = ?", (account[0],)).fetchall()
-            twitter_accounts_count += len(twitter_accounts_data)
+                m_account_dict = dict(zip(meta_accounts_keys, m_account))
+                meta_account_dicts.append(m_account_dict)
+            print(meta_account_dicts)
+        if account["platform_name"] == 'X/Twitter':
+            twitter_accounts_data = cur.execute("SELECT * FROM twitter_accounts WHERE account_id = ?", (account["account_id"],)).fetchall()
+            twitter_accounts_keys = [description[0] for description in cur.description]
+            twitter_account_dicts = []
             for t_account in twitter_accounts_data:
-                print(f"X/Twitter Account: twitter_consumer_key = {t_account[0]}")
+                t_account_dict = dict(zip(twitter_accounts_keys, t_account))
+                twitter_account_dicts.append(t_account_dict)
+            print(twitter_account_dicts)
+        if account["platform_name"] == 'LinkedIn':
+            linkedin_accounts_data = cur.execute("SELECT * FROM linkedin_accounts WHERE account_id = ?", (account["account_id"],)).fetchall()
+            linkedin_accounts_keys = [description[0] for description in cur.description]
+            linkedin_account_dicts = []
+            for l_account in linkedin_accounts_data:
+                l_account_dict = dict(zip(linkedin_accounts_keys, l_account))
+                linkedin_account_dicts.append(l_account_dict)
+            print(linkedin_account_dicts)
 
     # social media accounts
     social_accounts_label = Label(post_popup, text="Social Media Accounts")
@@ -226,26 +247,52 @@ def manage_social_accounts(root, config_path):
         # Fetch the accounts from the database
         if option == 'Meta/Instagram':
             social_accounts = cur.execute("SELECT * FROM social_media_accounts WHERE user_id = ?", (current_user_id,)).fetchall()
+            social_accounts_keys = [description[0] for description in cur.description]
+            social_accounts_dicts = []
             for account in social_accounts:
-                print(account)
-                accounts_data = cur.execute("SELECT * FROM meta_accounts WHERE account_id = ?", (account[0],)).fetchall()
-                for account in accounts_data:
-                    print(account)
-                    accounts_list.insert('end', f"Meta/Instagram Account: {account[0]} - {account[3]}")
+                account_dict = dict(zip(social_accounts_keys, account))
+                social_accounts_dicts.append(account_dict)
+
+            for account in social_accounts_dicts:
+                accounts_data = cur.execute("SELECT * FROM meta_accounts WHERE account_id = ?", (account["account_id"],)).fetchall()
+                accounts_keys = [description[0] for description in cur.description]
+                for a_account in accounts_data:
+                    a_account_dict = dict(zip(accounts_keys, a_account))
+                    accounts_list.insert('end', f"Meta/Instagram Account: {a_account_dict['account_id']} - {a_account_dict['account_name']}")
         elif option == 'X/Twitter':
             social_accounts = cur.execute("SELECT * FROM social_media_accounts WHERE user_id = ?", (current_user_id,)).fetchall()
+            social_accounts_keys = [description[0] for description in cur.description]
+            social_accounts_dicts = []
             for account in social_accounts:
-                print(account)
-                accounts_data = cur.execute("SELECT * FROM twitter_accounts WHERE account_id = ?", (account[0],)).fetchall()
-                for account in accounts_data:
-                    accounts_list.insert('end', f"X/Twitter Account: {account[0]} - {account[5]}")
+                account_dict = dict(zip(social_accounts_keys, account))
+                social_accounts_dicts.append(account_dict)
+            
+            for account in social_accounts_dicts:
+                accounts_data = cur.execute("SELECT * FROM twitter_accounts WHERE account_id = ?", (account["account_id"],)).fetchall()
+                accounts_keys = [description[0] for description in cur.description]
+                for a_account in accounts_data:
+                    a_account_dict = dict(zip(accounts_keys, a_account))
+                    accounts_list.insert('end', f"X/Twitter Account: {a_account_dict['account_id']} - {a_account_dict['account_name']}")
+        elif option == 'LinkedIn':
+            social_accounts = cur.execute("SELECT * FROM social_media_accounts WHERE user_id = ?", (current_user_id,)).fetchall()
+            social_accounts_keys = [description[0] for description in cur.description]
+            social_accounts_dicts = []
+            for account in social_accounts:
+                account_dict = dict(zip(social_accounts_keys, account))
+                social_accounts_dicts.append(account_dict)
 
+            for account in social_accounts_dicts:
+                accounts_data = cur.execute("SELECT * FROM linkedin_accounts WHERE account_id = ?", (account["account_id"],)).fetchall()
+                accounts_keys = [description[0] for description in cur.description]
+                for a_account in accounts_data:
+                    a_account_dict = dict(zip(accounts_keys, a_account))
+                    accounts_list.insert('end', f"LinkedIn Account: {a_account_dict['account_id']} - {a_account_dict['account_name']}")
 
     # Create an OptionMenu to choose the option
     show_accounts_type = StringVar()
     show_accounts_type.set("Meta/Instagram")
     show_accounts_type.trace('w', update_accounts_list)
-    show_accounts_type_options = ["Meta/Instagram", "X/Twitter"]
+    show_accounts_type_options = ["Meta/Instagram", "X/Twitter", "LinkedIn"]
     show_accounts_type_dropdown = OptionMenu(post_popup, show_accounts_type, *show_accounts_type_options)
     show_accounts_type_dropdown.pack()
     
@@ -267,7 +314,7 @@ def manage_social_accounts(root, config_path):
         
         account_type = StringVar()
         account_type.set("Meta/Instagram")
-        account_type_options = ["Meta/Instagram", "X/Twitter"]
+        account_type_options = ["Meta/Instagram", "X/Twitter", "LinkedIn"]
         account_type_dropdown = OptionMenu(social_account_popup, account_type, *account_type_options, command=lambda x: update_fields(account_type.get(), field_frame))
         account_type_dropdown.pack()   
         
@@ -318,6 +365,17 @@ def manage_social_accounts(root, config_path):
                 access_token_secret_label.pack()
                 access_token_secret_entry = Entry(frame)
                 access_token_secret_entry.pack()
+            
+            elif selection == "LinkedIn":
+                linkedin_app_id_label = Label(frame, text="LinkedIn App ID:")
+                linkedin_app_id_label.pack()
+                linkedin_app_id_entry = Entry(frame)
+                linkedin_app_id_entry.pack()
+
+                linkedin_app_secret_label = Label(frame, text="LinkedIn App Secret:")
+                linkedin_app_secret_label.pack()
+                linkedin_app_secret_entry = Entry(frame)
+                linkedin_app_secret_entry.pack()
              
         update_fields(account_type.get(), field_frame)
         
@@ -330,6 +388,11 @@ def manage_social_accounts(root, config_path):
         # Fetch entered data from frame's children, which are the labels and entries
         entries = [e for e in frame.winfo_children() if isinstance(e, Entry)]
         values = [e.get() for e in entries]
+
+        if account_type == "LinkedIn":
+            linkedin.open_browser_for_login(values[1])
+            code = linkedin.listen_for_code()
+            access_token = linkedin.get_access_token(code, values[1], values[2])
 
         if any(not value for value in values):
             messagebox.showerror("Error", "Please enter all fields.")
@@ -352,6 +415,8 @@ def manage_social_accounts(root, config_path):
         elif account_type == "X/Twitter":
             # Assuming order is Account Name, Consumer Key, Consumer Secret, Access Token, Access Token Secret
             cur.execute("INSERT INTO twitter_accounts (account_id, account_name, twitter_consumer_key, twitter_consumer_secret, twitter_access_token, twitter_access_token_secret) VALUES (?, ?, ?, ?, ?, ?)", (last_id, values[0], values[1], values[2], values[3], values[4]))
+        elif account_type == "LinkedIn":
+            cur.execute("INSERT INTO linkedin_accounts (account_id, account_name, app_id, app_secret, app_token, app_token_expires_in, timestamp) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))", (last_id, values[0], values[1], values[2], access_token["access_token"], access_token["expires_in"]))
 
         conn.commit()
         conn.close()

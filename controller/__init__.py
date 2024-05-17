@@ -6,7 +6,7 @@ import threading
 import subprocess
 import requests
 import time
-from apis import meta, twitter
+from apis import meta, twitter, linkedin
 import sys
 import platform
 import traceback
@@ -57,7 +57,14 @@ def local_handler(scenario: str, creds: dict, content_type: str,  paths=None, po
             print("No setup for posting videos to Instagram yet")
             
     if scenario == "twitter":  
-        twitter.PostToTwitter(post, creds["twitter_consumer_key"], creds["twitter_consumer_secret"], creds["twitter_access_token"], creds["twitter_access_token_secret"])
+        if content_type == "image":
+            print("Posting image to Twitter")
+            twitter.postImageToTwitter(paths["photo_path"], creds["twitter_consumer_key"], creds["twitter_consumer_secret"], creds["twitter_access_token"], creds["twitter_access_token_secret"])
+        if content_type == "post":
+            print("Posting text to Twitter")
+            twitter.postTextToTwitter(post, creds["twitter_consumer_key"], creds["twitter_consumer_secret"], creds["twitter_access_token"], creds["twitter_access_token_secret"])
+        if content_type == "video":
+            twitter.postVideoToTwitter(paths["video_path"], creds["twitter_consumer_key"], creds["twitter_consumer_secret"], creds["twitter_access_token"], creds["twitter_access_token_secret"])
     
     if scenario == "youtube":
         if content_type == "video":
@@ -69,9 +76,11 @@ def local_handler(scenario: str, creds: dict, content_type: str,  paths=None, po
 
     if scenario == "linkedin":
         if content_type == "post":
-            print("No setup for posting text to LinkedIn yet")
+            print("Posting text to LinkedIn")
+            linkedin.postTextToLinkedIn(creds["linkedin_app_token"], post)
         if content_type == "image":
-            print("No setup for posting images to LinkedIn yet")
+            print("Posting image to LinkedIn")
+            linkedin.postImageToLinkedIn(creds["linkedin_app_token"], paths["photo_path"])
         if content_type == "video":
             print("No setup for posting videos to LinkedIn yet")
             
@@ -83,7 +92,7 @@ def lambda_handler(event: dict, context: dict):
         if scenario == 'instagram':
             meta.PostToIG()
         elif scenario == 'twitter':
-            twitter.PostToTwitter()
+            twitter.postTextToTwitter()
         else:
             print("Invalid scenario")
     except Exception as e:
