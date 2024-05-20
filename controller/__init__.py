@@ -77,12 +77,13 @@ def local_handler(scenario: str, creds: dict, content_type: str,  paths=None, po
     if scenario == "linkedin":
         if content_type == "post":
             print("Posting text to LinkedIn")
-            linkedin.postTextToLinkedIn(creds["linkedin_app_token"], post)
+            linkedin.postMediaToLinkedIn(creds["linkedin_app_token"], "text", media_url={"description": post})
         if content_type == "image":
             print("Posting image to LinkedIn")
-            linkedin.postImageToLinkedIn(creds["linkedin_app_token"], paths["photo_path"])
+            linkedin.postMediaToLinkedIn(creds["linkedin_app_token"], "image", paths["photo_path"])
         if content_type == "video":
-            print("No setup for posting videos to LinkedIn yet")
+            print("Posting video to LinkedIn")
+            linkedin.postMediaToLinkedIn(creds["linkedin_app_token"], "video", paths["video_path"])
             
 
 # This is a test 
