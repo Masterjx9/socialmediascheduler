@@ -91,16 +91,30 @@ def publish_media(meta_access_token, meta_id, creation_id):
     print(data)
 
 
-def create_threads_container(meta_access_token, image_url, meta_id, description, tags):
+def create_container(meta_access_token, media_url, meta_id, description, tags, media_type="IMAGE", cover_url=None, thumb_offset=None):
     hashtags = " ".join([f"#{tag}" for tag in tags.split()])
     caption = f"{description}\n\n{hashtags}"
-    url = f'https://graph.facebook.com/v19.0/{meta_id}/threads'
-    
+
+    url = f'https://graph.facebook.com/v19.0/{meta_id}/media'
     payload = {
-        "image_url": image_url,
         "caption": caption,
         "access_token": meta_access_token
     }
+
+    if media_type == "IMAGE":
+        payload["image_url"] = media_url
+    elif media_type == "REELS" or media_type == "VIDEO":
+        payload["media_type"] = media_type
+        payload["video_url"] = media_url
+        if cover_url:
+            payload["cover_url"] = cover_url
+        if thumb_offset:
+            payload["thumb_offset"] = thumb_offset
+    elif media_type == "STORIES":
+        payload["media_type"] = "STORIES"
+        payload["video_url"] = media_url if media_url.endswith(('.mp4', '.mov')) else None
+        payload["image_url"] = media_url if media_url.endswith(('.jpg', '.jpeg', '.png')) else None
+
     response = requests.post(url, params=payload)
     data = response.json()
     print(data)
@@ -117,7 +131,7 @@ def publish_threads_media(meta_access_token, meta_id, creation_id):
     data = response.json()
     print(data)
 
-def PostToIG(meta_id, ig_access_token, method_of_access, base_url=None, image_info=None):
+def PostToIG(meta_id, ig_access_token, method_of_access, base_url=None, media_info=None, meta_type="image"):
     if method_of_access == "aws":
         today = datetime.datetime.now()
         folder_name = today.strftime("%Y-%m-%d")  # Use the current date as the folder name
@@ -131,11 +145,14 @@ def PostToIG(meta_id, ig_access_token, method_of_access, base_url=None, image_in
 
     elif method_of_access == "local":
         # Construct the image URL using the base URL and image path from the dict
-        image_url = f"{base_url}/{image_info['image_path']}"
-        description = image_info['description']
-        tags = image_info['tags']
+        if meta_type == "image":
+            media_url = f"{base_url}/{media_info['image_path']}"
+        if meta_type == "video":
+            media_url = f"{base_url}/{media_info['video_path']}"
+        description = media_info['description']
+        tags = media_info['tags']
 
-        creation_id = create_container(ig_access_token, image_url, meta_id, description, tags)
+        creation_id = create_container(ig_access_token, media_url, meta_id, description, tags)
         publish_media(ig_access_token, meta_id, creation_id)
 
     return "Pictures posted to IG successfully!"

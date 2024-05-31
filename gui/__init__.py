@@ -12,6 +12,10 @@ from globals import root, calendar_frame, month_year_label, month, year
 import utils_calendar
 import utils
 from apis import linkedin
+from PIL import Image, ImageTk
+import pystray
+from pystray import MenuItem as item
+import threading
 
 # First thing to do is to create a root window, then hide it until the user selects a user or a user is already selected
 root.withdraw()
@@ -19,6 +23,32 @@ root.withdraw()
 # Load the content scheduler window
 def initialize_main_window(config_path):
     global calendar_frame, month_year_label, month, year
+
+    def create_menu():
+        print("hello testing testing")
+        return pystray.Menu(
+            item('Show', show_window),
+            item('Exit', exit_app)
+        )
+        
+    def minimize_to_tray():
+        hide_window()
+        if not icon.running:
+            threading.Thread(target=icon.run).start()
+
+    def hide_window():
+        root.withdraw()
+
+    def show_window():
+        icon.stop()
+        root.deiconify()
+
+# THIS NEEDS TO BE FIXED IN THE NEXT MEETUP OR BEFORE
+    def exit_app():
+        icon.stop()
+        root.quit()
+        root.destroy()
+
     root.title("Content Scheduler")
     root.geometry("500x400")  
 
@@ -51,6 +81,14 @@ def initialize_main_window(config_path):
     utils_calendar.print_month_year(month, year)
     utils_calendar.make_buttons(config_path)
     utils_calendar.month_generator(config_path)
+    
+    image = Image.open("2.png")  # Make sure you have an icon.png file in the same directory
+    icon = pystray.Icon("TkinterApp", image, "Tkinter App", create_menu())
+
+    # Start the system tray icon immediately
+    threading.Thread(target=icon.run).start()
+
+    root.protocol("WM_DELETE_WINDOW", minimize_to_tray)
     root.mainloop()
 
 # Function to select a user

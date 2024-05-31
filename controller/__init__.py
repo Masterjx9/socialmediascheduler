@@ -27,7 +27,7 @@ if sys.platform == "darwin":
 
 def local_handler(scenario: str, creds: dict, content_type: str,  paths=None, post=None):
     if scenario == "instagram":
-        if content_type == "image":
+        if content_type == "image" or content_type == "video":
             Handler = http.server.SimpleHTTPRequestHandler
             httpd = socketserver.TCPServer(("", PORT), Handler)
             thread = threading.Thread(target=httpd.serve_forever)
@@ -42,7 +42,10 @@ def local_handler(scenario: str, creds: dict, content_type: str,  paths=None, po
                 resp = requests.get("http://localhost:4040/api/tunnels")
                 public_url = resp.json()["tunnels"][0]["public_url"]
                 print(public_url)
-                meta.PostToIG(creds["ig_id"], creds["ig_access_token"], "local", public_url, paths["photo_path"])
+                if content_type == "image":
+                    meta.PostToIG(creds["ig_id"], creds["ig_access_token"], "local", public_url, paths["image_path"], "image")
+                if content_type == "video":
+                    meta.PostToIG(creds["ig_id"], creds["ig_access_token"], "local", public_url, paths["video_path"], "video")
                 ngrok.terminate()
                 httpd.shutdown()
             except Exception as e:
@@ -53,8 +56,7 @@ def local_handler(scenario: str, creds: dict, content_type: str,  paths=None, po
 
         if content_type == "post":
             print("No setup for posting text to Instagram yet")
-        if content_type == "video":
-            print("No setup for posting videos to Instagram yet")
+
             
     if scenario == "twitter":  
         if content_type == "image":
