@@ -17,37 +17,53 @@ import pystray
 from pystray import MenuItem as item
 import threading
 
-# First thing to do is to create a root window, then hide it until the user selects a user or a user is already selected
 root.withdraw()
+icon = None
+
+def show_window():
+    global icon
+    if icon is not None:
+        icon.stop()
+    root.deiconify()
+    icon = create_icon()
+    threading.Thread(target=icon.run).start()
+
+def exit_app():
+    global icon
+    if icon is not None:
+        icon.visible = False  # Ensure the icon is hidden
+        icon.stop()
+        icon = None  # Ensure the icon is set to None
+    root.quit()
+    root.after(0, root.destroy)  
+
+        
+def create_icon():
+    image = Image.open("2.png")  
+    menu = pystray.Menu(
+        item('Show', show_window),
+        item('Exit', exit_app)
+    )
+    icon = pystray.Icon("TkinterApp", image, "Tkinter App", menu)
+    return icon
 
 # Load the content scheduler window
 def initialize_main_window(config_path):
+    global icon
     global calendar_frame, month_year_label, month, year
 
-    def create_menu():
-        print("hello testing testing")
-        return pystray.Menu(
-            item('Show', show_window),
-            item('Exit', exit_app)
-        )
-        
+
     def minimize_to_tray():
         hide_window()
-        if not icon.running:
+        global icon
+        if icon is None or not icon.visible:
+            icon = create_icon()
             threading.Thread(target=icon.run).start()
+
 
     def hide_window():
         root.withdraw()
 
-    def show_window():
-        icon.stop()
-        root.deiconify()
-
-# THIS NEEDS TO BE FIXED IN THE NEXT MEETUP OR BEFORE
-    def exit_app():
-        icon.stop()
-        root.quit()
-        root.destroy()
 
     root.title("Content Scheduler")
     root.geometry("500x400")  
@@ -82,11 +98,9 @@ def initialize_main_window(config_path):
     utils_calendar.make_buttons(config_path)
     utils_calendar.month_generator(config_path)
     
-    image = Image.open("2.png")  # Make sure you have an icon.png file in the same directory
-    icon = pystray.Icon("TkinterApp", image, "Tkinter App", create_menu())
-
-    # Start the system tray icon immediately
-    threading.Thread(target=icon.run).start()
+    if icon is None:
+        icon = create_icon()
+        threading.Thread(target=icon.run).start()
 
     root.protocol("WM_DELETE_WINDOW", minimize_to_tray)
     root.mainloop()
