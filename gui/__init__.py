@@ -16,6 +16,8 @@ from PIL import Image, ImageTk
 import pystray
 from pystray import MenuItem as item
 import threading
+import subprocess
+import os
 
 root.withdraw()
 icon = None
@@ -51,7 +53,16 @@ def create_icon():
 def initialize_main_window(config_path):
     global icon
     global calendar_frame, month_year_label, month, year
-
+    
+    # Set the scheduler script path
+    scheduler_script_path = os.path.join(os.getcwd(), 'scheduler', '__init__.py')
+    
+    # Set the PYTHONPATH to the root of your project
+    env = os.environ.copy()
+    env['PYTHONPATH'] = os.getcwd()
+    
+    # Run the scheduler script as a separate process
+    subprocess.Popen(['python', scheduler_script_path, config_path], env=env, cwd=os.getcwd())
 
     def minimize_to_tray():
         hide_window()
