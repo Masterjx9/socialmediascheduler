@@ -1,10 +1,13 @@
-import controller 
 import time
 import sqlite3
-import yaml
 import os
 import traceback
+import sys
+
 CONFIG_PATH = os.environ.get('CONFIG_PATH')
+print("python path:", os.environ.get("PYTHONPATH"))
+import yaml
+import controller 
 
 with open(CONFIG_PATH, 'r') as f:
     config = yaml.safe_load(f)

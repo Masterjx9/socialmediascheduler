@@ -22,6 +22,28 @@ import os
 root.withdraw()
 icon = None
 
+def run_scheduler_script(scheduler_script_path, env):
+    project_root = os.path.abspath(os.path.join(os.path.abspath(os.path.dirname(__file__)), ".."))
+    venv_python = os.path.join(project_root, '.venv', 'scripts', 'python.exe') if os.name == 'nt' else os.path.join(project_root, '.venv', 'bin', 'python')
+    # Determine the root path of the project dynamically
+    def read_output(pipe):
+        with pipe:
+            for line in iter(pipe.readline, b''):
+                print(line.decode(), end='')
+
+    process = subprocess.Popen(
+        [venv_python, scheduler_script_path],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env
+    )
+
+    # Start threads to read stdout and stderr
+    threading.Thread(target=read_output, args=(process.stdout,), daemon=True).start()
+    threading.Thread(target=read_output, args=(process.stderr,), daemon=True).start()
+
+    return process
+
 def show_window():
     global icon
     if icon is not None:
@@ -57,13 +79,13 @@ def initialize_main_window(config_path):
     # Set the scheduler script path
     scheduler_script_path = os.path.join(os.getcwd(), 'scheduler', '__init__.py')
     
-    # Set the PYTHONPATH to the root of your project
+    # Example usage in your tkinter GUI
+    scheduler_script_path = scheduler_script_path
     env = os.environ.copy()
     env['PYTHONPATH'] = os.getcwd()
-    
-    # Run the scheduler script as a separate process
-    subprocess.Popen(['python', scheduler_script_path, config_path], env=env, cwd=os.getcwd())
 
+    process = run_scheduler_script(scheduler_script_path, env)
+    print("Process started:", process.pid)
     def minimize_to_tray():
         hide_window()
         global icon
