@@ -157,26 +157,32 @@ def PostToIG(meta_id, ig_access_token, method_of_access, base_url=None, media_in
 
     return "Pictures posted to IG successfully!"
 
-def PostToThreads(meta_id, fb_access_token, method_of_access, base_url=None, image_info=None):
-    if method_of_access == "aws":
-        today = datetime.datetime.now()
-        folder_name = today.strftime("%Y-%m-%d")  # Use the current date as the folder name
-        all_files = awss3.list_files_in_folder(folder_name)
-        image_files = [file for file in all_files if not file.endswith('/')]
+def PostToThreads(meta_id, threads_user_access_token, text):
+    # Step 1: Create a Threads Media Container with text
+    container_url = f'https://graph.threads.net/v1.0/{meta_id}/threads'
+    container_payload = {
+        "media_type": "TEXT",
+        "text": text,
+        "access_token": threads_user_access_token
+    }
+    container_response = requests.post(container_url, params=container_payload)
+    container_data = container_response.json()
+    if 'error' in container_data:
+        print("Error in creating container:", container_data)
+        return container_data  # Return early if there's an error
+    creation_id = container_data["id"]
 
-        for file_name in image_files:
-            image_url, description, tags = awss3.generate_url(file_name)
-            creation_id = create_threads_container(fb_access_token, image_url, meta_id, description, tags)
-            publish_threads_media(fb_access_token, meta_id, creation_id)
+    # Step 2: Publish the Threads Media Container
+    publish_url = f'https://graph.threads.net/v1.0/{meta_id}/threads_publish'
+    publish_payload = {
+        "creation_id": creation_id,
+        "access_token": threads_user_access_token
+    }
+    publish_response = requests.post(publish_url, params=publish_payload)
+    publish_data = publish_response.json()
 
-    elif method_of_access == "local":
-        # Construct the image URL using the base URL and image path from the dict
-        image_url = f"{base_url}/{image_info['image_path']}"
-        description = image_info['description']
-        tags = image_info['tags']
-
-        creation_id = create_threads_container(fb_access_token, image_url, meta_id, description, tags)
-        publish_threads_media(fb_access_token, meta_id, creation_id)
-
-    return "Pictures posted to FB successfully!"
+    if 'error' in publish_data:
+        print("Error in publishing container:", publish_data)
+    
+    return publish_data
 

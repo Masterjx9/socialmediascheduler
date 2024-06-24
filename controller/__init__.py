@@ -68,6 +68,17 @@ def local_handler(scenario: str, creds: dict, content_type: str,  paths=None, po
         if content_type == "video":
             twitter.postVideoToTwitter(paths["video_path"], creds["twitter_consumer_key"], creds["twitter_consumer_secret"], creds["twitter_access_token"], creds["twitter_access_token_secret"])
     
+    if scenario == "threads":
+        if content_type == "image":
+            print("Posting image to Facebook Threads")
+            # meta.PostToThreads(creds["fb_id"], creds["fb_access_token"], "local", public_url, paths["photo_path"])
+        if content_type == "post":
+            print("Posting text to Facebook Threads")
+            meta.PostToThreads(creds["meta_id"], creds["fb_access_token"], post)
+        if content_type == "video":
+            print("Posting video to Facebook Threads")
+            # meta.PostToThreads(creds["fb_id"], creds["fb_access_token"], "local", public_url, paths["video_path"])
+            
     if scenario == "youtube":
         if content_type == "video":
             print("No setup for posting videos to YouTube yet")
