@@ -33,8 +33,10 @@ def run_scheduler_script(scheduler_script_path, env):
 
     process = subprocess.Popen(
         [venv_python, scheduler_script_path],
+        shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        stdin=subprocess.PIPE,
         env=env
     )
 
@@ -63,7 +65,7 @@ def exit_app():
 
         
 def create_icon():
-    image = Image.open("2.png")  
+    image = Image.open("logo.png")  
     menu = pystray.Menu(
         item('Show', show_window),
         item('Exit', exit_app)
