@@ -1,0 +1,84 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers the workflow on version tags
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11.1'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+
+    - name: Build the project
+      run: |
+        pyinstaller --noconfirm --onedir --windowed --icon "$(pwd)/content_scheduler/socialmediascheduler/logo.ico" \
+          --paths "$(pwd)/content_scheduler/socialmediascheduler/gui" \
+          --paths "$(pwd)/content_scheduler/socialmediascheduler/scheduler" \
+          --paths "$(pwd)/content_scheduler/socialmediascheduler/controller" \
+          "$(pwd)/content_scheduler/socialmediascheduler/manage.py"
+
+    - name: Copy additional files
+      run: |
+        cp sample.env dist/manage/sample.env
+        cp config.yaml dist/manage/config.yaml
+        cp logo.png dist/manage/logo.png
+        cp default_database.sqlite3 dist/manage/default_database.sqlite3
+
+    - name: Zip the manage folder
+      run: |
+        cd dist
+        zip -r manage.zip manage
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: my-app
+        path: dist/manage.zip
+
+  create_release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Download build artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: my-app
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: dist/manage.zip
+        asset_name: manage.zip
+        asset_content_type: application/zip
