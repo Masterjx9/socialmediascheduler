@@ -67,6 +67,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller
 
+      - name: List current directory
+        run: ls -R
+      
+      - name: Echo current directory
+        run: echo $PWD
+
+      - name: List content_scheduler directory
+        run: ls -R content_scheduler
+
+      - name: List socialmediascheduler directory
+        run: ls -R content_scheduler/socialmediascheduler
+
       - name: Build the project
         run: |
           pyinstaller --noconfirm --onedir --windowed --icon "$(pwd)/content_scheduler/socialmediascheduler/logo.ico" \
