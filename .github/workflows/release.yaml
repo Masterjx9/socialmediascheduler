@@ -111,6 +111,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller
 
+      - name: List current directory
+        run: ls -R
+
       - name: List content_scheduler directory
         run: ls -R content_scheduler
 
