@@ -37,7 +37,7 @@ jobs:
         cp sample.env dist/manage/sample.env
         cp config.yaml dist/manage/config.yaml
         cp logo.png dist/manage/logo.png
-        cp default_database.sqlite3 dist/manage/default_database.sqlite3
+        cp database_default.sqlite3 dist/manage/database_default.sqlite3
 
     - name: Zip the manage folder
       run: |
