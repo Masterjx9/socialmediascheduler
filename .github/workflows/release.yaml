@@ -29,7 +29,8 @@ jobs:
           --paths "$(pwd)/content_scheduler/socialmediascheduler/gui" \
           --paths "$(pwd)/content_scheduler/socialmediascheduler/scheduler" \
           --paths "$(pwd)/content_scheduler/socialmediascheduler/controller" \
-          "$(pwd)/content_scheduler/socialmediascheduler/manage.py"
+          "manage.py"
+          
 
     - name: Copy additional files
       run: |
