@@ -66,6 +66,9 @@ jobs:
       - name: List current directory
         run: ls -R
 
+      - name: Print environment variables
+        run: env
+
       - name: Generate release name and tag
         id: generate_release_info
         run: |
@@ -79,6 +82,7 @@ jobs:
           fi
           echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
           echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_ENV
+        shell: bash
         
       - name: Create GitHub Release
         id: create_release
