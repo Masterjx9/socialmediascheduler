@@ -2,8 +2,9 @@ name: Create Release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'  # Triggers the workflow on version tags
+    branches:
+      - main
+
 
 jobs:
   build:
@@ -63,6 +64,20 @@ jobs:
       with:
         name: my-app
 
+    - name: Generate release name and tag
+      id: generate_release_info
+      run: |
+        COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+        if [[ "$COMMIT_MESSAGE" =~ ^Release.* ]]; then
+          TAG_NAME=$(echo "$COMMIT_MESSAGE" | awk '{print $2}')
+          RELEASE_NAME=$(echo "$COMMIT_MESSAGE" | awk '{$1=""; print $0}')
+        else
+          TAG_NAME="release-$(date +'%Y%m%d%H%M%S')"
+          RELEASE_NAME="Release $(date +'%Y-%m-%d %H:%M:%S')"
+        fi
+        echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+        echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_ENV
+        
     - name: Create GitHub Release
       id: create_release
       uses: actions/create-release@v1
