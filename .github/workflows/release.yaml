@@ -104,12 +104,18 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.12.4'  # Change this to a stable version found in the versions manifest
+          python-version: '3.12.4'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
+
+      - name: List content_scheduler directory
+        run: ls -R content_scheduler
+
+      - name: List socialmediascheduler directory
+        run: ls -R content_scheduler/socialmediascheduler
 
       - name: Build the project
         run: |
@@ -118,6 +124,7 @@ jobs:
             --paths "$(pwd)/content_scheduler/socialmediascheduler/scheduler" \
             --paths "$(pwd)/content_scheduler/socialmediascheduler/controller" \
             "manage.py"
+
 
       - name: Copy additional files
         run: |
