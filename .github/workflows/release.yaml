@@ -83,7 +83,7 @@ jobs:
           echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
           echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_ENV
         shell: bash
-        
+
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -101,6 +101,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ env.MANAGE_ZIP_PATH }}
+          asset_path: dist/manage.zip
           asset_name: manage.zip
           asset_content_type: application/zip
