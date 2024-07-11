@@ -113,6 +113,9 @@ jobs:
 
       - name: List current directory
         run: ls -R
+      
+      - name: Echo current directory
+        run: echo $PWD
 
       - name: List content_scheduler directory
         run: ls -R content_scheduler
