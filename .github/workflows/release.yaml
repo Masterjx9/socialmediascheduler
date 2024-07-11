@@ -6,7 +6,51 @@ on:
       - main
 
 jobs:
-  build:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11.1'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Build the project
+        run: |
+          pyinstaller --noconfirm --onedir --windowed --icon "$(pwd)/content_scheduler/socialmediascheduler/logo.ico" \
+            --paths "$(pwd)/content_scheduler/socialmediascheduler/gui" \
+            --paths "$(pwd)/content_scheduler/socialmediascheduler/scheduler" \
+            --paths "$(pwd)/content_scheduler/socialmediascheduler/controller" \
+            "manage.py"
+
+      - name: Copy additional files
+        run: |
+          Copy-Item -Path "sample.env" -Destination "dist/manage/sample.env"
+          Copy-Item -Path "config.yaml" -Destination "dist/manage/config.yaml"
+          Copy-Item -Path "logo.png" -Destination "dist/manage/logo.png"
+          Copy-Item -Path "database_default.sqlite3" -Destination "dist/manage/database_default.sqlite3"
+
+      - name: Zip the manage folder
+        run: |
+          cd dist
+          Compress-Archive -Path manage -DestinationPath manage.zip
+          Move-Item -Path manage.zip -Destination $env:GITHUB_WORKSPACE
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: my-app-windows
+          path: ${{ github.workspace }}/manage.zip
+
+  build-linux:
     runs-on: ubuntu-latest
 
     steps:
@@ -42,32 +86,83 @@ jobs:
         run: |
           cd dist
           zip -r manage.zip manage
-          echo "MANAGE_ZIP_PATH=$(pwd)/manage.zip" >> $GITHUB_ENV
+          mv manage.zip $GITHUB_WORKSPACE
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: my-app
-          path: dist/manage.zip
+          name: my-app-linux
+          path: ${{ github.workspace }}/manage.zip
+
+  build-mac:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11.1'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Build the project
+        run: |
+          pyinstaller --noconfirm --onedir --windowed --icon "$(pwd)/content_scheduler/socialmediascheduler/logo.ico" \
+            --paths "$(pwd)/content_scheduler/socialmediascheduler/gui" \
+            --paths "$(pwd)/content_scheduler/socialmediascheduler/scheduler" \
+            --paths "$(pwd)/content_scheduler/socialmediascheduler/controller" \
+            "manage.py"
+
+      - name: Copy additional files
+        run: |
+          cp sample.env dist/manage/sample.env
+          cp config.yaml dist/manage/config.yaml
+          cp logo.png dist/manage/logo.png
+          cp database_default.sqlite3 dist/manage/database_default.sqlite3
+
+      - name: Zip the manage folder
+        run: |
+          cd dist
+          zip -r manage.zip manage
+          mv manage.zip $GITHUB_WORKSPACE
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: my-app-mac
+          path: ${{ github.workspace }}/manage.zip
 
   create_release:
-    needs: build
+    needs: [build-windows, build-linux, build-mac]
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Download build artifact
+      - name: Download build artifact (Windows)
         uses: actions/download-artifact@v2
         with:
-          name: my-app
+          name: my-app-windows
+          path: manage-windows.zip
 
-      - name: List current directory
-        run: ls -R
+      - name: Download build artifact (Linux)
+        uses: actions/download-artifact@v2
+        with:
+          name: my-app-linux
+          path: manage-linux.zip
 
-      - name: Print environment variables
-        run: env
+      - name: Download build artifact (Mac)
+        uses: actions/download-artifact@v2
+        with:
+          name: my-app-mac
+          path: manage-mac.zip
 
       - name: Generate release name and tag
         id: generate_release_info
@@ -82,7 +177,6 @@ jobs:
           fi
           echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
           echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_ENV
-        shell: bash
 
       - name: Create GitHub Release
         id: create_release
@@ -95,14 +189,32 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: List current directory
-        run: ls -R
-      - name: Upload Release Asset
+      - name: Upload Release Asset (Windows)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: manage.zip
-          asset_name: manage.zip
+          asset_path: manage-windows.zip
+          asset_name: manage-windows.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Asset (Linux)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: manage-linux.zip
+          asset_name: manage-linux.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Asset (Mac)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: manage-mac.zip
+          asset_name: manage-mac.zip
           asset_content_type: application/zip
