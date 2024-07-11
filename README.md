@@ -98,8 +98,8 @@ The Social Media Scheduler is an application that allows users to schedule and m
     # Copy config.yaml file
     cp config.yaml output/manage/config.yaml
 
-    # Copy default_database.sqlite3 file
-    cp default_database.sqlite3 output/manage/default_database.sqlite3
+    # Copy database_default.sqlite3 file
+    cp database_default.sqlite3 output/manage/database_default.sqlite3
     ```
   - Then run the executable from the output folder
 ## Usage
