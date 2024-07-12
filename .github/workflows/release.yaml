@@ -161,19 +161,16 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: SocialMediaScheduler-windows
-          path: ${{ github.workspace }}
           
       - name: Download build artifacts
         uses: actions/download-artifact@v2
         with:
           name: SocialMediaScheduler-linux
-          path: ${{ github.workspace }}
 
       - name: Download build artifacts
         uses: actions/download-artifact@v2
         with:
           name: SocialMediaScheduler-mac
-          path: ${{ github.workspace }}
 
       - name: Generate release name and tag
         id: generate_release_info
@@ -199,37 +196,6 @@ jobs:
           release_name: ${{ env.RELEASE_NAME }}
           draft: false
           prerelease: false
-
-        #   - name: Upload Release Asset (Windows)
-        #   uses: actions/upload-release-asset@v1
-        #   env:
-        #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        #   with:
-        #     upload_url: ${{ steps.create_release.outputs.upload_url }}
-        #     asset_path: manage.zip
-        #     asset_name: SocialMediaScheduler-windows.zip
-        #     asset_content_type: application/zip
-  
-        # - name: Upload Release Asset (Linux)
-        #   uses: actions/upload-release-asset@v1
-        #   env:
-        #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        #   with:
-        #     upload_url: ${{ steps.create_release.outputs.upload_url }}
-        #     asset_path: manage.zip
-        #     asset_name: SocialMediaScheduler-linux.zip
-        #     asset_content_type: application/zip
-  
-        # - name: Upload Release Asset (Mac)
-        #   uses: actions/upload-release-asset@v1
-        #   env:
-        #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        #   with:
-        #     upload_url: ${{ steps.create_release.outputs.upload_url }}
-        #     asset_path: manage.zip
-        #     asset_name: SocialMediaScheduler-mac.zip
-        #     asset_content_type: application/zip
-
             
       - name: Upload Release Asset (Windows)
         uses: actions/upload-release-asset@v1
