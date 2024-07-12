@@ -52,8 +52,12 @@ jobs:
           Move-Item -Path manage-windows.zip -Destination $env:GITHUB_WORKSPACE
           Write-Host "Files in $env:GITHUB_WORKSPACE:"
           Get-ChildItem -Path $env:GITHUB_WORKSPACE
-      
-      
+    
+      - name: Verify current directory and contents
+        run: |
+          Write-Host "Current Directory: $(Get-Location)"
+            Get-ChildItem -Path $env:GITHUB_WORKSPACE
+        
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
