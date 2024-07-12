@@ -200,13 +200,44 @@ jobs:
           draft: false
           prerelease: false
 
+        #   - name: Upload Release Asset (Windows)
+        #   uses: actions/upload-release-asset@v1
+        #   env:
+        #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        #   with:
+        #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+        #     asset_path: manage.zip
+        #     asset_name: SocialMediaScheduler-windows.zip
+        #     asset_content_type: application/zip
+  
+        # - name: Upload Release Asset (Linux)
+        #   uses: actions/upload-release-asset@v1
+        #   env:
+        #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        #   with:
+        #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+        #     asset_path: manage.zip
+        #     asset_name: SocialMediaScheduler-linux.zip
+        #     asset_content_type: application/zip
+  
+        # - name: Upload Release Asset (Mac)
+        #   uses: actions/upload-release-asset@v1
+        #   env:
+        #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        #   with:
+        #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+        #     asset_path: manage.zip
+        #     asset_name: SocialMediaScheduler-mac.zip
+        #     asset_content_type: application/zip
+
+            
       - name: Upload Release Asset (Windows)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./windows/manage-windows.zip
+          asset_path: manage-windows.zip
           asset_name: SocialMediaScheduler-windows.zip
           asset_content_type: application/zip
 
@@ -216,7 +247,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./linux/manage-linux.zip
+          asset_path: manage-linux.zip
           asset_name: SocialMediaScheduler-linux.zip
           asset_content_type: application/zip
 
@@ -226,6 +257,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./mac/manage-mac.zip
+          asset_path: manage-mac.zip
           asset_name: SocialMediaScheduler-mac.zip
           asset_content_type: application/zip
