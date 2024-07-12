@@ -63,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SocialMediaScheduler-windows
-          path: $env:GITHUB_WORKSPACE\manage-windows.zip
+          path: manage-windows.zip
 
 
   build-linux:
