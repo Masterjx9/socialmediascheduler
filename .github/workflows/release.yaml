@@ -44,6 +44,7 @@ jobs:
           cd dist
           Compress-Archive -Path manage -DestinationPath manage.zip
           Move-Item -Path manage.zip -Destination $env:GITHUB_WORKSPACE
+          cd ..
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
@@ -89,6 +90,7 @@ jobs:
           cd dist
           zip -r manage.zip manage
           mv manage.zip $GITHUB_WORKSPACE
+          cd ..
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
@@ -134,6 +136,7 @@ jobs:
           cd dist
           zip -r manage.zip manage
           mv manage.zip $GITHUB_WORKSPACE
+          cd ..
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
