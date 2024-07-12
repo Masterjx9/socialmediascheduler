@@ -48,7 +48,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: my-app-windows
+          name: SocialMediaScheduler
           path: $env:GITHUB_WORKSPACE\manage.zip
 
 
@@ -93,7 +93,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: my-app-linux
+          name: SocialMediaScheduler
           path: ${{ github.workspace }}/manage.zip
 
   build-mac:
@@ -138,7 +138,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: my-app-mac
+          name: SocialMediaScheduler
           path: ${{ github.workspace }}/manage.zip
 
 
@@ -150,23 +150,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Download build artifact (Windows)
+      - name: Download build artifact
         uses: actions/download-artifact@v2
         with:
-          name: my-app-windows
-          path: manage-windows.zip
-
-      - name: Download build artifact (Linux)
-        uses: actions/download-artifact@v2
-        with:
-          name: my-app-linux
-          path: manage-linux.zip
-
-      - name: Download build artifact (Mac)
-        uses: actions/download-artifact@v2
-        with:
-          name: my-app-mac
-          path: manage-mac.zip
+          name: SocialMediaScheduler
+          path: .
 
       - name: Generate release name and tag
         id: generate_release_info
@@ -199,8 +187,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: manage-windows.zip
-          asset_name: manage-windows.zip
+          asset_path: manage.zip
+          asset_name: SocialMediaScheduler-windows.zip
           asset_content_type: application/zip
 
       - name: Upload Release Asset (Linux)
@@ -209,8 +197,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: manage-linux.zip
-          asset_name: manage-linux.zip
+          asset_path: manage.zip
+          asset_name: SocialMediaScheduler-linux.zip
           asset_content_type: application/zip
 
       - name: Upload Release Asset (Mac)
@@ -219,6 +207,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: manage-mac.zip
-          asset_name: manage-mac.zip
+          asset_path: manage.zip
+          asset_name: SocialMediaScheduler-mac.zip
           asset_content_type: application/zip
