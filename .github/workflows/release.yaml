@@ -47,8 +47,13 @@ jobs:
         run: |
           cd dist
           Compress-Archive -Path manage -DestinationPath manage-windows.zip
+          Write-Host "Current Directory: $(Get-Location)"
+          Get-ChildItem -Path manage-windows.zip
           Move-Item -Path manage-windows.zip -Destination $env:GITHUB_WORKSPACE
-        
+          Write-Host "Files in $env:GITHUB_WORKSPACE:"
+          Get-ChildItem -Path $env:GITHUB_WORKSPACE
+      
+      
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
