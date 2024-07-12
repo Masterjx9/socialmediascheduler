@@ -31,6 +31,10 @@ jobs:
             --paths "$env:GITHUB_WORKSPACE\scheduler" `
             --paths "$env:GITHUB_WORKSPACE\controller" `
             "manage.py"
+      
+      - name: List/print files in dist folder
+        run: |
+          Get-ChildItem -Path dist -Recurse
 
       - name: Copy additional files
         run: |
