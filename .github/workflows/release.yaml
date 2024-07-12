@@ -106,7 +106,7 @@ jobs:
           cd ..
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: SocialMediaScheduler-linux
           path: ${{ github.workspace }}/manage-linux.zip
@@ -152,7 +152,7 @@ jobs:
           cd ..
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: SocialMediaScheduler-mac
           path: ${{ github.workspace }}/manage-mac.zip
@@ -167,17 +167,17 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: SocialMediaScheduler-windows
           
       - name: Download build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: SocialMediaScheduler-linux
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: SocialMediaScheduler-mac
 
