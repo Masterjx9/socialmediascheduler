@@ -48,7 +48,7 @@ jobs:
           cd dist
           Compress-Archive -Path manage -DestinationPath manage-windows.zip
           Move-Item -Path manage-windows.zip -Destination $env:GITHUB_WORKSPACE
-          cd ..
+        
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
@@ -161,19 +161,19 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: SocialMediaScheduler-windows
-          path: ./windows
+          path: ${{ github.workspace }}
           
       - name: Download build artifacts
         uses: actions/download-artifact@v2
         with:
           name: SocialMediaScheduler-linux
-          path: ./linux
+          path: ${{ github.workspace }}
 
       - name: Download build artifacts
         uses: actions/download-artifact@v2
         with:
           name: SocialMediaScheduler-mac
-          path: ./mac
+          path: ${{ github.workspace }}
 
       - name: Generate release name and tag
         id: generate_release_info
