@@ -12,6 +12,7 @@
   "dependencies": {
     "react": "18.2.0",
     "react-native": "0.74.1",
+    "react-native-calendars": "^1.1305.0",
     "react-native-camera": "^4.2.1",
     "react-native-fs": "^2.20.0",
     "react-native-permissions": "^4.1.5"

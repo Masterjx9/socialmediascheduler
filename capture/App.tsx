@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { TextInput, View, Text, TouchableOpacity, StyleSheet, PermissionsAndroid, Platform } from 'react-native';
+import { TextInput, View, Text, TouchableOpacity, StyleSheet, PermissionsAndroid, Platform, Modal } from 'react-native';
 import RNFS from 'react-native-fs';
 import { launchCamera, CameraOptions } from 'react-native-image-picker';
 import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import { Calendar, DateData } from 'react-native-calendars';
 
 const App = () => {
   const [inputText, setInputText] = useState('');
+  const [isCalendarVisible, setIsCalendarVisible] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
 
   const requestPermissions = async () => {
     if (Platform.OS === 'android') {
@@ -28,7 +31,6 @@ const App = () => {
         console.warn(err);
       }
     } else {
-      // iOS Permissions
       const cameraPermission = await request(PERMISSIONS.IOS.CAMERA);
       const storagePermission = await request(PERMISSIONS.IOS.PHOTO_LIBRARY);
       if (cameraPermission !== RESULTS.GRANTED || storagePermission !== RESULTS.GRANTED) {
@@ -71,6 +73,18 @@ const App = () => {
     }
   };
 
+  const schedulePost = () => {
+    setIsCalendarVisible(true);
+  };
+
+
+
+  const onDayPress = (day: DateData) => {
+    setSelectedDate(day.dateString);
+    setIsCalendarVisible(false);
+    console.log('Selected date: ', day.dateString);
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Social media scheduler</Text>
@@ -86,17 +100,62 @@ const App = () => {
         </TouchableOpacity>
       </View>
 
+      <View style={styles.captureContainer}>
+        <TouchableOpacity onPress={schedulePost} style={styles.capture}>
+          <Text style={styles.captureText}>SCHEDULE</Text>
+        </TouchableOpacity>
+      </View>
+
       <TextInput
         style={styles.textInput}
         placeholder="Enter text to save"
         value={inputText}
         onChangeText={setInputText}
       />
+
+{/* Full screen Modal */}
+<Modal presentationStyle='fullScreen' 
+visible={isCalendarVisible}
+animationType='slide'
+onRequestClose={() => setIsCalendarVisible(false)}
+>
+
+<Calendar
+  onDayPress={onDayPress}
+  markedDates={{
+    [selectedDate]: { selected: true, marked: true, selectedColor: 'blue' },
+  }}
+  theme={{
+    'stylesheet.calendar.main': {
+      base: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+    },
+  }}
+/>
+
+
+</Modal>
+
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  fullScreenModal: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  calendarContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -130,6 +189,12 @@ const styles = StyleSheet.create({
     margin: 20,
     padding: 10,
     color: 'white',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
 });
 
