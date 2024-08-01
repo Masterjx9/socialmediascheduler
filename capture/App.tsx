@@ -1,14 +1,188 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TextInput, View, Text, TouchableOpacity, StyleSheet, PermissionsAndroid, Platform, Modal } from 'react-native';
 import RNFS from 'react-native-fs';
 import { launchCamera, CameraOptions } from 'react-native-image-picker';
 import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { Calendar, DateData } from 'react-native-calendars';
+import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
 
 const App = () => {
   const [inputText, setInputText] = useState('');
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
+  const [dbData, setDbData] = useState<any[]>([]);
+
+  const insertFakeData = (db: SQLiteDatabase) => {
+    db.transaction((tx: Transaction) => {
+      const unixTime = Math.floor(Date.now() / 1000);
+      tx.executeSql(
+        `INSERT INTO content (user_id, content_type, content_data, post_date, published) VALUES (?, ?, ?, ?, ?)`,
+        [1, 'post', 'testphone', unixTime, 0],
+        () => {
+          console.log('Fake data inserted successfully');
+        },
+        (error) => {
+          console.log('Error inserting fake data:', error);
+        }
+      );
+    });
+  };
+  
+
+  
+  // In the useEffect:
+  useEffect(() => {
+    const dbPath = `${RNFS.DocumentDirectoryPath}/database_default.sqlite3`;
+    console.log('Database path:', dbPath);
+  
+    const listDirectoryContents = async (path: string) => {
+      try {
+        const files = await RNFS.readDir(path);
+        console.log('Directory contents:', files);
+      } catch (error) {
+        console.error('Error reading directory:', error);
+      }
+    };
+  
+    listDirectoryContents(RNFS.DocumentDirectoryPath);
+  
+    RNFS.exists(dbPath)
+      .then((exists) => {
+        if (exists) {
+          const db = SQLite.openDatabase(
+            { name: 'database_default.sqlite3', location: 'default' },
+            () => {
+              console.log('Database opened');
+              // insertFakeData(db);
+              fetchDbData(db);
+            },
+            (error) => {
+              console.log('Error opening database:', error);
+            }
+          );
+        } else {
+          const filePath = `${RNFS.DocumentDirectoryPath}/database_default.sqlite3`;
+          RNFS.writeFile(filePath, '', 'utf8')
+            .then(() => {
+              console.log('SQLite database file created:', filePath);
+              const db = SQLite.openDatabase(
+                { name: 'database_default.sqlite3', location: 'default' },
+                () => {
+                  console.log('New database created and opened');
+                  db.transaction((tx: Transaction) => {
+                    createTables(tx);
+                  }, (error: any) => {
+                    console.log('Transaction error:', error);
+                  }, () => {
+                    console.log('Tables created successfully');
+                    // insertFakeData(db);
+                    listDirectoryContents(RNFS.DocumentDirectoryPath);
+                  });
+                },
+                (error) => {
+                  console.log('Error creating new database:', error);
+                }
+              );
+            })
+            .catch((error) => {
+              console.error('Error creating SQLite database file:', error);
+            });
+        }
+      })
+      .catch((error) => {
+        console.log('Error checking if database exists:', error);
+      });
+  }, []);
+  
+  
+  const createTables = (tx: Transaction) => {
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT
+      );
+    `);
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS social_media_accounts (
+        account_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        platform_name TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `);
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS scheduler (
+        scheduler_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        content_id INTEGER,
+        social_media_account_id INTEGER,
+        scheduled_time DATETIME,
+        FOREIGN KEY (content_id) REFERENCES content(content_id) ON DELETE CASCADE,
+        FOREIGN KEY (social_media_account_id) REFERENCES social_media_accounts(account_id) ON DELETE CASCADE
+      );
+    `);
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS content (
+        content_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        user_id INTEGER NOT NULL,
+        content_type TEXT NOT NULL CHECK (content_type IN ('image', 'video', 'post')),
+        content_data TEXT NOT NULL,
+        post_date DATE NOT NULL,
+        description TEXT,
+        tags TEXT,
+        published INTEGER NOT NULL DEFAULT (0),
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      );
+    `);
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS meta_accounts (
+        ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_id INTEGER,
+        meta_id TEXT,
+        meta_token TEXT,
+        account_name TEXT
+      );
+    `);
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS twitter_accounts (
+        ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_id INTEGER,
+        twitter_consumer_key TEXT,
+        twitter_access_token TEXT,
+        twitter_access_token_secret TEXT,
+        account_name TEXT,
+        twitter_consumer_secret TEXT
+      );
+    `);
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS linkedin_accounts (
+        app_id TEXT,
+        account_id INTEGER PRIMARY KEY REFERENCES social_media_accounts (account_id),
+        app_secret TEXT,
+        app_token TEXT,
+        app_refresh_token TEXT,
+        app_token_expires_in INTEGER,
+        app_token_refresh_expires_in INTEGER,
+        account_name TEXT,
+        timestamp DATETIME
+      );
+    `);
+  };
+  
+  
+  const fetchDbData = (db: SQLiteDatabase) => {
+    db.transaction((tx: Transaction) => {
+      tx.executeSql('SELECT * FROM content', [], (tx: Transaction, results: ResultSet) => {
+        const rows = results.rows;
+        let data: any[] = [];
+        for (let i = 0; i < rows.length; i++) {
+          data.push(rows.item(i));
+        }
+        console.log('Fetched data:', data);
+        setDbData(data);
+      });
+    });
+  };
+  
 
   const requestPermissions = async () => {
     if (Platform.OS === 'android') {
@@ -77,8 +251,6 @@ const App = () => {
     setIsCalendarVisible(true);
   };
 
-
-
   const onDayPress = (day: DateData) => {
     setSelectedDate(day.dateString);
     setIsCalendarVisible(false);
@@ -113,37 +285,41 @@ const App = () => {
         onChangeText={setInputText}
       />
 
-{/* Full screen Modal */}
-<Modal presentationStyle='fullScreen' 
-visible={isCalendarVisible}
-animationType='slide'
-onRequestClose={() => setIsCalendarVisible(false)}
->
+      <Modal
+        presentationStyle="fullScreen"
+        visible={isCalendarVisible}
+        animationType="slide"
+        onRequestClose={() => setIsCalendarVisible(false)}
+      >
+        <Calendar
+          onDayPress={onDayPress}
+          markedDates={{
+            [selectedDate]: { selected: true, marked: true, selectedColor: 'blue' },
+          }}
+          theme={{
+            'stylesheet.calendar.main': {
+              base: {
+                width: '100%',
+                height: '100%',
+                justifyContent: 'center',
+                alignItems: 'center',
+              },
+            },
+          }}
+        />
+      </Modal>
 
-<Calendar
-  onDayPress={onDayPress}
-  markedDates={{
-    [selectedDate]: { selected: true, marked: true, selectedColor: 'blue' },
-  }}
-  theme={{
-    'stylesheet.calendar.main': {
-      base: {
-        width: '100%',
-        height: '100%',
-        justifyContent: 'center',
-        alignItems: 'center',
-      },
-    },
-  }}
-/>
-
-
-</Modal>
-
+      <View>
+        <Text style={styles.title}>Database Data:</Text>
+        {dbData.map((item, index) => (
+          <Text key={index} style={styles.dbText}>
+            {JSON.stringify(item)}
+          </Text>
+        ))}
+      </View>
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   fullScreenModal: {
     flex: 1,
@@ -196,6 +372,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
+  dbText: {
+    color: 'white',
+  },
 });
+
 
 export default App;
