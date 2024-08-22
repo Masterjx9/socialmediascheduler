@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { TextInput, View, Text, TouchableOpacity, StyleSheet, PermissionsAndroid, Platform, Modal } from 'react-native';
+import { TextInput, View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import RNFS from 'react-native-fs';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faCamera, faCalendar, faSave, faPen, faUserGroup, faFileImport, faGear } from '@fortawesome/free-solid-svg-icons';
+import { faGoogle, faMicrosoft, faLinkedin, faTwitter } from '@fortawesome/free-brands-svg-icons';
 import { launchCamera, CameraOptions } from 'react-native-image-picker';
 import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { Calendar, DateData } from 'react-native-calendars';
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
+import { PermissionsAndroid, Platform, Alert, Linking } from 'react-native';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
 const App = () => {
   const [inputText, setInputText] = useState('');
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
+  const [isLoginVisible, setIsLoginVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [dbData, setDbData] = useState<any[]>([]);
 
@@ -32,7 +38,15 @@ const App = () => {
   
   // In the useEffect:
   useEffect(() => {
-    const dbPath = `${RNFS.DocumentDirectoryPath}/database_default.sqlite3`;
+
+    GoogleSignin.configure({
+      webClientId: "enter_web_client_id", // Client ID from Google Developer Console
+      offlineAccess: true, // if you want to access Google API on behalf of the user FROM YOUR SERVER
+      scopes: ['profile', 'email', 'openid'], // array of scopes
+    });
+
+    // requestPermissions();
+    const dbPath = '/data/data/com.socialmediaschedulerapp/databases/database_default.sqlite3';
     console.log('Database path:', dbPath);
   
     const listDirectoryContents = async (path: string) => {
@@ -43,8 +57,8 @@ const App = () => {
         console.error('Error reading directory:', error);
       }
     };
-  
-    listDirectoryContents(RNFS.DocumentDirectoryPath);
+    console.log('Document directory path:', RNFS.DocumentDirectoryPath);
+    listDirectoryContents('/data/data/com.socialmediaschedulerapp/databases');
   
     RNFS.exists(dbPath)
       .then((exists) => {
@@ -60,7 +74,8 @@ const App = () => {
               console.log('Error opening database:', error);
             }
           );
-        } else {
+        } else 
+        {
           const filePath = `${RNFS.DocumentDirectoryPath}/database_default.sqlite3`;
           RNFS.writeFile(filePath, '', 'utf8')
             .then(() => {
@@ -171,6 +186,24 @@ const App = () => {
   
   const fetchDbData = (db: SQLiteDatabase) => {
     db.transaction((tx: Transaction) => {
+      // print all tables
+      tx.executeSql("SELECT name FROM sqlite_master WHERE type='table'", [], (tx: Transaction, results: ResultSet) => {
+        const rows = results.rows;
+        for (let i = 0; i < rows.length; i++) {
+          console.log('Table:', rows.item(i).name);
+        }
+      });
+
+      // fetch all data from all tables
+      tx.executeSql('SELECT * FROM users', [], (tx: Transaction, results: ResultSet) => {
+        const rows = results.rows;
+        let data: any[] = [];
+        for (let i = 0; i < rows.length; i++) {
+          data.push(rows.item(i));
+        }
+        console.log('Fetched data:', data);
+      });
+
       tx.executeSql('SELECT * FROM content', [], (tx: Transaction, results: ResultSet) => {
         const rows = results.rows;
         let data: any[] = [];
@@ -187,11 +220,17 @@ const App = () => {
   const requestPermissions = async () => {
     if (Platform.OS === 'android') {
       try {
-        const granted = await PermissionsAndroid.requestMultiple([
+        const permissions = [
           PermissionsAndroid.PERMISSIONS.CAMERA,
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
           PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-        ]);
+        ];
+        console.log('Requesting permissions:', permissions); // Log the permissions being requested
+  
+        const granted = await PermissionsAndroid.requestMultiple(permissions);
+  
+        console.log('Permissions granted:', granted); // Log the results
+  
         if (
           granted[PermissionsAndroid.PERMISSIONS.CAMERA] === PermissionsAndroid.RESULTS.GRANTED &&
           granted[PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE] === PermissionsAndroid.RESULTS.GRANTED &&
@@ -251,39 +290,82 @@ const App = () => {
     setIsCalendarVisible(true);
   };
 
+  const signUP = () => {
+    setIsLoginVisible(true);
+  }
+  
+const handleLogin = async (provider: string) => {
+  if (provider === 'Google') {
+    try {
+      console.log('Google login');
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      console.log(userInfo);
+      // You can now use the userInfo object, which contains user's information and tokens
+    } catch (error) {
+      if (error instanceof Error && 'code' in error) {
+        if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+          console.log('User cancelled the login process');
+        } else if (error.code === statusCodes.IN_PROGRESS) {
+          console.log('Login is already in progress');
+        } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+          console.log('Play Services not available or outdated');
+        } else {
+          console.log('Some other error occurred', error);
+        }
+      } else {
+        console.log('An unknown error occurred', error);
+      }
+    }
+}
+};
+
   const onDayPress = (day: DateData) => {
     setSelectedDate(day.dateString);
-    setIsCalendarVisible(false);
+    // setIsCalendarVisible(false);
     console.log('Selected date: ', day.dateString);
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Social media scheduler</Text>
+
       <View style={styles.captureContainer}>
-        <TouchableOpacity onPress={takePicture} style={styles.capture}>
-          <Text style={styles.captureText}>SNAP</Text>
+        {/* <TouchableOpacity onPress={schedulePost} style={styles.capture}> */}
+        <TouchableOpacity onPress={signUP} style={styles.capture}>
+          <Text style={styles.captureText}>Sign Up</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.captureContainer}>
-        <TouchableOpacity onPress={capturePost} style={styles.capture}>
-          <Text style={styles.captureText}>POST</Text>
+      {/* login modal */}
+      <Modal
+        presentationStyle="fullScreen"
+        // visible={isCalendarVisible}
+        visible={isLoginVisible}
+        animationType="slide"
+        onRequestClose={() => setIsLoginVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+        <Text style={styles.title}>Login</Text>
+        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Google')}>
+          <FontAwesomeIcon icon={faGoogle} size={24} />
+          <Text style={styles.loginText}>Login with Google</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Microsoft')}>
+          <FontAwesomeIcon icon={faMicrosoft} size={24} />
+          <Text style={styles.loginText}>Login with Microsoft</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('LinkedIn')}>
+          <FontAwesomeIcon icon={faLinkedin} size={24} />
+          <Text style={styles.loginText}>Login with LinkedIn</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Twitter')}>
+          <FontAwesomeIcon icon={faTwitter} size={24} />
+          <Text style={styles.loginText}>Login with Twitter</Text>
         </TouchableOpacity>
       </View>
+    </Modal>
 
-      <View style={styles.captureContainer}>
-        <TouchableOpacity onPress={schedulePost} style={styles.capture}>
-          <Text style={styles.captureText}>SCHEDULE</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TextInput
-        style={styles.textInput}
-        placeholder="Enter text to save"
-        value={inputText}
-        onChangeText={setInputText}
-      />
 
       <Modal
         presentationStyle="fullScreen"
@@ -307,16 +389,49 @@ const App = () => {
             },
           }}
         />
+
+
+
+      <View style={styles.footerNavBar}>
+    <TouchableOpacity style={styles.navButton}>
+    <FontAwesomeIcon icon={faUserGroup} size={24} />
+    <Text>Accounts</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity style={[styles.navButton]} disabled={true}>
+  <FontAwesomeIcon icon={faFileImport} style={styles.disabledText} size={24} />
+  <Text style={styles.disabledText}>Import</Text>
+</TouchableOpacity>
+
+<TouchableOpacity style={[styles.navButton]} disabled={true} onPress={capturePost}>
+  <FontAwesomeIcon icon={faPen} style={styles.disabledText} size={24} />
+  <Text style={styles.disabledText}>Post/Tweet</Text>
+</TouchableOpacity>
+
+<TouchableOpacity style={[styles.navButton]} disabled={true} onPress={takePicture}>
+{/* <TouchableOpacity style={[styles.navButton]} onPress={takePicture}> */}
+  <FontAwesomeIcon icon={faCamera} style={styles.disabledText} size={24} />
+  <Text style={styles.disabledText}>Camera</Text>
+</TouchableOpacity>
+
+
+  <TouchableOpacity style={styles.navButton}>
+    <FontAwesomeIcon icon={faGear} size={24} />
+    <Text>Settings</Text>
+  </TouchableOpacity>
+
+</View>
+
       </Modal>
 
-      <View>
+      {/* <View>
         <Text style={styles.title}>Database Data:</Text>
         {dbData.map((item, index) => (
           <Text key={index} style={styles.dbText}>
             {JSON.stringify(item)}
           </Text>
         ))}
-      </View>
+      </View> */}
     </View>
   );
 };
@@ -375,6 +490,40 @@ const styles = StyleSheet.create({
   dbText: {
     color: 'white',
   },
+  footerNavBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    height: 60,
+    backgroundColor: '#f8f8f8',
+    borderTopWidth: 1,
+    borderColor: '#e7e7e7',
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+  },
+  navButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  disabledButton: {
+    backgroundColor: '#d3d3d3', // Grey background for disabled state
+  },
+  disabledText: {
+    color: '#a9a9a9', // Grey text color for disabled state
+  },
+  loginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    margin: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5,
+  },
+  loginText: {
+    marginLeft: 10,
+    fontSize: 18,
+  }
 });
 
 

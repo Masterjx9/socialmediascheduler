@@ -10,13 +10,20 @@
     "test": "jest"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.6.0",
+    "@fortawesome/free-brands-svg-icons": "^6.6.0",
+    "@fortawesome/free-solid-svg-icons": "^6.6.0",
+    "@fortawesome/react-fontawesome": "^0.2.2",
+    "@fortawesome/react-native-fontawesome": "^0.3.2",
+    "@react-native-google-signin/google-signin": "^12.2.1",
     "react": "18.2.0",
     "react-native": "0.74.1",
     "react-native-calendars": "^1.1305.0",
     "react-native-camera": "^4.2.1",
     "react-native-fs": "^2.20.0",
     "react-native-permissions": "^4.1.5",
-    "react-native-sqlite-storage": "^6.0.1"
+    "react-native-sqlite-storage": "^6.0.1",
+    "react-native-svg": "^15.4.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
