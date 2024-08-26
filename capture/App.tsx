@@ -10,11 +10,17 @@ import { Calendar, DateData } from 'react-native-calendars';
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
 import { PermissionsAndroid, Platform, Alert, Linking } from 'react-native';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import SettingsModal from './components/SettingsModal'; 
+import { GOOGLE_WEB_CLIENT_ID } from '@env';
 
 const App = () => {
   const [inputText, setInputText] = useState('');
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
   const [isLoginVisible, setIsLoginVisible] = useState(false);
+  const [isSettingsVisible, setIsSettingsVisible] = useState(false);
+  const [isAccountsVisible, setIsAccountsVisible] = useState(false);
+  const [isImportVisible, setIsImportVisible] = useState(false);
+  const [isPostVisible, setIsPostVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [dbData, setDbData] = useState<any[]>([]);
 
@@ -39,11 +45,29 @@ const App = () => {
   // In the useEffect:
   useEffect(() => {
 
+    // Google sign in configuration
     GoogleSignin.configure({
-      webClientId: "enter_web_client_id", // Client ID from Google Developer Console
+      webClientId: GOOGLE_WEB_CLIENT_ID, // Client ID from Google Developer Console
       offlineAccess: true, // if you want to access Google API on behalf of the user FROM YOUR SERVER
       scopes: ['profile', 'email', 'openid'], // array of scopes
     });
+
+
+      const checkSignInStatus = async () => {
+        const user = await GoogleSignin.getCurrentUser();
+        const isSignedIn = user !== null;
+        
+        if (isSignedIn) {
+          console.log('User is signed in:', user);
+          setIsCalendarVisible(true);
+        } else {
+          console.log('User is not signed in');
+          // setIsLoginVisible(true);
+        }
+      };
+
+      checkSignInStatus();
+
 
     // requestPermissions();
     const dbPath = '/data/data/com.socialmediaschedulerapp/databases/database_default.sqlite3';
@@ -107,6 +131,10 @@ const App = () => {
       .catch((error) => {
         console.log('Error checking if database exists:', error);
       });
+
+
+
+      // End of useEffect
   }, []);
   
   
@@ -294,6 +322,18 @@ const App = () => {
     setIsLoginVisible(true);
   }
   
+  const logOutALL = async () => {
+    try {
+      await GoogleSignin.revokeAccess();
+      await GoogleSignin.signOut();
+      setIsSettingsVisible(false);
+      setIsCalendarVisible(false);
+      setIsLoginVisible(false);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  
 const handleLogin = async (provider: string) => {
   if (provider === 'Google') {
     try {
@@ -301,6 +341,11 @@ const handleLogin = async (provider: string) => {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
       console.log(userInfo);
+        // Insert Google ID into the database
+        insertGoogleIdIntoDb(userInfo.user.id);
+
+        // Show the calendar
+        setIsCalendarVisible(true);
       // You can now use the userInfo object, which contains user's information and tokens
     } catch (error) {
       if (error instanceof Error && 'code' in error) {
@@ -320,120 +365,152 @@ const handleLogin = async (provider: string) => {
 }
 };
 
+  const insertGoogleIdIntoDb = (googleId: string) => {
+    const db = SQLite.openDatabase(
+      { name: 'database_default.sqlite3', location: 'default' },
+      () => {
+        db.transaction((tx: Transaction) => {
+          tx.executeSql(
+            `INSERT OR REPLACE INTO users (id, name) VALUES (?, ?)`,
+            [googleId, ''],
+            () => {
+              console.log('Google ID stored in the database:', googleId);
+            },
+            (error) => {
+              console.log('Error storing Google ID in the database:', error);
+            }
+          );
+        });
+      },
+      (error) => {
+        console.log('Error opening database:', error);
+      }
+    );
+  };
+
   const onDayPress = (day: DateData) => {
     setSelectedDate(day.dateString);
     // setIsCalendarVisible(false);
     console.log('Selected date: ', day.dateString);
   };
 
+  // Render the app
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Social media scheduler</Text>
+      {isCalendarVisible ? (
+        <>
+          <SettingsModal isVisible={isSettingsVisible} onClose={() => setIsSettingsVisible(false)} onLogOut={logOutALL} />
 
-      <View style={styles.captureContainer}>
-        {/* <TouchableOpacity onPress={schedulePost} style={styles.capture}> */}
-        <TouchableOpacity onPress={signUP} style={styles.capture}>
-          <Text style={styles.captureText}>Sign Up</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* login modal */}
-      <Modal
-        presentationStyle="fullScreen"
-        // visible={isCalendarVisible}
-        visible={isLoginVisible}
-        animationType="slide"
-        onRequestClose={() => setIsLoginVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-        <Text style={styles.title}>Login</Text>
-        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Google')}>
-          <FontAwesomeIcon icon={faGoogle} size={24} />
-          <Text style={styles.loginText}>Login with Google</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Microsoft')}>
-          <FontAwesomeIcon icon={faMicrosoft} size={24} />
-          <Text style={styles.loginText}>Login with Microsoft</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('LinkedIn')}>
-          <FontAwesomeIcon icon={faLinkedin} size={24} />
-          <Text style={styles.loginText}>Login with LinkedIn</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Twitter')}>
-          <FontAwesomeIcon icon={faTwitter} size={24} />
-          <Text style={styles.loginText}>Login with Twitter</Text>
-        </TouchableOpacity>
-      </View>
-    </Modal>
-
-
-      <Modal
-        presentationStyle="fullScreen"
-        visible={isCalendarVisible}
-        animationType="slide"
-        onRequestClose={() => setIsCalendarVisible(false)}
-      >
-        <Calendar
-          onDayPress={onDayPress}
-          markedDates={{
-            [selectedDate]: { selected: true, marked: true, selectedColor: 'blue' },
-          }}
-          theme={{
-            'stylesheet.calendar.main': {
-              base: {
-                width: '100%',
-                height: '100%',
-                justifyContent: 'center',
-                alignItems: 'center',
-              },
-            },
-          }}
-        />
-
-
-
-      <View style={styles.footerNavBar}>
-    <TouchableOpacity style={styles.navButton}>
-    <FontAwesomeIcon icon={faUserGroup} size={24} />
-    <Text>Accounts</Text>
-  </TouchableOpacity>
-
-  <TouchableOpacity style={[styles.navButton]} disabled={true}>
-  <FontAwesomeIcon icon={faFileImport} style={styles.disabledText} size={24} />
-  <Text style={styles.disabledText}>Import</Text>
-</TouchableOpacity>
-
-<TouchableOpacity style={[styles.navButton]} disabled={true} onPress={capturePost}>
-  <FontAwesomeIcon icon={faPen} style={styles.disabledText} size={24} />
-  <Text style={styles.disabledText}>Post/Tweet</Text>
-</TouchableOpacity>
-
-<TouchableOpacity style={[styles.navButton]} disabled={true} onPress={takePicture}>
-{/* <TouchableOpacity style={[styles.navButton]} onPress={takePicture}> */}
-  <FontAwesomeIcon icon={faCamera} style={styles.disabledText} size={24} />
-  <Text style={styles.disabledText}>Camera</Text>
-</TouchableOpacity>
-
-
-  <TouchableOpacity style={styles.navButton}>
-    <FontAwesomeIcon icon={faGear} size={24} />
-    <Text>Settings</Text>
-  </TouchableOpacity>
-
-</View>
-
-      </Modal>
-
-      {/* <View>
-        <Text style={styles.title}>Database Data:</Text>
-        {dbData.map((item, index) => (
-          <Text key={index} style={styles.dbText}>
-            {JSON.stringify(item)}
-          </Text>
-        ))}
-      </View> */}
+          <Modal
+            presentationStyle="fullScreen"
+            visible={isCalendarVisible}
+            animationType="slide"
+            onRequestClose={() => setIsCalendarVisible(false)}
+          >
+            <Calendar
+              onDayPress={onDayPress}
+              markedDates={{
+                [selectedDate]: { selected: true, marked: true, selectedColor: 'blue' },
+              }}
+              theme={{
+                'stylesheet.calendar.main': {
+                  base: {
+                    width: '100%',
+                    height: '100%',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  },
+                },
+              }}
+            />
+  
+            <View style={styles.footerNavBar}>
+              <TouchableOpacity
+                style={styles.navButton}
+                onPress={() => setIsAccountsVisible(true)}
+              >
+                <FontAwesomeIcon icon={faUserGroup} size={24} />
+                <Text>Accounts</Text>
+              </TouchableOpacity>
+  
+              <TouchableOpacity
+                style={[styles.navButton]}
+                onPress={() => setIsImportVisible(true)}
+              >
+                <FontAwesomeIcon icon={faFileImport} size={24} />
+                <Text>Import</Text>
+              </TouchableOpacity>
+  
+              <TouchableOpacity
+                style={[styles.navButton]}
+                onPress={() => setIsPostVisible(true)}
+              >
+                <FontAwesomeIcon icon={faPen} size={24} />
+                <Text>Post/Tweet</Text>
+              </TouchableOpacity>
+  
+              <TouchableOpacity
+                style={[styles.navButton]}
+                onPress={takePicture}
+              >
+                <FontAwesomeIcon icon={faCamera} size={24} />
+                <Text>Camera</Text>
+              </TouchableOpacity>
+  
+              <TouchableOpacity
+                style={styles.navButton}
+                onPress={() => setIsSettingsVisible(true)}
+              >
+                <FontAwesomeIcon icon={faGear} size={24} />
+                <Text>Settings</Text>
+              </TouchableOpacity>
+            </View>
+          </Modal>
+        </>
+      ) : (
+        <>
+          <Text style={styles.title}>Social media scheduler</Text>
+  
+          <View style={styles.captureContainer}>
+            <TouchableOpacity onPress={signUP} style={styles.capture}>
+              <Text style={styles.captureText}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+  
+          {/* login modal */}
+          <Modal
+            presentationStyle="fullScreen"
+            visible={isLoginVisible}
+            animationType="slide"
+            onRequestClose={() => setIsLoginVisible(false)}
+          >
+            <View style={styles.modalContainer}>
+              <Text style={styles.title}>Login</Text>
+              <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Google')}>
+                <FontAwesomeIcon icon={faGoogle} size={24} />
+                <Text style={styles.loginText}>Login with Google</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Microsoft')}>
+                <FontAwesomeIcon icon={faMicrosoft} size={24} />
+                <Text style={styles.loginText}>Login with Microsoft</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('LinkedIn')}>
+                <FontAwesomeIcon icon={faLinkedin} size={24} />
+                <Text style={styles.loginText}>Login with LinkedIn</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Twitter')}>
+                <FontAwesomeIcon icon={faTwitter} size={24} />
+                <Text style={styles.loginText}>Login with Twitter</Text>
+              </TouchableOpacity>
+            </View>
+          </Modal>
+        </>
+      )}
     </View>
   );
+  
+  
+  
 };
 const styles = StyleSheet.create({
   fullScreenModal: {
