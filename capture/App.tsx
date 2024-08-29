@@ -10,7 +10,9 @@ import { Calendar, DateData } from 'react-native-calendars';
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
 import { PermissionsAndroid, Platform, Alert, Linking } from 'react-native';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import DocumentPicker, { types } from 'react-native-document-picker';
 import SettingsModal from './components/SettingsModal'; 
+import PostModal from './components/PostModal';
 import { GOOGLE_WEB_CLIENT_ID } from '@env';
 
 const App = () => {
@@ -44,6 +46,12 @@ const App = () => {
   
   // In the useEffect:
   useEffect(() => {
+
+      // Set today's date when the calendar becomes visible
+      if (isCalendarVisible) {
+        const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+        setSelectedDate(today);
+      }
 
     // Google sign in configuration
     GoogleSignin.configure({
@@ -135,7 +143,8 @@ const App = () => {
 
 
       // End of useEffect
-  }, []);
+    }, [isCalendarVisible]);
+
   
   
   const createTables = (tx: Transaction) => {
@@ -281,6 +290,8 @@ const App = () => {
   };
 
   const takePicture = async () => {
+    await requestPermissions();
+    
     const options: CameraOptions = {
       durationLimit: 10,
       saveToPhotos: true,
@@ -322,6 +333,36 @@ const App = () => {
     setIsLoginVisible(true);
   }
   
+  const handlePost = (content: string) => {
+    console.log('Post content:', content);
+    // Here you can add logic to save the post to the database, share it, etc.
+    setIsPostVisible(false); // Close the modal after posting
+  };
+  
+
+  const handleFileImport = async () => {
+    try {
+      const res = await DocumentPicker.pick({
+        type: [types.images, types.video],
+      });
+
+      if (res && res.length > 0) {
+        res.forEach((file) => {
+          console.log('Selected file:', file.uri);
+          // Handle the file (e.g., upload it, save it to your app's storage, etc.)
+          Alert.alert('File Selected', `You selected: ${file.name}`);
+        });
+      }
+    } catch (err) {
+      if (DocumentPicker.isCancel(err)) {
+        console.log('User canceled the picker');
+      } else {
+        console.error('Unknown error:', err);
+      }
+    }
+  };
+
+
   const logOutALL = async () => {
     try {
       await GoogleSignin.revokeAccess();
@@ -399,6 +440,8 @@ const handleLogin = async (provider: string) => {
     <View style={styles.container}>
       {isCalendarVisible ? (
         <>
+          <PostModal isVisible={isPostVisible} onClose={() => setIsPostVisible(false)} onPost={handlePost} />
+
           <SettingsModal isVisible={isSettingsVisible} onClose={() => setIsSettingsVisible(false)} onLogOut={logOutALL} />
 
           <Modal
@@ -435,7 +478,7 @@ const handleLogin = async (provider: string) => {
   
               <TouchableOpacity
                 style={[styles.navButton]}
-                onPress={() => setIsImportVisible(true)}
+                onPress={handleFileImport}
               >
                 <FontAwesomeIcon icon={faFileImport} size={24} />
                 <Text>Import</Text>
