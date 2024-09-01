@@ -13,9 +13,11 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import DocumentPicker, { types } from 'react-native-document-picker';
 import SettingsModal from './components/SettingsModal'; 
 import PostModal from './components/PostModal';
+import AccountsModal from './components/AccountsModal';
 import { GOOGLE_WEB_CLIENT_ID } from '@env';
 
 const App = () => {
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [inputText, setInputText] = useState('');
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
   const [isLoginVisible, setIsLoginVisible] = useState(false);
@@ -67,6 +69,8 @@ const App = () => {
         
         if (isSignedIn) {
           console.log('User is signed in:', user);
+          const userId = await fetchUserIdFromDb(user.user.id);
+          setCurrentUserId(userId);
           setIsCalendarVisible(true);
         } else {
           console.log('User is not signed in');
@@ -163,6 +167,16 @@ const App = () => {
       );
     `);
     tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS user_providers (
+      account_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      provider_name TEXT NOT NULL, -- e.g., 'google', 'meta', 'twitter', etc.
+      provider_user_id TEXT NOT NULL, -- e.g., Google sub, Meta ID, etc.
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(user_id, provider_name) -- Ensures one provider entry per user
+      );
+    `);
+    tx.executeSql(`
       CREATE TABLE IF NOT EXISTS scheduler (
         scheduler_id INTEGER PRIMARY KEY AUTOINCREMENT,
         content_id INTEGER,
@@ -250,6 +264,16 @@ const App = () => {
         console.log('Fetched data:', data);
         setDbData(data);
       });
+
+      tx.executeSql('SELECT * FROM user_providers', [], (tx: Transaction, results: ResultSet) => {
+        const rows = results.rows;
+        let data: any[] = [];
+        for (let i = 0; i < rows.length; i++) {
+          data.push(rows.item(i));
+        }
+        console.log('Fetched data:', data);
+      });
+
     });
   };
   
@@ -375,59 +399,111 @@ const App = () => {
     }
   };
   
-const handleLogin = async (provider: string) => {
-  if (provider === 'Google') {
+  const handleLogin = async (provider: string) => {
     try {
-      console.log('Google login');
-      await GoogleSignin.hasPlayServices();
-      const userInfo = await GoogleSignin.signIn();
-      console.log(userInfo);
-        // Insert Google ID into the database
-        insertGoogleIdIntoDb(userInfo.user.id);
-
-        // Show the calendar
-        setIsCalendarVisible(true);
-      // You can now use the userInfo object, which contains user's information and tokens
-    } catch (error) {
-      if (error instanceof Error && 'code' in error) {
-        if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-          console.log('User cancelled the login process');
-        } else if (error.code === statusCodes.IN_PROGRESS) {
-          console.log('Login is already in progress');
-        } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-          console.log('Play Services not available or outdated');
-        } else {
-          console.log('Some other error occurred', error);
-        }
-      } else {
-        console.log('An unknown error occurred', error);
+      if (provider === 'Google') {
+        console.log('Google login');
+        await GoogleSignin.hasPlayServices();
+        const userInfo = await GoogleSignin.signIn();
+        console.log(userInfo);
+  
+        // Handle the database insertion logic
+        await insertProviderIdIntoDb('google', userInfo.user.id, userInfo.user.email);
+        const userId = await fetchUserIdFromDb(userInfo.user.id);
+        setCurrentUserId(userId);
       }
+      // Add other providers like Meta, X, etc., here with similar structure
+  
+      // Show the calendar
+      setIsCalendarVisible(true);
+    } catch (error) {
+      handleLoginError(error);
     }
-}
+  };
+  
+  const fetchUserIdFromDb = async (providerUserId: string): Promise<number | null> => {
+    const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+    return new Promise<number | null>((resolve, reject) => {
+        db.transaction(tx => {
+            tx.executeSql(
+                'SELECT user_id FROM user_providers WHERE provider_user_id = ?',
+                [providerUserId],
+                (_, results) => {
+                    if (results.rows.length > 0) {
+                        resolve(results.rows.item(0).user_id);
+                    } else {
+                        resolve(null);
+                    }
+                },
+                (error) => {
+                    console.log('Error fetching user_id from database:', error);
+                    reject(error);
+                }
+            );
+        });
+    });
 };
 
-  const insertGoogleIdIntoDb = (googleId: string) => {
-    const db = SQLite.openDatabase(
-      { name: 'database_default.sqlite3', location: 'default' },
-      () => {
-        db.transaction((tx: Transaction) => {
-          tx.executeSql(
-            `INSERT OR REPLACE INTO users (id, name) VALUES (?, ?)`,
-            [googleId, ''],
-            () => {
-              console.log('Google ID stored in the database:', googleId);
-            },
-            (error) => {
-              console.log('Error storing Google ID in the database:', error);
-            }
-          );
-        });
-      },
-      (error) => {
-        console.log('Error opening database:', error);
-      }
-    );
+  const insertProviderIdIntoDb = (providerName: string, providerUserId: string, userName: string) => {
+    return new Promise<void>((resolve, reject) => {
+      const db = SQLite.openDatabase(
+        { name: 'database_default.sqlite3', location: 'default' },
+        () => {
+          db.transaction((tx: Transaction) => {
+            // Insert the new user into the users table
+            tx.executeSql(
+              `INSERT INTO users (name) VALUES (?)`,
+              [userName],
+              (_, result) => {
+                const userId = result.insertId; // Get the newly inserted user_id
+  
+                // Insert provider ID into the user_providers table
+                tx.executeSql(
+                  `INSERT OR REPLACE INTO user_providers (user_id, provider_name, provider_user_id) VALUES (?, ?, ?)`,
+                  [userId, providerName, providerUserId],
+                  () => {
+                    console.log(`${providerName} ID stored in the database:`, providerUserId);
+                    resolve();
+                  },
+                  (error) => {
+                    console.log(`Error storing ${providerName} ID in the database:`, error);
+                    reject(error);
+                  }
+                );
+              },
+              (error) => {
+                console.log('Error inserting new user into the database:', error);
+                reject(error);
+              }
+            );
+          });
+        },
+        (error) => {
+          console.log('Error opening database:', error);
+          reject(error);
+        }
+      );
+    });
   };
+  
+  const handleLoginError = (error: any) => {
+    if (error instanceof Error && 'code' in error) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log('User cancelled the login process');
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        console.log('Login is already in progress');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        console.log('Play Services not available or outdated');
+      } else {
+        console.log('Some other error occurred', error);
+      }
+    } else {
+      console.log('An unknown error occurred', error);
+    }
+  };
+  
+
+
 
   const onDayPress = (day: DateData) => {
     setSelectedDate(day.dateString);
@@ -440,6 +516,7 @@ const handleLogin = async (provider: string) => {
     <View style={styles.container}>
       {isCalendarVisible ? (
         <>
+          {currentUserId !== null && <AccountsModal isVisible={isAccountsVisible} onClose={() => setIsAccountsVisible(false)} currentUserId={currentUserId} />}
           <PostModal isVisible={isPostVisible} onClose={() => setIsPostVisible(false)} onPost={handlePost} />
 
           <SettingsModal isVisible={isSettingsVisible} onClose={() => setIsSettingsVisible(false)} onLogOut={logOutALL} />
