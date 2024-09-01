@@ -70,8 +70,13 @@ const App = () => {
         if (isSignedIn) {
           console.log('User is signed in:', user);
           const userId = await fetchUserIdFromDb(user.user.id);
-          setCurrentUserId(userId);
-          setIsCalendarVisible(true);
+          if (userId) {
+            setCurrentUserId(userId);
+            setIsCalendarVisible(true);
+        } else {
+            console.log('User ID not found in database, please sign in again.');
+            setIsLoginVisible(true);
+        }
         } else {
           console.log('User is not signed in');
           // setIsLoginVisible(true);
@@ -406,11 +411,20 @@ const App = () => {
         await GoogleSignin.hasPlayServices();
         const userInfo = await GoogleSignin.signIn();
         console.log(userInfo);
-  
-        // Handle the database insertion logic
-        await insertProviderIdIntoDb('google', userInfo.user.id, userInfo.user.email);
-        const userId = await fetchUserIdFromDb(userInfo.user.id);
+        
+        let userId = await fetchUserIdFromDb(userInfo.user.id);
+
+        if (userId) {
+            console.log('User already exists, signing in...');
+        } else {
+            console.log('New user, inserting into database...');
+            await insertProviderIdIntoDb('google', userInfo.user.id, userInfo.user.email);
+            userId = await fetchUserIdFromDb(userInfo.user.id);
+        }
+
         setCurrentUserId(userId);
+
+        
       }
       // Add other providers like Meta, X, etc., here with similar structure
   
@@ -422,27 +436,33 @@ const App = () => {
   };
   
   const fetchUserIdFromDb = async (providerUserId: string): Promise<number | null> => {
-    const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
-    return new Promise<number | null>((resolve, reject) => {
-        db.transaction(tx => {
-            tx.executeSql(
-                'SELECT user_id FROM user_providers WHERE provider_user_id = ?',
-                [providerUserId],
-                (_, results) => {
-                    if (results.rows.length > 0) {
-                        resolve(results.rows.item(0).user_id);
-                    } else {
-                        resolve(null);
+    try {
+        const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+        return new Promise<number | null>((resolve, reject) => {
+            db.transaction(tx => {
+                tx.executeSql(
+                    'SELECT user_id FROM user_providers WHERE provider_user_id = ?',
+                    [providerUserId],
+                    (_, results) => {
+                        if (results.rows.length > 0) {
+                            resolve(results.rows.item(0).user_id);
+                        } else {
+                            resolve(null);
+                        }
+                    },
+                    (error) => {
+                        console.log('Error fetching user_id from database:', error);
+                        resolve(null);  // Resolve as null instead of rejecting
                     }
-                },
-                (error) => {
-                    console.log('Error fetching user_id from database:', error);
-                    reject(error);
-                }
-            );
+                );
+            });
         });
-    });
+    } catch (error) {
+        console.error('Database operation failed:', error);
+        return null;
+    }
 };
+
 
   const insertProviderIdIntoDb = (providerName: string, providerUserId: string, userName: string) => {
     return new Promise<void>((resolve, reject) => {
