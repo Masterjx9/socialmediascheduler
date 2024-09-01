@@ -411,7 +411,7 @@ const App = () => {
         await GoogleSignin.hasPlayServices();
         const userInfo = await GoogleSignin.signIn();
         console.log(userInfo);
-        
+
         let userId = await fetchUserIdFromDb(userInfo.user.id);
 
         if (userId) {
@@ -536,7 +536,7 @@ const App = () => {
     <View style={styles.container}>
       {isCalendarVisible ? (
         <>
-          {currentUserId !== null && <AccountsModal isVisible={isAccountsVisible} onClose={() => setIsAccountsVisible(false)} currentUserId={currentUserId} />}
+          {currentUserId !== null && <AccountsModal isVisible={isAccountsVisible} onClose={() => setIsAccountsVisible(false)} currentUserId={currentUserId} GoogleSignin={GoogleSignin} />}
           <PostModal isVisible={isPostVisible} onClose={() => setIsPostVisible(false)} onPost={handlePost} />
 
           <SettingsModal isVisible={isSettingsVisible} onClose={() => setIsSettingsVisible(false)} onLogOut={logOutALL} />
