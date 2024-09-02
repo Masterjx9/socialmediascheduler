@@ -10,6 +10,9 @@ interface AccountsModalProps {
     onClose: () => void;
     currentUserId: number;  
     GoogleSignin: any;  
+    setIsLoginVisible: (visible: boolean) => void;
+    setIsAccountsVisible: (visible: boolean) => void;
+    setIsCalendarVisible: (visible: boolean) => void;
 }
 
 interface HandleNewSignUpParams {
@@ -23,7 +26,13 @@ interface SocialMediaAccount {
     provider_name: string;
 }
 
-const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible, onClose, currentUserId, GoogleSignin }) => {
+const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible, 
+                                                        onClose, 
+                                                        currentUserId, 
+                                                        GoogleSignin, 
+                                                        setIsLoginVisible,
+                                                        setIsAccountsVisible,
+                                                        setIsCalendarVisible }) => {
     const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
     const [isNewAccountVisible, setIsNewAccountVisible] = useState(false);
 
@@ -89,13 +98,37 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible, onClose, curre
           if (provider === 'Google' && GoogleSignin) {
             console.log('Google SignUp');
             console.log(currentUserId);
+            const user = await GoogleSignin.getCurrentUser();
+            const isSignedIn = user !== null;
+            
+            if (isSignedIn) {
+                const proceed = await new Promise((resolve) => {
+                  Alert.alert(
+                    'Warning',
+                    'You are already signed into a Google account. In order to add another Google account we must sign you out of the current account. We will add your new account to the list of accounts after you sign in. IF YOU CANCEL THIS OPERATION YOU WILL BE BROUGHT BACK TO THE MAIN LOGIN SCREEN.',
+                    [
+                      { text: 'Cancel', onPress: () => resolve(false), style: 'cancel' },
+                      { text: 'OK', onPress: () => resolve(true) },
+                    ],
+                    { cancelable: false }
+                  );
+                });
+        
+                if (!proceed) {
+                  console.log('User canceled the sign-in process');
+                  return;
+                }
+              }
+
+              try {
+            await GoogleSignin.revokeAccess();
+            await GoogleSignin.signOut();            
+
             await GoogleSignin.hasPlayServices();
-            const userInfo = await GoogleSignin.signIn({
-                prompt:"select_account" // Forces the account selection screen
-            });
+            const userInfo = await GoogleSignin.signIn();
             console.log(userInfo);
             const providerUserId = userInfo.user.id;
-
+              
             // Check if the user is already linked to this provider
             const existingProviderId = await fetchProviderIdFromDb (providerUserId);
             console.log('Existing Provider ID: ', existingProviderId);
@@ -112,6 +145,14 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible, onClose, curre
 
             // Refresh the account list
             fetchSocialMediaAccounts();
+        } catch (error) {
+            setIsAccountsVisible(false);
+            setIsCalendarVisible(false);
+            setIsLoginVisible(true);
+            return null;
+
+            }
+
 
           }
           if (provider === 'Microsoft') {

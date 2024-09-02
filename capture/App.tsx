@@ -536,7 +536,7 @@ const App = () => {
     <View style={styles.container}>
       {isCalendarVisible ? (
         <>
-          {currentUserId !== null && <AccountsModal isVisible={isAccountsVisible} onClose={() => setIsAccountsVisible(false)} currentUserId={currentUserId} GoogleSignin={GoogleSignin} />}
+          {currentUserId !== null && <AccountsModal isVisible={isAccountsVisible} onClose={() => setIsAccountsVisible(false)} currentUserId={currentUserId} GoogleSignin={GoogleSignin} setIsLoginVisible={setIsLoginVisible} setIsAccountsVisible={setIsAccountsVisible} setIsCalendarVisible={setIsCalendarVisible} />}
           <PostModal isVisible={isPostVisible} onClose={() => setIsPostVisible(false)} onPost={handlePost} />
 
           <SettingsModal isVisible={isSettingsVisible} onClose={() => setIsSettingsVisible(false)} onLogOut={logOutALL} />
