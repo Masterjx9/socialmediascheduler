@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from 'react-native';
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faGoogle, faMicrosoft, faLinkedin, faTwitter } from '@fortawesome/free-brands-svg-icons';
+import { faGoogle, faMicrosoft, faLinkedin, faTwitter, faFacebook } from '@fortawesome/free-brands-svg-icons';
+import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
 
+import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
 
 interface AccountsModalProps {
     isVisible: boolean;
@@ -152,6 +154,52 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
             return null;
 
             }
+          }
+          if (provider === 'Facebook') {
+            console.log('Facebook SignUp');
+            console.log(FACEBOOK_APP_ID);
+            console.log(FACEBOOK_CLIENT_TOKEN);
+            console.log(LoginManager.logInWithPermissions);
+            console.log(Settings);
+            // Settings.initializeSDK();
+            Settings.setAppID(FACEBOOK_APP_ID);
+            Settings.setClientToken(FACEBOOK_CLIENT_TOKEN);
+            console.log("test");
+            const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
+
+            if (result.isCancelled) {
+              console.log('User canceled the signup process');
+              return;
+            }
+
+            const data = await AccessToken.getCurrentAccessToken();
+            if (!data) {
+              console.log('No access token found');
+              Alert.alert('Error', 'No access token found');
+              return;
+            }
+
+            console.log('Access token:', data.accessToken);
+            const providerUserId = data.userID;
+
+            // Check if the user is already linked to this provider
+            const existingProviderId = await fetchProviderIdFromDb(providerUserId);
+            console.log('Existing Provider ID: ', existingProviderId);
+            if (existingProviderId) {
+              Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
+              return;
+            }
+
+            console.log('New Provider User ID:', providerUserId);
+            console.log('Current User ID:', currentUserId);
+
+            // Insert the new provider ID into the database
+
+            await insertProviderIdIntoDb(provider, providerUserId, 'Facebook User');
+            // Refresh the account list
+            fetchSocialMediaAccounts();
+
+
 
 
           }
@@ -261,8 +309,16 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
                     style={styles.addButton}
                     onPress={() => setIsNewAccountVisible(true)}
                 >
-                    <Text style={styles.addButtonText}>Add Another Account</Text>
+                    <Text style={styles.addButtonText}>Add Another Account (Easy Method)</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.addButton}
+                    // onPress={() => setIsNewAccountVisible(true)}
+                >
+                    <Text style={styles.addButtonText}>Add Another Account (Manual Method)</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                     style={styles.closeButton}
                     onPress={onClose}
@@ -282,6 +338,9 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
               <Text style={styles.title}>Add an Account</Text>
               <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Google', GoogleSignin: GoogleSignin, currentUserId })}>
                 <FontAwesomeIcon icon={faGoogle} size={24} /><Text style={styles.loginText}>Login with Google</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Facebook', currentUserId })}>
+                <FontAwesomeIcon icon={faFacebook} size={24} /><Text style={styles.loginText}>Login with Facebook</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Microsoft', currentUserId })}>
                 <FontAwesomeIcon icon={faMicrosoft} size={24} /><Text style={styles.loginText}>Login with Microsoft</Text>

@@ -3,18 +3,19 @@ import { TextInput, View, Text, TouchableOpacity, StyleSheet, Modal } from 'reac
 import RNFS from 'react-native-fs';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faCamera, faCalendar, faSave, faPen, faUserGroup, faFileImport, faGear } from '@fortawesome/free-solid-svg-icons';
-import { faGoogle, faMicrosoft, faLinkedin, faTwitter } from '@fortawesome/free-brands-svg-icons';
+import { faGoogle, faMicrosoft, faLinkedin, faTwitter, faFacebook } from '@fortawesome/free-brands-svg-icons';
 import { launchCamera, CameraOptions } from 'react-native-image-picker';
 import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { Calendar, DateData } from 'react-native-calendars';
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
 import { PermissionsAndroid, Platform, Alert, Linking } from 'react-native';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
 import DocumentPicker, { types } from 'react-native-document-picker';
 import SettingsModal from './components/SettingsModal'; 
 import PostModal from './components/PostModal';
 import AccountsModal from './components/AccountsModal';
-import { GOOGLE_WEB_CLIENT_ID } from '@env';
+import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
 
 const App = () => {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
@@ -27,6 +28,7 @@ const App = () => {
   const [isPostVisible, setIsPostVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [dbData, setDbData] = useState<any[]>([]);
+
 
   const insertFakeData = (db: SQLiteDatabase) => {
     db.transaction((tx: Transaction) => {
@@ -48,6 +50,10 @@ const App = () => {
   
   // In the useEffect:
   useEffect(() => {
+
+    // Settings.initializeSDK();
+    // Settings.setAppID(FACEBOOK_APP_ID);
+    // Settings.setClientToken(FACEBOOK_CLIENT_TOKEN);  
 
       // Set today's date when the calendar becomes visible
       if (isCalendarVisible) {
@@ -426,7 +432,43 @@ const App = () => {
 
         
       }
-      // Add other providers like Meta, X, etc., here with similar structure
+      if (provider === 'Facebook') {
+        console.log('Facebook login');
+        // Start Facebook login process
+        const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
+  
+        if (result.isCancelled) {
+          console.log('Facebook login cancelled');
+          return;
+        }
+  
+        // Get the access token
+        const data = await AccessToken.getCurrentAccessToken();
+  
+        if (!data) {
+          throw new Error('Something went wrong obtaining access token');
+        }
+  
+        console.log('Facebook Access Token:', data.accessToken.toString());
+  
+        // Use the access token to get the user's Facebook profile info
+        const response = await fetch(`https://graph.facebook.com/me?access_token=${data.accessToken}&fields=id,name,email`);
+        const userInfo = await response.json();
+        console.log(userInfo);
+  
+        let userId = await fetchUserIdFromDb(userInfo.id);
+  
+        if (userId) {
+          console.log('User already exists, signing in...');
+        } else {
+          console.log('New user, inserting into database...');
+          await insertProviderIdIntoDb('facebook', userInfo.id, userInfo.email || userInfo.name);
+          userId = await fetchUserIdFromDb(userInfo.id);
+        }
+  
+        setCurrentUserId(userId);
+      }
+  
   
       // Show the calendar
       setIsCalendarVisible(true);
@@ -629,6 +671,10 @@ const App = () => {
               <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Google')}>
                 <FontAwesomeIcon icon={faGoogle} size={24} />
                 <Text style={styles.loginText}>Login with Google</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Facebook')}>
+                <FontAwesomeIcon icon={faFacebook} size={24} />
+                <Text style={styles.loginText}>Login with Facebook</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Microsoft')}>
                 <FontAwesomeIcon icon={faMicrosoft} size={24} />
