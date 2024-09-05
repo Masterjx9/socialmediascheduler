@@ -3,7 +3,7 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faGoogle, faMicrosoft, faLinkedin, faTwitter, faFacebook } from '@fortawesome/free-brands-svg-icons';
-import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
+// import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
 
 import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
 
@@ -159,45 +159,45 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
             console.log('Facebook SignUp');
             console.log(FACEBOOK_APP_ID);
             console.log(FACEBOOK_CLIENT_TOKEN);
-            console.log(LoginManager.logInWithPermissions);
-            console.log(Settings);
-            // Settings.initializeSDK();
-            Settings.setAppID(FACEBOOK_APP_ID);
-            Settings.setClientToken(FACEBOOK_CLIENT_TOKEN);
-            console.log("test");
-            const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
+            // console.log(LoginManager.logInWithPermissions);
+            // console.log(Settings);
+            // // Settings.initializeSDK();
+            // Settings.setAppID(FACEBOOK_APP_ID);
+            // Settings.setClientToken(FACEBOOK_CLIENT_TOKEN);
+            // console.log("test");
+            // const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
 
-            if (result.isCancelled) {
-              console.log('User canceled the signup process');
-              return;
-            }
+            // if (result.isCancelled) {
+            //   console.log('User canceled the signup process');
+            //   return;
+            // }
 
-            const data = await AccessToken.getCurrentAccessToken();
-            if (!data) {
-              console.log('No access token found');
-              Alert.alert('Error', 'No access token found');
-              return;
-            }
+            // const data = await AccessToken.getCurrentAccessToken();
+            // if (!data) {
+            //   console.log('No access token found');
+            //   Alert.alert('Error', 'No access token found');
+            //   return;
+            // }
 
-            console.log('Access token:', data.accessToken);
-            const providerUserId = data.userID;
+            // console.log('Access token:', data.accessToken);
+            // const providerUserId = data.userID;
 
-            // Check if the user is already linked to this provider
-            const existingProviderId = await fetchProviderIdFromDb(providerUserId);
-            console.log('Existing Provider ID: ', existingProviderId);
-            if (existingProviderId) {
-              Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
-              return;
-            }
+            // // Check if the user is already linked to this provider
+            // const existingProviderId = await fetchProviderIdFromDb(providerUserId);
+            // console.log('Existing Provider ID: ', existingProviderId);
+            // if (existingProviderId) {
+            //   Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
+            //   return;
+            // }
 
-            console.log('New Provider User ID:', providerUserId);
-            console.log('Current User ID:', currentUserId);
+            // console.log('New Provider User ID:', providerUserId);
+            // console.log('Current User ID:', currentUserId);
 
-            // Insert the new provider ID into the database
+            // // Insert the new provider ID into the database
 
-            await insertProviderIdIntoDb(provider, providerUserId, 'Facebook User');
-            // Refresh the account list
-            fetchSocialMediaAccounts();
+            // await insertProviderIdIntoDb(provider, providerUserId, 'Facebook User');
+            // // Refresh the account list
+            // fetchSocialMediaAccounts();
 
 
 

@@ -435,6 +435,7 @@ const App = () => {
       if (provider === 'Facebook') {
         console.log('Facebook login');
         // Start Facebook login process
+        console.log(LoginManager)
         const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
   
         if (result.isCancelled) {

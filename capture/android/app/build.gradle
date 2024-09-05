@@ -2,6 +2,10 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.util.Properties
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -69,6 +73,24 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'org.webkit:android-jsc:+'
 
+// Function to load .env file
+def loadEnv() {
+    def envFile = file('../../.env') // Assuming the .env file is one directory up
+    if (envFile.exists()) {
+        println "Loading .env file..."
+        def properties = new Properties()
+        envFile.withInputStream { stream -> properties.load(stream) }
+        properties.each { key, value ->
+            project.ext[key] = value
+            println "Loaded property: $key = $value"
+        }
+    } else {
+        println ".env file not found!"
+    }
+}
+
+loadEnv() // Call the function to load .env file
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -82,6 +104,14 @@ android {
         versionCode 1
         versionName "1.0"
         missingDimensionStrategy 'react-native-camera', 'general'
+
+        // Check if environment variables are set, and provide default values if not
+        def facebookAppId = project.ext.has("FACEBOOK_APP_ID") ? project.ext.get("FACEBOOK_APP_ID") : "default_facebook_app_id"
+        def facebookClientToken = project.ext.has("FACEBOOK_CLIENT_TOKEN") ? project.ext.get("FACEBOOK_CLIENT_TOKEN") : "default_facebook_client_token"
+        // Set the values in the resValue block
+        resValue "string", "facebook_app_id", facebookAppId
+        resValue "string", "facebook_client_token", facebookClientToken
+
     }
     signingConfigs {
         debug {
