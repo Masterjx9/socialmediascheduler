@@ -18,6 +18,7 @@ import AccountsModal from './components/AccountsModal';
 import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
 
 const App = () => {
+  console.log("hello")
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [inputText, setInputText] = useState('');
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
@@ -184,7 +185,7 @@ const App = () => {
       provider_name TEXT NOT NULL, -- e.g., 'google', 'meta', 'twitter', etc.
       provider_user_id TEXT NOT NULL, -- e.g., Google sub, Meta ID, etc.
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      UNIQUE(user_id, provider_name) -- Ensures one provider entry per user
+      UNIQUE(provider_name) -- Ensures one provider entry per user
       );
     `);
     tx.executeSql(`
@@ -397,9 +398,10 @@ const App = () => {
     }
   };
 
-
+  //fix later with if statements using provider name in useeffect
   const logOutALL = async () => {
     try {
+      // await LoginManager.logOut();
       await GoogleSignin.revokeAccess();
       await GoogleSignin.signOut();
       setIsSettingsVisible(false);
