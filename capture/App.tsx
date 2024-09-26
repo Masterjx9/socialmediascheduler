@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { TextInput, View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { TextInput, View, Text, TouchableOpacity, Modal } from 'react-native';
+import styles from './styles/AppStyles';
 import RNFS from 'react-native-fs';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faCamera, faCalendar, faSave, faPen, faUserGroup, faFileImport, faGear } from '@fortawesome/free-solid-svg-icons';
@@ -369,11 +370,35 @@ const App = () => {
     setIsLoginVisible(true);
   }
   
-  const handlePost = (content: string) => {
+  const handlePost = async (content: string, unixTimestamp: number) => {
     console.log('Post content:', content);
-    // Here you can add logic to save the post to the database, share it, etc.
-    setIsPostVisible(false); // Close the modal after posting
+    
+    // Use the Unix timestamp directly
+    console.log('Selected date (Unix timestamp):', unixTimestamp);
+    
+    try {
+      const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+      db.transaction((tx: Transaction) => {
+        tx.executeSql(
+          `INSERT INTO content (user_id, content_type, content_data, post_date, published) VALUES (?, ?, ?, ?, ?)`,
+          [1, 'post', content, unixTimestamp, 0],  // Use the Unix timestamp as a number
+          (_, result) => {
+            console.log('Post saved to the database');
+            console.log('Post ID:', result.insertId);
+          },
+          (error) => {
+            console.log('Error saving post to the database:', error);
+          }
+        );
+      });
+    } catch (error) {
+      console.log('Error opening database:', error);
+    }
+    
+    setIsPostVisible(false); 
   };
+  
+  
   
 
   const handleFileImport = async () => {
@@ -401,12 +426,33 @@ const App = () => {
   //fix later with if statements using provider name in useeffect
   const logOutALL = async () => {
     try {
-      // await LoginManager.logOut();
-      await GoogleSignin.revokeAccess();
-      await GoogleSignin.signOut();
-      setIsSettingsVisible(false);
-      setIsCalendarVisible(false);
-      setIsLoginVisible(false);
+      // Google sign out
+      const user = await GoogleSignin.getCurrentUser();
+      const isSignedIn = user !== null;
+      if (isSignedIn) {
+        console.log('User is signed in:', user);
+        console.log('User ID found in database, logging out...');
+        await GoogleSignin.revokeAccess();
+        await GoogleSignin.signOut();
+        setCurrentUserId(null);
+        setIsSettingsVisible(false);
+        setIsCalendarVisible(false);
+        setIsLoginVisible(false);
+      }
+      
+      // Facebook sign out
+      const currentAccessToken = await AccessToken.getCurrentAccessToken();
+      const isSignedInFB = currentAccessToken !== null;
+      if (isSignedInFB) {
+        console.log('User is signed in with Facebook');
+        console.log('User ID found in database, logging out...');
+        await LoginManager.logOut();
+        setCurrentUserId(null);
+        setIsSettingsVisible(false);
+        setIsCalendarVisible(false);
+        setIsLoginVisible(false);
+      }
+
     } catch (error) {
       console.error(error);
     }
@@ -582,7 +628,7 @@ const App = () => {
       {isCalendarVisible ? (
         <>
           {currentUserId !== null && <AccountsModal isVisible={isAccountsVisible} onClose={() => setIsAccountsVisible(false)} currentUserId={currentUserId} GoogleSignin={GoogleSignin} setIsLoginVisible={setIsLoginVisible} setIsAccountsVisible={setIsAccountsVisible} setIsCalendarVisible={setIsCalendarVisible} />}
-          <PostModal isVisible={isPostVisible} onClose={() => setIsPostVisible(false)} onPost={handlePost} />
+          <PostModal isVisible={isPostVisible} onClose={() => setIsPostVisible(false)} onPost={async (content, unixTimestamp) => await handlePost(content, unixTimestamp)}  selectedDate={selectedDate}  />
 
           <SettingsModal isVisible={isSettingsVisible} onClose={() => setIsSettingsVisible(false)} onLogOut={logOutALL} />
 
@@ -701,96 +747,7 @@ const App = () => {
   
   
 };
-const styles = StyleSheet.create({
-  fullScreenModal: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  calendarContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'black',
-  },
-  title: {
-    fontSize: 24,
-    color: 'white',
-    marginBottom: 20,
-  },
-  captureContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  capture: {
-    backgroundColor: '#fff',
-    borderRadius: 5,
-    padding: 15,
-    paddingHorizontal: 20,
-    alignSelf: 'center',
-    margin: 20,
-  },
-  captureText: {
-    fontSize: 14,
-  },
-  textInput: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    margin: 20,
-    padding: 10,
-    color: 'white',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  dbText: {
-    color: 'white',
-  },
-  footerNavBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    height: 60,
-    backgroundColor: '#f8f8f8',
-    borderTopWidth: 1,
-    borderColor: '#e7e7e7',
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-  },
-  navButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  disabledButton: {
-    backgroundColor: '#d3d3d3', // Grey background for disabled state
-  },
-  disabledText: {
-    color: '#a9a9a9', // Grey text color for disabled state
-  },
-  loginButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    margin: 10,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
-  },
-  loginText: {
-    marginLeft: 10,
-    fontSize: 18,
-  }
-});
+
 
 
 export default App;

@@ -1,22 +1,49 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 interface PostModalProps {
   isVisible: boolean;
   onClose: () => void;
-  onPost: (content: string) => void;
+  onPost: (content: string, unixTimestamp: number) => void;
+  selectedDate: string;
 }
 
-const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost }) => {
+const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, selectedDate }) => {
   const [content, setContent] = useState('');
+  const [selectedTime, setSelectedTime] = useState<Date | null>(null); 
+  const [isTimePickerVisible, setIsTimePickerVisible] = useState(false); 
+  
 
   const handlePost = () => {
-    if (content.trim()) {
-      onPost(content);
-      setContent(''); // Clear the content after posting
+    if (content.trim() && selectedTime && selectedDate) {
+      // Combine selectedDate and selectedTime to create full timestamp
+      const [year, month, day] = selectedDate.split('-').map(Number);
+      const fullDateTime = new Date(year, month - 1, day, selectedTime.getHours(), selectedTime.getMinutes());
+
+      // Convert to Unix time
+      const unixTimestamp = Math.floor(fullDateTime.getTime() / 1000);
+
+      onPost(content, unixTimestamp); // Pass both content and timestamp
+      setContent('');
+      setSelectedTime(null);
     } else {
-      Alert.alert('Empty Post', 'Please write something before posting.');
+      Alert.alert('Incomplete Post', 'Please write something and pick a time before posting.');
     }
+  };
+  
+
+  const showTimePicker = () => {
+    setIsTimePickerVisible(true);
+  };
+
+  const hideTimePicker = () => {
+    setIsTimePickerVisible(false);
+  };
+
+  const handleConfirmTime = (time: Date) => {
+    setSelectedTime(time); 
+    hideTimePicker();
   };
 
   return (
@@ -35,6 +62,19 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost }) => 
           multiline
           value={content}
           onChangeText={setContent}
+        />
+
+      <TouchableOpacity onPress={showTimePicker} style={styles.timeButton}>
+          <Text style={styles.timeButtonText}>
+            {selectedTime ? selectedTime.toLocaleTimeString() : 'Pick a time'}
+          </Text>
+        </TouchableOpacity>
+
+        <DateTimePickerModal
+          isVisible={isTimePickerVisible}
+          mode="time"
+          onConfirm={handleConfirmTime}
+          onCancel={hideTimePicker}
         />
 
         <TouchableOpacity onPress={handlePost} style={styles.postButton}>
@@ -81,6 +121,17 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   postButtonText: {
+    fontSize: 16,
+    color: '#fff',
+  },
+  timeButton: {
+    backgroundColor: '#1DA1F2',
+    borderRadius: 5,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    marginBottom: 20,
+  },
+  timeButtonText: {
     fontSize: 16,
     color: '#fff',
   },
