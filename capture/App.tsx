@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { TextInput, View, Text, TouchableOpacity, Modal } from 'react-native';
+import { TextInput, View, Text, TouchableOpacity, Modal, FlatList } from 'react-native';
 import styles from './styles/AppStyles';
 import RNFS from 'react-native-fs';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faCamera, faCalendar, faSave, faPen, faUserGroup, faFileImport, faGear } from '@fortawesome/free-solid-svg-icons';
+import { faCamera, faCalendar, faSave, faPen, faUserGroup, faFileImport, faGear, faEdit, faTrash, faUser } from '@fortawesome/free-solid-svg-icons';
 import { faGoogle, faMicrosoft, faLinkedin, faTwitter, faFacebook } from '@fortawesome/free-brands-svg-icons';
 import { launchCamera, CameraOptions } from 'react-native-image-picker';
 import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
@@ -95,6 +95,7 @@ const App = () => {
 
 
     // requestPermissions();
+    // const dbPath = '/data/data/com.socialmediaschedulerapp/databases/database_default.sqlite3';
     const dbPath = '/data/data/com.socialmediaschedulerapp/databases/database_default.sqlite3';
     console.log('Database path:', dbPath);
   
@@ -106,7 +107,7 @@ const App = () => {
         console.error('Error reading directory:', error);
       }
     };
-    console.log('Document directory path:', RNFS.DocumentDirectoryPath);
+    // console.log('Document directory path:', RNFS.DocumentDirectoryPath);
     listDirectoryContents('/data/data/com.socialmediaschedulerapp/databases');
   
     RNFS.exists(dbPath)
@@ -125,7 +126,7 @@ const App = () => {
           );
         } else 
         {
-          const filePath = `${RNFS.DocumentDirectoryPath}/database_default.sqlite3`;
+          const filePath = `/data/data/com.socialmediaschedulerapp/databases/database_default.sqlite3`;
           RNFS.writeFile(filePath, '', 'utf8')
             .then(() => {
               console.log('SQLite database file created:', filePath);
@@ -613,14 +614,74 @@ const App = () => {
     }
   };
   
-
-
-
-  const onDayPress = (day: DateData) => {
-    setSelectedDate(day.dateString);
-    // setIsCalendarVisible(false);
-    console.log('Selected date: ', day.dateString);
+  const getUnixTimestampsForDay = (dateString: string) => {
+    // Parse the date string
+    const date = new Date(dateString);
+  
+    // Set the time to the beginning of the day (00:00:00)
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+  
+    // Set the time to the end of the day (23:59:59.999)
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+  
+    // Convert to Unix timestamps (in seconds)
+    const startOfDayUnix = Math.floor(startOfDay.getTime() / 1000);
+    const endOfDayUnix = Math.floor(endOfDay.getTime() / 1000);
+  
+    return { startOfDayUnix, endOfDayUnix };
   };
+
+
+  const onDayPress = async (day: DateData) => {
+    setSelectedDate(day.dateString);
+    console.log('Selected date: ', day.dateString);
+
+    const { startOfDayUnix, endOfDayUnix } = getUnixTimestampsForDay(day.dateString);
+
+    console.log('Start of day (Unix):', startOfDayUnix);
+    console.log('End of day (Unix):', endOfDayUnix);
+    try {
+      const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+      db.transaction((tx: Transaction) => {
+      tx.executeSql(
+        `SELECT * FROM content WHERE post_date BETWEEN ? AND ?`,
+        [startOfDayUnix, endOfDayUnix],
+        (_, results) => {
+        const rows = results.rows;
+        let data: any[] = [];
+        for (let i = 0; i < rows.length; i++) {
+          data.push(rows.item(i));
+        }
+        console.log('Fetched content for selected date:', data);
+        setDbData(data);
+        },
+        (error) => {
+        console.log('Error fetching content from the database:', error);
+        }
+      );
+      });
+    } catch (error) {
+      console.log('Error opening database:', error);
+    }
+  };
+
+  const renderItem = ({ item }: { item: any }) => (
+    <View style={styles.listItemContainer}>
+    <Text style={styles.listItemText}>
+      Post Date: {new Date(item.post_date * 1000).toLocaleString()}
+    </Text>
+    <View style={styles.iconContainer}>
+    <TouchableOpacity style={styles.listItem}>
+      <FontAwesomeIcon icon={faEdit} size={24} style={styles.icon} />
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.listItem}>
+      <FontAwesomeIcon icon={faTrash} size={24} style={styles.icon} />
+    </TouchableOpacity>
+    </View>
+  </View>
+  );
 
   // Render the app
   return (
@@ -654,7 +715,13 @@ const App = () => {
                 },
               }}
             />
-  
+            <FlatList
+              data={dbData}  // Use the data fetched from the database
+              keyExtractor={(item) => item.content_id.toString()}  // Use a unique key (e.g., content_id)
+              renderItem={renderItem}  // Render each item
+              style={styles.listContainer}  // Style for the list container
+            />
+
             <View style={styles.footerNavBar}>
               <TouchableOpacity
                 style={styles.navButton}
