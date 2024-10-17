@@ -30,6 +30,7 @@ const App = () => {
   const [isPostVisible, setIsPostVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [dbData, setDbData] = useState<any[]>([]);
+  const [selectedItem, setSelectedItem] = useState(null);
 
 
   const insertFakeData = (db: SQLiteDatabase) => {
@@ -371,7 +372,7 @@ const App = () => {
     setIsLoginVisible(true);
   }
   
-  const handlePost = async (content: string, unixTimestamp: number) => {
+  const handlePost = async (content: string, unixTimestamp: number, content_id?: number) => {
     console.log('Post content:', content);
     
     // Use the Unix timestamp directly
@@ -380,23 +381,40 @@ const App = () => {
     try {
       const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
       db.transaction((tx: Transaction) => {
+        if (content_id) {
         tx.executeSql(
-          `INSERT INTO content (user_id, content_type, content_data, post_date, published) VALUES (?, ?, ?, ?, ?)`,
-          [1, 'post', content, unixTimestamp, 0],  // Use the Unix timestamp as a number
+          `UPDATE content SET content_data = ?, post_date = ? WHERE content_id = ?`,
+          [content, unixTimestamp, content_id],
           (_, result) => {
-            console.log('Post saved to the database');
+            console.log('Post updated in the database');
             console.log('Post ID:', result.insertId);
+            fetchDbData(db); // Refresh data
           },
           (error) => {
-            console.log('Error saving post to the database:', error);
+            console.log('Error updating post in the database:', error);
           }
         );
+      } else {
+          tx.executeSql(
+            `INSERT INTO content (user_id, content_type, content_data, post_date, published) VALUES (?, ?, ?, ?, ?)`,
+            [1, 'post', content, unixTimestamp, 0],
+            (_, result) => {
+              console.log('Post saved to the database');
+              console.log('Post ID:', result.insertId);
+              fetchDbData(db); // Refresh data
+            },
+            (error) => {
+              console.log('Error saving post to the database:', error);
+            }
+          );
+        }
       });
     } catch (error) {
       console.log('Error opening database:', error);
     }
     
     setIsPostVisible(false); 
+    setSelectedItem(null);
   };
   
   
@@ -673,12 +691,40 @@ const App = () => {
       Post Date: {new Date(item.post_date * 1000).toLocaleString()}
     </Text>
     <View style={styles.iconContainer}>
-    <TouchableOpacity style={styles.listItem}>
+
+    <TouchableOpacity style={styles.listItem}
+    onPress={() => {
+      console.log
+      setSelectedItem(item);
+      setIsPostVisible(true);
+    }}
+    >
       <FontAwesomeIcon icon={faEdit} size={24} style={styles.icon} />
     </TouchableOpacity>
-    <TouchableOpacity style={styles.listItem}>
+
+    <TouchableOpacity style={styles.listItem}
+    onPress={async () => {
+      const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+      db.transaction((tx: Transaction) => {
+        tx.executeSql(
+          `DELETE FROM content WHERE content_id = ?`,
+          [item.content_id],
+          (_, results) => {
+            console.log('Post deleted from the database');
+            fetchDbData(db); 
+          },
+          (error) => {
+            console.log('Error deleting post from the database:', error);
+          }
+        );
+      });
+    }}    
+    
+    >
       <FontAwesomeIcon icon={faTrash} size={24} style={styles.icon} />
     </TouchableOpacity>
+
+
     </View>
   </View>
   );
@@ -689,8 +735,18 @@ const App = () => {
       {isCalendarVisible ? (
         <>
           {currentUserId !== null && <AccountsModal isVisible={isAccountsVisible} onClose={() => setIsAccountsVisible(false)} currentUserId={currentUserId} GoogleSignin={GoogleSignin} setIsLoginVisible={setIsLoginVisible} setIsAccountsVisible={setIsAccountsVisible} setIsCalendarVisible={setIsCalendarVisible} />}
-          <PostModal isVisible={isPostVisible} onClose={() => setIsPostVisible(false)} onPost={async (content, unixTimestamp) => await handlePost(content, unixTimestamp)}  selectedDate={selectedDate}  />
-
+          
+          {/* <PostModal isVisible={isPostVisible} onClose={() => setIsPostVisible(false)} onPost={async (content, unixTimestamp) => await handlePost(content, unixTimestamp)}  selectedDate={selectedDate}  /> */}
+          <PostModal
+            isVisible={isPostVisible}
+            onClose={() => {
+              setIsPostVisible(false);
+              setSelectedItem(null); 
+            }}
+            onPost={async (content, unixTimestamp, content_id) => await handlePost(content, unixTimestamp, content_id)}
+            selectedDate={selectedDate}
+            item={selectedItem} 
+          />
           <SettingsModal isVisible={isSettingsVisible} onClose={() => setIsSettingsVisible(false)} onLogOut={logOutALL} />
 
           <Modal

@@ -1,19 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 interface PostModalProps {
   isVisible: boolean;
   onClose: () => void;
-  onPost: (content: string, unixTimestamp: number) => void;
+  // onPost: (content: string, unixTimestamp: number) => void;
+  onPost: (content: string, unixTimestamp: number, content_id?: number) => void;
+  item?: any;
   selectedDate: string;
 }
 
-const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, selectedDate }) => {
+const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item, selectedDate }) => {
   const [content, setContent] = useState('');
   const [selectedTime, setSelectedTime] = useState<Date | null>(null); 
+  const [localSelectedDate, setLocalSelectedDate] = useState(selectedDate);
   const [isTimePickerVisible, setIsTimePickerVisible] = useState(false); 
   
+  useEffect(() => {
+    if (item) {
+      setContent(item.content_data);
+
+      // Extract date and time from item.post_date
+      const postDate = new Date(item.post_date * 1000);
+      setSelectedTime(postDate);
+      const dateString = postDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      setLocalSelectedDate(dateString);
+    } else {
+      setContent('');
+      setSelectedTime(null);
+      setLocalSelectedDate(selectedDate);
+    }
+  }, [item, selectedDate]);
 
   const handlePost = () => {
     if (content.trim() && selectedTime && selectedDate) {
@@ -24,7 +42,7 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, selec
       // Convert to Unix time
       const unixTimestamp = Math.floor(fullDateTime.getTime() / 1000);
 
-      onPost(content, unixTimestamp); // Pass both content and timestamp
+      onPost(content, unixTimestamp, item?.content_id); // Pass both content and timestamp
       setContent('');
       setSelectedTime(null);
     } else {
