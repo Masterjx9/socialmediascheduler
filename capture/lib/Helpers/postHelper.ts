@@ -1,5 +1,5 @@
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
-import { fetchDbData } from '../services/dbService';
+import { fetchDbData } from '../Services/dbService';
 
 export const handlePost = async (content: string, 
     unixTimestamp: number, 

@@ -1,4 +1,4 @@
-import { requestPermissions } from "../services/permissionService";
+import { requestPermissions } from "../Services/permissionService";
 import { launchCamera, CameraOptions } from 'react-native-image-picker';
 import RNFS from 'react-native-fs';
 

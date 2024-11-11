@@ -19,7 +19,7 @@ import { handlePost } from './lib/Helpers/postHelper';
 import { createTables, 
           fetchDbData,
           listDirectoryContents,
-         } from './lib/services/dbService';
+         } from './lib/Services/dbService';
 import { logOutALL, checkSignInStatus } from './lib/Services/authService.ts';
 import { onDayPress } from './lib/Helpers/dateHelper.ts';
 const App = () => {
@@ -51,6 +51,7 @@ const App = () => {
       }
 
     // Google sign in configuration
+    console.log('Google Web Client ID:', GOOGLE_WEB_CLIENT_ID);
     GoogleSignin.configure({
       webClientId: GOOGLE_WEB_CLIENT_ID, // Client ID from Google Developer Console
       offlineAccess: true, // if you want to access Google API on behalf of the user FROM YOUR SERVER
