@@ -1,26 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, FlatList } from 'react-native';
+import { View } from 'react-native';
 import styles from './styles/AppStyles';
 import RNFS from 'react-native-fs';
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { Calendar, DateData } from 'react-native-calendars';
 import SQLite, { Transaction } from 'react-native-sqlite-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import SettingsModal from './components/Modals/SettingsModal'; 
-import PostModal from './components/Modals/PostModal';
-import AccountsModal from './components/Modals/AccountsModal';
-import FooterNavBar from './components/App/FooterNavBar';
+import ModalsContainer from './components/App/Modals.tsx';
+import CalendarModal from './components/App/Calendar.tsx';
 import LoginModal from './components/Modals/LoginModal';
 import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
 
 
-import { handlePost } from './lib/Helpers/postHelper';
 import { createTables, 
           fetchDbData,
           listDirectoryContents,
          } from './lib/Services/dbService';
-import { logOutALL, checkSignInStatus } from './lib/Services/authService.ts';
+import { checkSignInStatus } from './lib/Services/authService.ts';
 import { onDayPress } from './lib/Helpers/dateHelper.ts';
 const App = () => {
   console.log("hello")
@@ -58,11 +52,7 @@ const App = () => {
       scopes: ['profile', 'email', 'openid'], // array of scopes
     });
 
-
-
-
       checkSignInStatus(setCurrentUserId, setIsCalendarVisible, setIsLoginVisible);
-
 
     // requestPermissions();
     // const dbPath = '/data/data/com.socialmediaschedulerapp/databases/database_default.sqlite3';
@@ -124,112 +114,42 @@ const App = () => {
       // End of useEffect
     }, [isCalendarVisible]);
 
-  
-  
-
-
-
-
-  
-
-  const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.listItemContainer}>
-    <Text style={styles.listItemText}>
-      Post Date: {new Date(item.post_date * 1000).toLocaleString()}
-    </Text>
-    <View style={styles.iconContainer}>
-
-    <TouchableOpacity style={styles.listItem}
-    onPress={() => {
-      console.log
-      setSelectedItem(item);
-      setIsPostVisible(true);
-    }}
-    >
-      <FontAwesomeIcon icon={faEdit} size={24} style={styles.icon} />
-    </TouchableOpacity>
-
-    <TouchableOpacity style={styles.listItem}
-    onPress={async () => {
-      const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
-      db.transaction((tx: Transaction) => {
-        tx.executeSql(
-          `DELETE FROM content WHERE content_id = ?`,
-          [item.content_id],
-          (_, results) => {
-            console.log('Post deleted from the database');
-            fetchDbData(db, setDbData); 
-          },
-          (error) => {
-            console.log('Error deleting post from the database:', error);
-          }
-        );
-      });
-    }}    
-    
-    >
-      <FontAwesomeIcon icon={faTrash} size={24} style={styles.icon} />
-    </TouchableOpacity>
-
-
-    </View>
-  </View>
-  );
 
   // Render the app
   return (
     <View style={styles.container}>
       {isCalendarVisible ? (
         <>
-          {currentUserId !== null && <AccountsModal isVisible={isAccountsVisible} onClose={() => setIsAccountsVisible(false)} currentUserId={currentUserId} GoogleSignin={GoogleSignin} setIsLoginVisible={setIsLoginVisible} setIsAccountsVisible={setIsAccountsVisible} setIsCalendarVisible={setIsCalendarVisible} />}
-          
-          <PostModal
-            isVisible={isPostVisible}
-            onClose={() => {
-              setIsPostVisible(false);
-              setSelectedItem(null); 
-            }}
-            onPost={async (content, unixTimestamp, content_id) => await handlePost(content, unixTimestamp, setDbData, setIsPostVisible, setSelectedItem, content_id)}
+          <ModalsContainer
+            GoogleSignin={GoogleSignin}
+            currentUserId={currentUserId}
+            isAccountsVisible={isAccountsVisible}
+            setIsAccountsVisible={setIsAccountsVisible}
+            isPostVisible={isPostVisible}
+            setIsPostVisible={setIsPostVisible}
+            selectedItem={selectedItem}
+            setSelectedItem={setSelectedItem}
             selectedDate={selectedDate}
-            item={selectedItem} 
+            isSettingsVisible={isSettingsVisible}
+            setIsSettingsVisible={setIsSettingsVisible}
+            setCurrentUserId={setCurrentUserId}
+            setIsCalendarVisible={setIsCalendarVisible}
+            setIsLoginVisible={setIsLoginVisible}
+            setDbData={setDbData}
           />
-          <SettingsModal isVisible={isSettingsVisible} onClose={() => setIsSettingsVisible(false)} onLogOut={() => logOutALL(setCurrentUserId, setIsSettingsVisible, setIsCalendarVisible, setIsLoginVisible)}/>
-
-          <Modal
-            presentationStyle="fullScreen"
-            visible={isCalendarVisible}
-            animationType="slide"
-            onRequestClose={() => setIsCalendarVisible(false)}
-          >
-            <Calendar
-              onDayPress={(day:any) => onDayPress(day, setSelectedDate, setDbData)}
-              markedDates={{
-                [selectedDate]: { selected: true, marked: true, selectedColor: 'blue' },
-              }}
-              theme={{
-                'stylesheet.calendar.main': {
-                  base: {
-                    width: '100%',
-                    height: '100%',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  },
-                },
-              }}
-            />
-            <FlatList
-              data={dbData}  // Use the data fetched from the database
-              keyExtractor={(item) => item.content_id.toString()}  // Use a unique key (e.g., content_id)
-              renderItem={renderItem}  // Render each item
-              style={styles.listContainer}  // Style for the list container
-            />
-            <FooterNavBar 
-              setIsAccountsVisible={setIsAccountsVisible} 
-              setIsPostVisible={setIsPostVisible} 
-              setIsSettingsVisible={setIsSettingsVisible} 
-            />
-            
-          </Modal>
+          <CalendarModal
+            isCalendarVisible={isCalendarVisible}
+            setIsCalendarVisible={setIsCalendarVisible}
+            onDayPress={onDayPress}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            setDbData={setDbData}
+            dbData={dbData}
+            setIsAccountsVisible={setIsAccountsVisible}
+            setIsPostVisible={setIsPostVisible}
+            setIsSettingsVisible={setIsSettingsVisible}
+            setSelectedItem={setSelectedItem}
+          />
         </>
       ) : (
         <>
@@ -241,16 +161,10 @@ const App = () => {
             setCurrentUserId={setCurrentUserId}
             setIsCalendarVisible={setIsCalendarVisible}
           />
-
-
-
         </>
       )}
     </View>
   );
-  
-  
-  
 };
 
 
