@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+
+import { setupNotificationService } from './lib/Services/backgroundService.ts';
+
+
 import { View } from 'react-native';
 import styles from './styles/AppStyles';
 import RNFS from 'react-native-fs';
@@ -17,7 +21,6 @@ import { createTables,
 import { checkSignInStatus } from './lib/Services/authService.ts';
 import { onDayPress } from './lib/Helpers/dateHelper.ts';
 const App = () => {
-  console.log("hello")
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [inputText, setInputText] = useState('');
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
@@ -112,6 +115,8 @@ const App = () => {
       });
 
       // End of useEffect
+
+      setupNotificationService();
     }, [isCalendarVisible]);
 
 
