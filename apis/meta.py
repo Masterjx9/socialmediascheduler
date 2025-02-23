@@ -64,20 +64,6 @@ def get_access_token(code, app_id, app_secret):
     print(response.reason)
     return response.json()
 
-def create_container(meta_access_token, image_url, meta_id, description, tags):
-    hashtags = " ".join([f"#{tag}" for tag in tags.split()])
-    caption = f"{description}\n\n{hashtags}"
-    url = f'https://graph.facebook.com/v19.0/{meta_id}/media'
-    
-    payload = {
-        "image_url": image_url,
-        "caption": caption,
-        "access_token": meta_access_token
-    }
-    response = requests.post(url, params=payload)
-    data = response.json()
-    print(data)
-    return data["id"]
 
 def publish_media(meta_access_token, meta_id, creation_id):
     url = f'https://graph.facebook.com/v19.0/{meta_id}/media_publish'
