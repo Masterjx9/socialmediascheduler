@@ -154,6 +154,62 @@ export const fetchDbData = (db: SQLiteDatabase, setDbData: React.Dispatch<React.
     });
   };
 
+// export const fetchContentFromBeforeCurrentTime = (db: SQLiteDatabase) => {
+//     db.transaction((tx: Transaction) => {
+//       const currentTime = Math.floor(Date.now() / 1000);
+//       tx.executeSql(
+//         `SELECT * FROM content WHERE post_date < ?`,
+//         [currentTime],
+//         (_, results) => {
+//           const rows = results.rows;
+//           let data: any[] = [];
+//           for (let i = 0; i < rows.length; i++) {
+//             data.push(rows.item(i));
+//           }
+//           if (data.length > 0) {
+//             console.log('Fetched content:', data);
+//             return data;
+//           }
+//         },
+//         (error) => {
+//           console.log('Error fetching content:', error);
+//         }
+//       );
+//     });
+//   };
+
+export const fetchContentFromBeforeCurrentTime = async () => {
+    try {
+        const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+        return new Promise<any[]>((resolve, reject) => {
+            db.transaction(tx => {
+                const currentTime = Math.floor(Date.now() / 1000);
+                tx.executeSql(
+                    `SELECT * FROM content WHERE post_date < ?`,
+                    [currentTime],
+                    (_, results) => {
+                        const rows = results.rows;
+                        let data: any[] = [];
+                        for (let i = 0; i < rows.length; i++) {
+                            data.push(rows.item(i));
+                        }
+                        if (data.length > 0) {
+                            console.log('Fetched content:', data);
+                            resolve(data);
+                        }
+                    },
+                    (error) => {
+                        console.log('Error fetching content:', error);
+                        reject(error);
+                    }
+                );
+            });
+        });
+    } catch (error) {
+        console.error('Database operation failed:', error);
+        return [];
+    }
+};
 
 export const fetchUserIdFromDb = async (providerUserId: string): Promise<number | null> => {
     try {
