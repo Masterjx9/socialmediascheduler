@@ -1,4 +1,6 @@
-import { OAuth } from 'oauth';
+// import { OAuth } from 'oauth';
+import OAuth from 'oauth-1.0a';
+import crypto from 'crypto'
 const fs = require('fs').promises;
 
 export async function getTwitterAccessToken(
@@ -35,43 +37,227 @@ export async function postTextToTwitter(
     twitterAccessToken: string,
     twitterAccessTokenSecret: string
 ): Promise<any> {
-    const oauth = new OAuth(
-        'https://api.twitter.com/oauth/request_token',
-        'https://api.twitter.com/oauth/access_token',
-        twitterConsumerKey,
-        twitterConsumerSecret,
-        '1.0A',
-        null,
-        'HMAC-SHA1'
-    );
+    
+const oauth = new OAuth({
+    consumer: {
+        key: twitterConsumerKey,
+        secret: twitterConsumerSecret,
+    },
+    signature_method: 'HMAC-SHA1',
+    hash_function(base_string, key) {
+        return crypto.createHmac('sha1', key).update(base_string).digest('base64');
+    }
+});
 
-    return new Promise((resolve, reject) => {
-        oauth.post(
-            'https://api.twitter.com/2/tweets',
-            twitterAccessToken,
-            twitterAccessTokenSecret,
-            JSON.stringify({ text: twitterPayload }),
-            'application/json',
-            (error, data, response) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    const jsonResponse = data ? JSON.parse(data.toString()) : {};
-                    if (response && response.headers['x-access-level']) {
-                        console.log(`Access level: ${response.headers['x-access-level']}`);
-                    } else {
-                        console.log('Could not determine access level.');
-                    }
-                    if (response && response.statusCode === 201) {
-                        console.log('Tweet successful!');
-                        console.log(JSON.stringify(jsonResponse, null, 4));
-                    } else {
-                        console.log(`Failed to tweet: ${data}`);
-                    }
-                    resolve(jsonResponse);
-                }
-            }
-        );
+const request_data = {
+    url: "https://api.twitter.com/2/tweets",
+    method: "POST",
+    data: { text: twitterPayload },
+};
+
+const authHeader = oauth.toHeader(oauth.authorize(request_data, {
+    key: twitterAccessToken,
+    secret: twitterAccessTokenSecret,
+}));
+
+fetch(request_data.url, {
+    method: request_data.method,
+    headers: {
+        ...authHeader,
+        'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request_data.data)
+}).then(response => response.json())
+  .then(data => {
+      console.log("Tweet successful:", data);
+  })
+  .catch(error => {
+      console.error("Failed to tweet:", error);
+  })
+}
+
+
+
+export async function postVideoToTwitter(
+    twitterPayload: any,
+    twitterConsumerKey: string,
+    twitterConsumerSecret: string,
+    twitterAccessToken: string,
+    twitterAccessTokenSecret: string
+): Promise<any> {
+    const oauth = new OAuth({
+        consumer: {
+            key: twitterConsumerKey,
+            secret: twitterConsumerSecret,
+        },
+        signature_method: 'HMAC-SHA1',
+        hash_function(base_string, key) {
+            return crypto.createHmac('sha1', key).update(base_string).digest('base64');
+        }
     });
+
+    // Step 1: INIT command
+    const fileSize = (await fs.stat(twitterPayload["video_path"])).size;
+    const initData = {
+        command: 'INIT',
+        media_type: 'video/mp4',
+        total_bytes: fileSize.toString(),
+    };
+
+    const initRequest = {
+        url: "https://upload.twitter.com/1.1/media/upload.json",
+        method: "POST",
+        data: initData,
+    };
+
+    const initAuthHeader = oauth.toHeader(oauth.authorize(initRequest, {
+        key: twitterAccessToken,
+        secret: twitterAccessTokenSecret,
+    }));
+
+    let response = await fetch(initRequest.url, {
+        method: initRequest.method,
+        headers: {
+            ...initAuthHeader,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams(initData).toString(),
+    });
+
+    if (!response.ok) {
+        console.error("Failed to initialize video upload:", await response.text());
+        return;
+    }
+
+    const mediaId = (await response.json()).media_id_string;
+
+    // Step 2: APPEND command
+    const fileHandle = await fs.open(twitterPayload["video_path"], 'r');
+    const data = await fileHandle.readFile();
+    
+    const appendData = {
+        command: 'APPEND',
+        media_id: mediaId,
+        segment_index: '0',
+        media: data
+    };
+
+    const appendRequest = {
+        url: "https://upload.twitter.com/1.1/media/upload.json",
+        method: "POST",
+        data: appendData,
+    };
+
+    const appendAuthHeader = oauth.toHeader(oauth.authorize(appendRequest, {
+        key: twitterAccessToken,
+        secret: twitterAccessTokenSecret,
+    }));
+
+    response = await fetch(appendRequest.url, {
+        method: appendRequest.method,
+        headers: {
+            ...appendAuthHeader,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams(appendData).toString(),
+    });
+    if (!response.ok) {
+        console.error("Failed to upload video:", await response.text());
+        return;
+    }
+    await fileHandle.close();
+
+    // Step 3: FINALIZE command
+    const finalizeData = {
+        command: 'FINALIZE',
+        media_id: mediaId,
+    };
+
+    const finalizeRequest = {
+        url: "https://upload.twitter.com/1.1/media/upload.json",
+        method: "POST",
+        data: finalizeData,
+    };
+
+    const finalizeAuthHeader = oauth.toHeader(oauth.authorize(finalizeRequest, {
+        key: twitterAccessToken,
+        secret: twitterAccessTokenSecret,
+    }));
+
+    response = await fetch(finalizeRequest.url, {
+        method: finalizeRequest.method,
+        headers: {
+            ...finalizeAuthHeader,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams(finalizeData).toString(),
+    });
+
+    if (!response.ok) {
+        console.error("Failed to finalize video upload:", await response.text());
+        return;
+    }
+
+    // Optional Step 3.5: STATUS command to check processing status
+    let processingInfo: any = (await response.json()).processing_info;
+    if (processingInfo) {
+        console.log(processingInfo);
+        while (processingInfo.state !== 'succeeded') {
+            console.log(processingInfo);
+
+            if (processingInfo.state === 'failed') {
+                console.error("Video processing failed.");
+                return;
+            }
+            console.log("Waiting for video processing...");
+            await new Promise(resolve => setTimeout(resolve, processingInfo.check_after_secs * 1000));
+            response = await fetch(`https://upload.twitter.com/1.1/media/upload.json?command=STATUS&media_id=${mediaId}`, {
+                method: "GET",
+                headers: {
+                    ...finalizeAuthHeader,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+            });
+            console.log(await response.json());
+            processingInfo = (await response.json()).processing_info;
+        }
+    }
+
+    // Step 4: Post a tweet
+    const tweetData = {
+        text: twitterPayload["description"],
+        media: {
+            media_ids: [mediaId],
+        },
+    };
+
+    const tweetRequest = {
+        url: "https://api.twitter.com/2/tweets",
+        method: "POST",
+        data: tweetData,
+    };
+
+    const tweetAuthHeader = oauth.toHeader(oauth.authorize(tweetRequest, {
+        key: twitterAccessToken,
+        secret: twitterAccessTokenSecret,
+    }));
+
+    response = await fetch(tweetRequest.url, {
+        method: tweetRequest.method,
+        headers: {
+            ...tweetAuthHeader,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(tweetData),
+    });
+
+    if (response.ok) {
+        console.log("Tweet successful!");
+        const jsonResponse = await response.json();
+        console.log(JSON.stringify(jsonResponse, null, 4));
+    } else {
+        console.error("Failed to tweet:", await response.text());
+        return await response.json();
+    }
 }
 

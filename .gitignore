@@ -15,3 +15,13 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.testenv/
+.venv/
+.env
+database_*
+config_*
+notes.md
+test2.py
+test.py
+test.mp4
+_internal/

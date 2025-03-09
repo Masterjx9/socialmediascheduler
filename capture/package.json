@@ -20,6 +20,7 @@
     "@react-native-google-signin/google-signin": "^12.2.1",
     "@types/oauth": "^0.9.6",
     "oauth": "^0.10.0",
+    "oauth-1.0a": "^2.2.6",
     "react": "18.2.0",
     "react-native": "0.74.1",
     "react-native-background-fetch": "^4.2.7",
