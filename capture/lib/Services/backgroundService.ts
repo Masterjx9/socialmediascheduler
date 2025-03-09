@@ -1,5 +1,5 @@
 // REFACTOR USING NOTIFEE
-
+// NOTE: Make a daily refresh token check for all social media accounts
 import BackgroundFetch from 'react-native-background-fetch';
 import notifee from '@notifee/react-native';
 import BackgroundTimer from "react-native-background-timer";

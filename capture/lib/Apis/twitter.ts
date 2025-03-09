@@ -1,7 +1,9 @@
 // import { OAuth } from 'oauth';
+import { faS } from '@fortawesome/free-solid-svg-icons';
 import OAuth from 'oauth-1.0a';
-import crypto from 'crypto'
-const fs = require('fs').promises;
+import '../../shim.js';
+import crypto from 'react-native-crypto'
+import RNFS from 'react-native-fs';
 
 export async function getTwitterAccessToken(
     code: string,
@@ -30,7 +32,7 @@ export async function getTwitterAccessToken(
   }
   
 
-export async function postTextToTwitter(
+export async function  postTextToTwitter(
     twitterPayload: string,
     twitterConsumerKey: string,
     twitterConsumerSecret: string,
@@ -54,11 +56,12 @@ const request_data = {
     method: "POST",
     data: { text: twitterPayload },
 };
-
+console.log("request_data", request_data);
 const authHeader = oauth.toHeader(oauth.authorize(request_data, {
     key: twitterAccessToken,
     secret: twitterAccessTokenSecret,
 }));
+console.log("authHeader", authHeader);
 
 fetch(request_data.url, {
     method: request_data.method,
@@ -97,7 +100,7 @@ export async function postImageToTwitter(
     });
 
     // Step 1: Upload the image to Twitter
-    const fileStream = await fs.readFile(twitterPayload["image_path"]);
+    const fileStream = await RNFS.readFile(twitterPayload["image_path"]);
     const files = { media: fileStream };
 
     const uploadRequest = {
@@ -186,7 +189,7 @@ export async function postVideoToTwitter(
     });
 
     // Step 1: INIT command
-    const fileSize = (await fs.stat(twitterPayload["video_path"])).size;
+    const fileSize = (await RNFS.stat(twitterPayload["video_path"])).size;
     const initData = {
         command: 'INIT',
         media_type: 'video/mp4',
@@ -221,9 +224,8 @@ export async function postVideoToTwitter(
     const mediaId = (await response.json()).media_id_string;
 
     // Step 2: APPEND command
-    const fileHandle = await fs.open(twitterPayload["video_path"], 'r');
-    const data = await fileHandle.readFile();
-    
+    const data = await RNFS.readFile(twitterPayload["video_path"], 'base64');
+
     const appendData = {
         command: 'APPEND',
         media_id: mediaId,
@@ -254,7 +256,6 @@ export async function postVideoToTwitter(
         console.error("Failed to upload video:", await response.text());
         return;
     }
-    await fileHandle.close();
 
     // Step 3: FINALIZE command
     const finalizeData = {

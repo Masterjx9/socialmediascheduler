@@ -185,7 +185,7 @@ export const fetchContentFromBeforeCurrentTime = async () => {
             db.transaction(tx => {
                 const currentTime = Math.floor(Date.now() / 1000);
                 tx.executeSql(
-                    `SELECT * FROM content WHERE post_date < ?`,
+                    `SELECT * FROM content WHERE post_date < ? AND published = 0`,
                     [currentTime],
                     (_, results) => {
                         const rows = results.rows;

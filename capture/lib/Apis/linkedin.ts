@@ -141,7 +141,7 @@ async function finalizeVideoUpload(
 
 export async function postMediaToLinkedIn(
   accessToken: string,
-  mediaType: 'image' | 'video',
+  mediaType: 'image' | 'video' | null,
   mediaUrl: any,
   tags: Array<string> | null = null,
 ) {
