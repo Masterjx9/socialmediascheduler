@@ -77,6 +77,95 @@ fetch(request_data.url, {
 }
 
 
+//conver postImageToTwitter to typescript
+export async function postImageToTwitter(
+    twitterPayload: any,
+    twitterConsumerKey: string,
+    twitterConsumerSecret: string,
+    twitterAccessToken: string,
+    twitterAccessTokenSecret: string
+): Promise<any> {
+    const oauth = new OAuth({
+        consumer: {
+            key: twitterConsumerKey,
+            secret: twitterConsumerSecret,
+        },
+        signature_method: 'HMAC-SHA1',
+        hash_function(base_string, key) {
+            return crypto.createHmac('sha1', key).update(base_string).digest('base64');
+        }
+    });
+
+    // Step 1: Upload the image to Twitter
+    const fileStream = await fs.readFile(twitterPayload["image_path"]);
+    const files = { media: fileStream };
+
+    const uploadRequest = {
+        url: "https://upload.twitter.com/1.1/media/upload.json",
+        method: "POST",
+        data: files,
+    };
+
+    const uploadAuthHeader = oauth.toHeader(oauth.authorize(uploadRequest, {
+        key: twitterAccessToken,
+        secret: twitterAccessTokenSecret,
+    }));
+
+    let response = await fetch(uploadRequest.url, {
+        method: uploadRequest.method,
+        headers: {
+            ...uploadAuthHeader,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams(files).toString(),
+    });
+
+    if (!response.ok) {
+        console.error("Failed to upload media:", await response.text());
+        return;
+    }
+
+    const mediaId = (await response.json()).media_id_string;
+
+    // Step 2: Post a tweet with the uploaded media ID
+    const tweetData = {
+        text: twitterPayload["description"],
+        media: {
+            media_ids: [mediaId],
+        },
+    };
+
+    const tweetRequest = {
+        url: "https://api.twitter.com/2/tweets",
+        method: "POST",
+        data: tweetData,
+    };
+
+    const tweetAuthHeader = oauth.toHeader(oauth.authorize(tweetRequest, {
+        key: twitterAccessToken,
+        secret: twitterAccessTokenSecret,
+    }));
+
+    response = await fetch(tweetRequest.url, {
+        method: tweetRequest.method,
+        headers: {
+            ...tweetAuthHeader,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(tweetData),
+    });
+
+    if (response.ok) {
+        console.log("Tweet successful!");
+        const jsonResponse = await response.json();
+        console.log(JSON.stringify(jsonResponse, null, 4));
+    }
+    else {
+        console.error("Failed to tweet:", await response.text());
+        return await response.json();
+    }
+}
+
 
 export async function postVideoToTwitter(
     twitterPayload: any,
