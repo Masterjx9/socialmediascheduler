@@ -53,8 +53,7 @@ const oauth = new OAuth({
 
 const request_data = {
     url: "https://api.twitter.com/2/tweets",
-    method: "POST",
-    data: { text: twitterPayload },
+    method: "POST"
 };
 console.log("request_data", request_data);
 const authHeader = oauth.toHeader(oauth.authorize(request_data, {
@@ -69,7 +68,7 @@ fetch(request_data.url, {
         ...authHeader,
         'Content-Type': 'application/json',
     },
-    body: JSON.stringify(request_data.data)
+  body: JSON.stringify({ text: twitterPayload }),
 }).then(response => response.json())
   .then(data => {
       console.log("Tweet successful:", data);

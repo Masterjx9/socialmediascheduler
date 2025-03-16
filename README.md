@@ -2,6 +2,9 @@
 
 The Social Media Scheduler is an application that allows users to schedule and manage their social media posts across various platforms. It integrates with the following APIs:
 
+[![Watch the video](https://img.youtube.com/vi/7JUYpHTV0q4/maxresdefault.jpg)](https://www.youtube.com/watch?v=7JUYpHTV0q4)
+
+
 - Meta/Facebook API
 - YouTube API
 - TikTok API
