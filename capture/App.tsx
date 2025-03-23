@@ -18,10 +18,9 @@ import { createTables,
           fetchDbData,
           listDirectoryContents,
          } from './lib/Services/dbService';
-import { checkSignInStatus } from './lib/Services/authService.ts';
+import { checkIfAccountsExist } from './lib/Services/dbService.ts';
 import { onDayPress } from './lib/Helpers/dateHelper.ts';
 const App = () => {
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [inputText, setInputText] = useState('');
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
   const [isLoginVisible, setIsLoginVisible] = useState(false);
@@ -29,6 +28,7 @@ const App = () => {
   const [isAccountsVisible, setIsAccountsVisible] = useState(false);
   const [isImportVisible, setIsImportVisible] = useState(false);
   const [isPostVisible, setIsPostVisible] = useState(false);
+  const [isTwitterLoginVisible, setIsTwitterLoginVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [dbData, setDbData] = useState<any[]>([]);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -55,7 +55,7 @@ const App = () => {
       scopes: ['profile', 'email', 'openid'], // array of scopes
     });
 
-      checkSignInStatus(setCurrentUserId, setIsCalendarVisible, setIsLoginVisible);
+      // checkSignInStatus(setCurrentUserId, setIsCalendarVisible, setIsLoginVisible);
 
     // requestPermissions();
     // const dbPath = '/data/data/com.socialmediaschedulerapp/databases/database_default.sqlite3';
@@ -74,7 +74,19 @@ const App = () => {
             () => {
               console.log('Database opened');
               // insertFakeData(db);
-              fetchDbData(db, setDbData);
+              // fetchDbData(db, setDbData);
+
+              // use checkIfAccountsExist which will return a true or false to know if we setIsCalendarVisible
+              let accountcheck = checkIfAccountsExist();
+              accountcheck.then((result) => {
+                if (result) {
+                  fetchDbData(db, setDbData);
+                  setIsCalendarVisible(true);
+                } else {
+                  setIsLoginVisible(true);
+                }
+              });
+              
             },
             (error) => {
               console.log('Error opening database:', error);
@@ -98,6 +110,7 @@ const App = () => {
                     console.log('Tables created successfully');
                     // insertFakeData(db);
                     listDirectoryContents(RNFS.DocumentDirectoryPath);
+
                   });
                 },
                 (error) => {
@@ -127,9 +140,10 @@ const App = () => {
         <>
           <ModalsContainer
             GoogleSignin={GoogleSignin}
-            currentUserId={currentUserId}
             isAccountsVisible={isAccountsVisible}
             setIsAccountsVisible={setIsAccountsVisible}
+            isTwitterLoginVisible={isTwitterLoginVisible}
+            setIsTwitterLoginVisible={setIsTwitterLoginVisible}
             isPostVisible={isPostVisible}
             setIsPostVisible={setIsPostVisible}
             selectedItem={selectedItem}
@@ -137,7 +151,6 @@ const App = () => {
             selectedDate={selectedDate}
             isSettingsVisible={isSettingsVisible}
             setIsSettingsVisible={setIsSettingsVisible}
-            setCurrentUserId={setCurrentUserId}
             setIsCalendarVisible={setIsCalendarVisible}
             setIsLoginVisible={setIsLoginVisible}
             setDbData={setDbData}
@@ -163,7 +176,6 @@ const App = () => {
           <LoginModal
             isLoginVisible={isLoginVisible}
             setIsLoginVisible={setIsLoginVisible}
-            setCurrentUserId={setCurrentUserId}
             setIsCalendarVisible={setIsCalendarVisible}
           />
         </>

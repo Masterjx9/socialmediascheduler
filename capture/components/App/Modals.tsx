@@ -7,9 +7,10 @@ import React from 'react';
 
 interface ModalsContainerProps {
     GoogleSignin: any;
-    currentUserId: number | null;
     isAccountsVisible: boolean;
     setIsAccountsVisible: React.Dispatch<React.SetStateAction<boolean>>;
+    isTwitterLoginVisible: boolean;
+    setIsTwitterLoginVisible: React.Dispatch<React.SetStateAction<boolean>>;
     isPostVisible: boolean;
     setIsPostVisible: React.Dispatch<React.SetStateAction<boolean>>;
     selectedItem: any;
@@ -17,7 +18,6 @@ interface ModalsContainerProps {
     selectedDate: string;
     isSettingsVisible: boolean;
     setIsSettingsVisible: React.Dispatch<React.SetStateAction<boolean>>;
-    setCurrentUserId: React.Dispatch<React.SetStateAction<number | null>>;
     setIsCalendarVisible: React.Dispatch<React.SetStateAction<boolean>>;
     setIsLoginVisible: React.Dispatch<React.SetStateAction<boolean>>;
     setDbData: React.Dispatch<React.SetStateAction<any[]>>;
@@ -25,9 +25,11 @@ interface ModalsContainerProps {
 
   const ModalsContainer: React.FC<ModalsContainerProps> = ({
     GoogleSignin,
-    currentUserId,
+    
     isAccountsVisible,
     setIsAccountsVisible,
+    isTwitterLoginVisible,
+    setIsTwitterLoginVisible,
     isPostVisible,
     setIsPostVisible,
     selectedItem,
@@ -35,14 +37,24 @@ interface ModalsContainerProps {
     selectedDate,
     isSettingsVisible,
     setIsSettingsVisible,
-    setCurrentUserId,
     setIsCalendarVisible,
     setIsLoginVisible,
     setDbData,
   }) => {
     return (
       <>
-          {currentUserId !== null && <AccountsModal isVisible={isAccountsVisible} onClose={() => setIsAccountsVisible(false)} currentUserId={currentUserId} GoogleSignin={GoogleSignin} setIsLoginVisible={setIsLoginVisible} setIsAccountsVisible={setIsAccountsVisible} setIsCalendarVisible={setIsCalendarVisible} />}
+          
+          <AccountsModal 
+            isVisible={isAccountsVisible} 
+            onClose={() => setIsAccountsVisible(false)} 
+            GoogleSignin={GoogleSignin} 
+            setIsLoginVisible={setIsLoginVisible} 
+            setIsAccountsVisible={setIsAccountsVisible} 
+            setIsCalendarVisible={setIsCalendarVisible} 
+            isTwitterLoginVisible={isTwitterLoginVisible}
+            setIsTwitterLoginVisible={setIsTwitterLoginVisible}
+
+          />
 
         <PostModal
           isVisible={isPostVisible}
@@ -60,7 +72,7 @@ interface ModalsContainerProps {
         <SettingsModal
           isVisible={isSettingsVisible}
           onClose={() => setIsSettingsVisible(false)}
-          onLogOut={() => logOutALL(setCurrentUserId, setIsSettingsVisible, setIsCalendarVisible, setIsLoginVisible)}
+          onLogOut={() => logOutALL( setIsSettingsVisible, setIsCalendarVisible, setIsLoginVisible)}
         />
       </>
     );

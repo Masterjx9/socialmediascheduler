@@ -1,9 +1,12 @@
 import { fetchUserIdFromDb, insertProviderIdIntoDb } from './dbService';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
-  
+import { loginWithTwitter } from '../Helpers/twitterHelper';
+import { Linking } from 'react-native';
+import { useEffect } from 'react';
 
-export const logOutALL = async (setCurrentUserId: React.Dispatch<React.SetStateAction<any>>, 
+
+export const logOutALL = async (
     setIsSettingsVisible: React.Dispatch<React.SetStateAction<boolean>>, 
     setIsCalendarVisible: React.Dispatch<React.SetStateAction<boolean>>, 
     setIsLoginVisible: React.Dispatch<React.SetStateAction<boolean>>) => {
@@ -16,7 +19,6 @@ export const logOutALL = async (setCurrentUserId: React.Dispatch<React.SetStateA
         console.log('User ID found in database, logging out...');
         await GoogleSignin.revokeAccess();
         await GoogleSignin.signOut();
-        setCurrentUserId(null);
         setIsSettingsVisible(false);
         setIsCalendarVisible(false);
         setIsLoginVisible(false);
@@ -29,7 +31,6 @@ export const logOutALL = async (setCurrentUserId: React.Dispatch<React.SetStateA
         console.log('User is signed in with Facebook');
         console.log('User ID found in database, logging out...');
         await LoginManager.logOut();
-        setCurrentUserId(null);
         setIsSettingsVisible(false);
         setIsCalendarVisible(false);
         setIsLoginVisible(false);
@@ -41,7 +42,6 @@ export const logOutALL = async (setCurrentUserId: React.Dispatch<React.SetStateA
   };
   
 export const handleLogin = async (provider: string, 
-    setCurrentUserId: React.Dispatch<React.SetStateAction<any>>, 
     setIsCalendarVisible: React.Dispatch<React.SetStateAction<boolean>>) => {
     try {
       if (provider === 'Google') {
@@ -56,11 +56,12 @@ export const handleLogin = async (provider: string,
             console.log('User already exists, signing in...');
         } else {
             console.log('New user, inserting into database...');
-            await insertProviderIdIntoDb('google', userInfo.user.id, userInfo.user.email);
+            await insertProviderIdIntoDb('google', userInfo.user.id);
+            //  userInfo.user.email will be used later for inserting into google table
+
             userId = await fetchUserIdFromDb(userInfo.user.id);
         }
 
-        setCurrentUserId(userId);
 
         
       }
@@ -95,13 +96,16 @@ export const handleLogin = async (provider: string,
           console.log('User already exists, signing in...');
         } else {
           console.log('New user, inserting into database...');
-          await insertProviderIdIntoDb('facebook', userInfo.id, userInfo.email || userInfo.name);
+          await insertProviderIdIntoDb('facebook', userInfo.id);
+          // userInfo.email || userInfo.name will be used later for inserting into meta table
+
           userId = await fetchUserIdFromDb(userInfo.id);
         }
   
-        setCurrentUserId(userId);
       }
-  
+      if (provider === 'Twitter') {
+        // await loginWithTwitter();
+      }
   
       // Show the calendar
       setIsCalendarVisible(true);
@@ -128,7 +132,9 @@ export const handleLoginError = (error: any) => {
     }
   };
 
-export const checkSignInStatus = async (
+// This will be refactored to check if the user is already signed in and fetch their user ID
+// and get a refresh token if needed.
+export const googleRefreshFlow = async (
   setCurrentUserId: React.Dispatch<React.SetStateAction<any>>,
   setIsCalendarVisible: React.Dispatch<React.SetStateAction<boolean>>,
   setIsLoginVisible: React.Dispatch<React.SetStateAction<boolean>>

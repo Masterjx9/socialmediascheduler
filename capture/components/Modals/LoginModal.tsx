@@ -14,14 +14,12 @@ import { handleLogin
 interface LoginModalProps {
     isLoginVisible: boolean;
     setIsLoginVisible: React.Dispatch<React.SetStateAction<boolean>>;
-    setCurrentUserId: React.Dispatch<React.SetStateAction<number | null>>;
     setIsCalendarVisible: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({ 
     isLoginVisible, 
     setIsLoginVisible, 
-    setCurrentUserId, 
     setIsCalendarVisible }) => (
 
 <View>
@@ -42,23 +40,23 @@ const LoginModal: React.FC<LoginModalProps> = ({
     >
     <View style={styles.modalContainer}>
         <Text style={styles.title}>Login</Text>
-        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Google', setCurrentUserId, setIsCalendarVisible)}>
+        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Google', setIsCalendarVisible)}>
         <FontAwesomeIcon icon={faGoogle} size={24} />
         <Text style={styles.loginText}>Login with Google</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Facebook', setCurrentUserId, setIsCalendarVisible)}>
+        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Facebook', setIsCalendarVisible)}>
         <FontAwesomeIcon icon={faFacebook} size={24} />
         <Text style={styles.loginText}>Login with Facebook</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Microsoft', setCurrentUserId, setIsCalendarVisible)}>
+        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Microsoft', setIsCalendarVisible)}>
         <FontAwesomeIcon icon={faMicrosoft} size={24} />
         <Text style={styles.loginText}>Login with Microsoft</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('LinkedIn', setCurrentUserId, setIsCalendarVisible)}>
+        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('LinkedIn', setIsCalendarVisible)}>
         <FontAwesomeIcon icon={faLinkedin} size={24} />
         <Text style={styles.loginText}>Login with LinkedIn</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Twitter', setCurrentUserId, setIsCalendarVisible)}>
+        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Twitter', setIsCalendarVisible)}>
         <FontAwesomeIcon icon={faTwitter} size={24} />
         <Text style={styles.loginText}>Login with Twitter</Text>
         </TouchableOpacity>

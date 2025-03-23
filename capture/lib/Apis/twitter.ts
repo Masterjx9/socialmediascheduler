@@ -31,6 +31,45 @@ export async function getTwitterAccessToken(
     return response.json();
   }
   
+export async function  getTwitterUserInfo(
+    twitterConsumerKey: string,
+    twitterConsumerSecret: string,
+    twitterAccessToken: string,
+    twitterAccessTokenSecret: string
+): Promise<any> {
+    const oauth = new OAuth({
+        consumer: {
+            key: twitterConsumerKey,
+            secret: twitterConsumerSecret,
+        },
+        signature_method: 'HMAC-SHA1',
+        hash_function(base_string, key) {
+            return crypto.createHmac('sha1', key).update(base_string).digest('base64');
+        }
+    });
+
+    const request_data = {
+        url: "https://api.twitter.com/2/users/me",
+        method: "GET"
+    };
+    console.log("request_data", request_data);
+    const authHeader = oauth.toHeader(oauth.authorize(request_data, {
+        key: twitterAccessToken,
+        secret: twitterAccessTokenSecret,
+    }));
+    console.log("authHeader", authHeader);
+
+    const response = await fetch(request_data.url, {
+        method: request_data.method,
+        headers: {
+            ...authHeader,
+            'Content-Type': 'application/json',
+        },
+    });
+
+    return response;
+}
+
 
 export async function  postTextToTwitter(
     twitterPayload: string,

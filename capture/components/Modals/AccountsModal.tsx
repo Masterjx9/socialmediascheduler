@@ -4,23 +4,28 @@ import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sql
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faGoogle, faMicrosoft, faLinkedin, faTwitter, faFacebook } from '@fortawesome/free-brands-svg-icons';
 import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
-
+import { loginWithTwitter } from '../../lib/Helpers/twitterHelper'
+import { insertProviderIdIntoDb } from '../../lib/Services/dbService';
+import TwitterLogin from './logins/TwitterLogin';
 import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
+// const [isTwitterLoginVisible, setIsTwitterLoginVisible] = useState(false);
+
 
 interface AccountsModalProps {
     isVisible: boolean;
     onClose: () => void;
-    currentUserId: number;  
     GoogleSignin: any;  
     setIsLoginVisible: (visible: boolean) => void;
     setIsAccountsVisible: (visible: boolean) => void;
     setIsCalendarVisible: (visible: boolean) => void;
+    // setIsTwitterLoginVisible: (visible: boolean) => void;
+    isTwitterLoginVisible: boolean;
+    setIsTwitterLoginVisible: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 interface HandleNewSignUpParams {
     provider: string;
     GoogleSignin?: any; // Use the correct type for GoogleSignin if you know it
-    currentUserId: number;
 }
 
 interface SocialMediaAccount {
@@ -30,11 +35,15 @@ interface SocialMediaAccount {
 
 const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible, 
                                                         onClose, 
-                                                        currentUserId, 
                                                         GoogleSignin, 
                                                         setIsLoginVisible,
                                                         setIsAccountsVisible,
-                                                        setIsCalendarVisible }) => {
+                                                        setIsCalendarVisible,
+                                                        isTwitterLoginVisible,
+                                                        setIsTwitterLoginVisible
+                                        
+                                                    
+                                                    }) => {
     const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
     const [isNewAccountVisible, setIsNewAccountVisible] = useState(false);
 
@@ -48,9 +57,10 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
         const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
         db.transaction(tx => {
             tx.executeSql(
-                'SELECT account_id, provider_name FROM user_providers WHERE user_id = ?',
-                [currentUserId],
-                (_, results) => {
+                'SELECT account_id, provider_name FROM user_providers',
+                [],
+                (_: any, results: any) => {
+
                     const rows = results.rows;
                     let accountsList: SocialMediaAccount[] = [];
                     for (let i = 0; i < rows.length; i++) {
@@ -95,11 +105,11 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
         </View>
     );
 
-    const handleNewSignUp = async ({ provider, GoogleSignin, currentUserId }: HandleNewSignUpParams) => {
+    const handleNewSignUp = async ({ provider, GoogleSignin }: HandleNewSignUpParams) => {
         try {
           if (provider === 'Google' && GoogleSignin) {
             console.log('Google SignUp');
-            console.log(currentUserId);
+           
             const user = await GoogleSignin.getCurrentUser();
             const isSignedIn = user !== null;
             
@@ -140,10 +150,10 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
             }
 
             console.log("New Provider User ID: ", providerUserId);
-            console.log("Current User ID: ", currentUserId);
 
             // Insert the new provider ID into the database
-            await insertProviderIdIntoDb(provider, providerUserId, userInfo.user.name);
+            await insertProviderIdIntoDb(provider, providerUserId);
+            // userInfo.user.name
 
             // Refresh the account list
             fetchSocialMediaAccounts();
@@ -186,11 +196,11 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
             }
 
             console.log('New Provider User ID:', providerUserId);
-            console.log('Current User ID:', currentUserId);
 
             // Insert the new provider ID into the database
 
-            await insertProviderIdIntoDb(provider, providerUserId, 'Facebook User');
+            await insertProviderIdIntoDb(provider, providerUserId);
+            //, 'Facebook User'
             // Refresh the account list
             fetchSocialMediaAccounts();
 
@@ -206,6 +216,15 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
             }
             if (provider === 'Twitter') {
                 console.log('Twitter SignUp');
+                // This is the normal oauth flow but we are not doing that as
+                // we are not going to pay Elon money to allow more than 100 users through a oauth flow
+                // await loginWithTwitter();
+
+                // instead we are going to make a UI that allows the user to enter their
+                // consumer_api_key, consumer_api_secret, access_token, access_token_secret
+                // and then we will store that in the database and use that to post to twitter
+                
+                
             }
           // Show the calendar
           setIsNewAccountVisible(false);
@@ -244,41 +263,6 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
     };
     
 
-    const insertProviderIdIntoDb = (providerName: string, providerUserId: string, userName: string) => {
-        return new Promise<void>((resolve, reject) => {
-          const db = SQLite.openDatabase(
-            { name: 'database_default.sqlite3', location: 'default' },
-            () => {
-              db.transaction((tx: Transaction) => {
-                // Insert the new user into the users table
-            
-                    // Insert provider ID into the user_providers table
-                    tx.executeSql(
-                      `INSERT OR REPLACE INTO user_providers (user_id, provider_name, provider_user_id) VALUES (?, ?, ?)`,
-                      [currentUserId, providerName, providerUserId],
-                      () => {
-                        console.log(`${providerName} ID stored in the database:`, providerUserId);
-                        resolve();
-                      },
-                      (error) => {
-                        console.log(`Error storing ${providerName} ID in the database:`, error);
-                        reject(error);
-                      }
-                    );
-                  },
-                  (error) => {
-                    console.log('Error inserting new user into the database:', error);
-                    reject(error);
-                
-              });
-            },
-            (error) => {
-              console.log('Error opening database:', error);
-              reject(error);
-            }
-          );
-        });
-      };
 
     return (
         <Modal
@@ -325,24 +309,29 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
           >
             <View style={styles.modalContainer}>
               <Text style={styles.title}>Add an Account</Text>
-              <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Google', GoogleSignin: GoogleSignin, currentUserId })}>
+              <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Google', GoogleSignin: GoogleSignin })}>
                 <FontAwesomeIcon icon={faGoogle} size={24} /><Text style={styles.loginText}>Login with Google</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Facebook', currentUserId })}>
+                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Facebook' })}>
                 <FontAwesomeIcon icon={faFacebook} size={24} /><Text style={styles.loginText}>Login with Facebook</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Microsoft', currentUserId })}>
+                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Microsoft' })}>
                 <FontAwesomeIcon icon={faMicrosoft} size={24} /><Text style={styles.loginText}>Login with Microsoft</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'LinkedIn', currentUserId })}>
+                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'LinkedIn' })}>
                 <FontAwesomeIcon icon={faLinkedin} size={24} /><Text style={styles.loginText}>Login with LinkedIn</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Twitter', currentUserId })}>
+                <TouchableOpacity style={styles.loginButton} onPress={() => setIsTwitterLoginVisible(true)}>
                 <FontAwesomeIcon icon={faTwitter} size={24} /><Text style={styles.loginText}>Login with Twitter</Text>
                 </TouchableOpacity>
 
             </View>
           </Modal>
+        
+        {/* <TwitterLogin
+            isVisible={isTwitterLoginVisible}
+            onClose={() => setIsTwitterLoginVisible(false)}
+            /> */}
 
         </Modal>
     );

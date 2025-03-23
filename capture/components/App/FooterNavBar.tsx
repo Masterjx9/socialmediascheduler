@@ -20,7 +20,10 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
 <View style={styles.footerNavBar}>
     <TouchableOpacity
     style={styles.navButton}
-    onPress={() => setIsAccountsVisible(true)}
+    onPress={() => {setIsAccountsVisible(true)
+      console.log('Accounts button pressed');
+      
+    }}
     >
     <FontAwesomeIcon icon={faUserGroup} size={24} />
     <Text>Accounts</Text>
