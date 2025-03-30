@@ -177,6 +177,8 @@ const App = () => {
             isLoginVisible={isLoginVisible}
             setIsLoginVisible={setIsLoginVisible}
             setIsCalendarVisible={setIsCalendarVisible}
+            isTwitterLoginVisible={isTwitterLoginVisible}
+            setIsTwitterLoginVisible={setIsTwitterLoginVisible}
           />
         </>
       )}

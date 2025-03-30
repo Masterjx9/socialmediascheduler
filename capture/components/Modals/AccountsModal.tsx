@@ -10,7 +10,6 @@ import TwitterLogin from './logins/TwitterLogin';
 import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
 import {fetchSocialMediaAccounts } from '../../lib/Services/dbService';
-// const [isTwitterLoginVisible, setIsTwitterLoginVisible] = useState(false);
 
 
 interface AccountsModalProps {
@@ -20,7 +19,6 @@ interface AccountsModalProps {
     setIsLoginVisible: (visible: boolean) => void;
     setIsAccountsVisible: (visible: boolean) => void;
     setIsCalendarVisible: (visible: boolean) => void;
-    // setIsTwitterLoginVisible: (visible: boolean) => void;
     isTwitterLoginVisible: boolean;
     setIsTwitterLoginVisible: React.Dispatch<React.SetStateAction<boolean>>;
 }

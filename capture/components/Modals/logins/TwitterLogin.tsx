@@ -9,10 +9,11 @@ import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sql
 interface TwitterLoginProps {
     isVisible: boolean;
     onClose: () => void;
-    setAccounts: React.Dispatch<React.SetStateAction<any[]>>
+    setAccounts?: React.Dispatch<React.SetStateAction<any[]>>
+    setIsCalendarVisible?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const TwitterLogin: React.FC<TwitterLoginProps> = ({ isVisible, onClose, setAccounts }) => {
+const TwitterLogin: React.FC<TwitterLoginProps> = ({ isVisible, onClose, setAccounts, setIsCalendarVisible }) => {
     const [consumerApiKey, setConsumerApiKey] = useState("");
     const [consumerApiSecret, setConsumerApiSecret] = useState("");
     const [accessToken, setAccessToken] = useState("");
@@ -53,9 +54,13 @@ const TwitterLogin: React.FC<TwitterLoginProps> = ({ isVisible, onClose, setAcco
         );
         await insertProviderIdIntoDb('twitter', results.data.id); // Store the Twitter user ID in the user_providers table
         
-        // fetchSocialMediaAccounts();
         const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+        if (setAccounts) {
         fetchSocialMediaAccounts(db,setAccounts)
+        }
+        if (setIsCalendarVisible) {
+            setIsCalendarVisible(true);
+        }
         Alert.alert("Success", "Twitter credentials validated successfully.");
         onClose();
     };
