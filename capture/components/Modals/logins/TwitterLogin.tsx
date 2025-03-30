@@ -3,13 +3,16 @@ import { Modal, View, Text, TextInput, Button, StyleSheet, TouchableOpacity, Ale
 import { getTwitterUserInfo } from "../../../lib/Apis/twitter";
 import { insertTwitterAccountIntoDb } from "../../../lib/Services/dbService";
 import { insertProviderIdIntoDb } from "../../../lib/Services/dbService";
+import { fetchSocialMediaAccounts } from "../../../lib/Services/dbService";
+import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
 
 interface TwitterLoginProps {
     isVisible: boolean;
     onClose: () => void;
+    setAccounts: React.Dispatch<React.SetStateAction<any[]>>
 }
 
-const TwitterLogin: React.FC<TwitterLoginProps> = ({ isVisible, onClose }) => {
+const TwitterLogin: React.FC<TwitterLoginProps> = ({ isVisible, onClose, setAccounts }) => {
     const [consumerApiKey, setConsumerApiKey] = useState("");
     const [consumerApiSecret, setConsumerApiSecret] = useState("");
     const [accessToken, setAccessToken] = useState("");
@@ -41,7 +44,7 @@ const TwitterLogin: React.FC<TwitterLoginProps> = ({ isVisible, onClose }) => {
         }
         
         // now insert into the database, accountName is results.data.name
-        let dbresults = await insertTwitterAccountIntoDb(
+         await insertTwitterAccountIntoDb(
             consumerApiKey,
             consumerApiSecret,
             accessToken,
@@ -50,8 +53,9 @@ const TwitterLogin: React.FC<TwitterLoginProps> = ({ isVisible, onClose }) => {
         );
         await insertProviderIdIntoDb('twitter', results.data.id); // Store the Twitter user ID in the user_providers table
         
-        console.log("DB Insert Results:", dbresults);
-        
+        // fetchSocialMediaAccounts();
+        const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+        fetchSocialMediaAccounts(db,setAccounts)
         Alert.alert("Success", "Twitter credentials validated successfully.");
         onClose();
     };

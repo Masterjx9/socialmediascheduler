@@ -1,4 +1,5 @@
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
+import type { SocialMediaAccount } from '../../types/SociaMedia';
 import RNFS from 'react-native-fs';
 
 
@@ -31,7 +32,6 @@ export const insertFakeData = (db: SQLiteDatabase) => {
 export const createTables = (tx: Transaction) => {
     tx.executeSql(`
       CREATE TABLE IF NOT EXISTS user_providers (
-      account_id INTEGER PRIMARY KEY AUTOINCREMENT,
       provider_name TEXT NOT NULL, -- e.g., 'google', 'meta', 'twitter', etc.
       provider_user_id TEXT NOT NULL, -- e.g., Google sub, Meta ID, etc.
       );
@@ -50,7 +50,6 @@ export const createTables = (tx: Transaction) => {
     tx.executeSql(`
       CREATE TABLE IF NOT EXISTS meta_accounts (
         ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        account_id INTEGER,
         meta_id TEXT,
         meta_token TEXT,
         account_name TEXT
@@ -69,7 +68,6 @@ export const createTables = (tx: Transaction) => {
     tx.executeSql(`
       CREATE TABLE IF NOT EXISTS linkedin_accounts (
         app_id TEXT,
-        account_id INTEGER PRIMARY KEY REFERENCES social_media_accounts (account_id),
         app_secret TEXT,
         app_token TEXT,
         app_refresh_token TEXT,
@@ -80,6 +78,32 @@ export const createTables = (tx: Transaction) => {
       );
     `);
   };
+
+
+  export const fetchSocialMediaAccounts = (db: SQLiteDatabase, setAccounts: React.Dispatch<React.SetStateAction<any[]>>) => {
+    db.transaction((tx: Transaction) => {
+      tx.executeSql(
+        'SELECT provider_user_id, provider_name FROM user_providers',
+        [],
+        (tx: Transaction, results: ResultSet) => {
+          const rows = results.rows;
+          console.log(rows)
+          for (let i = 0; i < rows.length; i++) {
+            console.log('Row:', rows.item(i));
+          }
+          let accountsList: SocialMediaAccount[] = []; 
+          for (let i = 0; i < rows.length; i++) {
+            accountsList.push(rows.item(i));
+          }
+          console.log('Accounts: ', accountsList);
+          setAccounts(accountsList); 
+        },
+        (error) => {
+          console.log('Error fetching accounts: ', error);
+        }
+      );
+    });
+  }
 
 
 export const fetchDbData = (db: SQLiteDatabase, setDbData: React.Dispatch<React.SetStateAction<any[]>>) => {

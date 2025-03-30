@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from 'react-native';
-import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
+import SQLite, { SQLiteDatabase, Transaction, ResultSet, openDatabase } from 'react-native-sqlite-storage';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faGoogle, faMicrosoft, faLinkedin, faTwitter, faFacebook } from '@fortawesome/free-brands-svg-icons';
 import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
@@ -8,6 +8,8 @@ import { loginWithTwitter } from '../../lib/Helpers/twitterHelper'
 import { insertProviderIdIntoDb } from '../../lib/Services/dbService';
 import TwitterLogin from './logins/TwitterLogin';
 import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
+import type { SocialMediaAccount } from '../../types/SociaMedia';
+import {fetchSocialMediaAccounts } from '../../lib/Services/dbService';
 // const [isTwitterLoginVisible, setIsTwitterLoginVisible] = useState(false);
 
 
@@ -25,13 +27,9 @@ interface AccountsModalProps {
 
 interface HandleNewSignUpParams {
     provider: string;
-    GoogleSignin?: any; // Use the correct type for GoogleSignin if you know it
+    GoogleSignin?: any; 
 }
 
-interface SocialMediaAccount {
-    account_id: number;  // Updated to match the actual column name
-    provider_name: string;
-}
 
 const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible, 
                                                         onClose, 
@@ -47,44 +45,26 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
     const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
     const [isNewAccountVisible, setIsNewAccountVisible] = useState(false);
 
-    useEffect(() => {
+    const forceUpdateAccounts = async () => {
+        const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+        fetchSocialMediaAccounts(db, setAccounts)    
+    }
+
+   useEffect(() => {
         if (isVisible) {
-            fetchSocialMediaAccounts();
+        forceUpdateAccounts(); 
         }
     }, [isVisible]);
-
-    const fetchSocialMediaAccounts = async () => {
-        const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
-        db.transaction(tx => {
-            tx.executeSql(
-                'SELECT account_id, provider_name FROM user_providers',
-                [],
-                (_: any, results: any) => {
-
-                    const rows = results.rows;
-                    let accountsList: SocialMediaAccount[] = [];
-                    for (let i = 0; i < rows.length; i++) {
-                        accountsList.push(rows.item(i));
-                    }
-                    console.log('Accounts: ', accountsList);
-                    setAccounts(accountsList);
-                },
-                (error) => {
-                    console.log('Error fetching accounts: ', error);
-                }
-            );
-        });
-    };
-
+    
     const removeAccount = async (accountId: number) => {
         const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
         db.transaction(tx => {
             tx.executeSql(
-                'DELETE FROM user_providers WHERE account_id = ?',
+                'DELETE FROM user_providers WHERE provider_user_id = ?',
                 [accountId],
                 () => {
                     Alert.alert('Account Removed', 'The account has been removed successfully.');
-                    fetchSocialMediaAccounts(); // Refresh the account list
+                    forceUpdateAccounts();
                 },
                 (error) => {
                     console.log('Error removing account: ', error);
@@ -98,7 +78,7 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
             <Text style={styles.accountText}>{item.provider_name}</Text>
             <TouchableOpacity
                 style={styles.removeButton}
-                onPress={() => removeAccount(item.account_id)}
+                onPress={() => removeAccount(item.provider_user_id)}
             >
                 <Text style={styles.removeButtonText}>Remove</Text>
             </TouchableOpacity>
@@ -141,7 +121,6 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
             console.log(userInfo);
             const providerUserId = userInfo.user.id;
               
-            // Check if the user is already linked to this provider
             const existingProviderId = await fetchProviderIdFromDb (providerUserId);
             console.log('Existing Provider ID: ', existingProviderId);
             if (existingProviderId) {
@@ -151,12 +130,10 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
 
             console.log("New Provider User ID: ", providerUserId);
 
-            // Insert the new provider ID into the database
             await insertProviderIdIntoDb(provider, providerUserId);
-            // userInfo.user.name
 
-            // Refresh the account list
-            fetchSocialMediaAccounts();
+            forceUpdateAccounts();
+            forceUpdateAccounts();
         } catch (error) {
             setIsAccountsVisible(false);
             setIsCalendarVisible(false);
@@ -187,7 +164,6 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
             console.log('Access token:', data.accessToken.toString());
             const providerUserId = data.userID;
 
-            // Check if the user is already linked to this provider
             const existingProviderId = await fetchProviderIdFromDb(providerUserId);
             console.log('Existing Provider ID: ', existingProviderId);
             if (existingProviderId) {
@@ -197,12 +173,10 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
 
             console.log('New Provider User ID:', providerUserId);
 
-            // Insert the new provider ID into the database
 
             await insertProviderIdIntoDb(provider, providerUserId);
-            //, 'Facebook User'
-            // Refresh the account list
-            fetchSocialMediaAccounts();
+            forceUpdateAccounts();
+            
 
 
 
@@ -214,7 +188,6 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
             if (provider === 'LinkedIn') {
                 console.log('LinkedIn SignUp');
             }
-          // Show the calendar
           setIsNewAccountVisible(false);
         } catch (error) {
          console.log('Error signing in: ', error);
@@ -239,7 +212,7 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
                         },
                         (error) => {
                             console.log('Error fetching provider_user_id from database:', error);
-                            resolve(false);  // Resolve as false instead of rejecting
+                            resolve(false);  
                         }
                     );
                 });
@@ -264,7 +237,7 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
                 <FlatList
                     data={accounts}
                     renderItem={renderAccountItem}
-                    keyExtractor={(item) => item.account_id.toString()}
+                    keyExtractor={(item) => item.provider_user_id.toString()}
                 />
                 <TouchableOpacity
                     style={styles.addButton}
@@ -319,6 +292,7 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
         <TwitterLogin
             isVisible={isTwitterLoginVisible}
             onClose={() => setIsTwitterLoginVisible(false)}
+            setAccounts={setAccounts} 
             />
 
         </Modal>
