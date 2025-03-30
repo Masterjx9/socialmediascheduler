@@ -210,10 +210,11 @@ export const insertProviderIdIntoDb = (providerName: string, providerUserId: str
         { name: 'database_default.sqlite3', location: 'default' },
         () => {
           db.transaction((tx: Transaction) => {
-
+                console.log("providerName:", providerName);
+                console.log("providerUserId:", providerUserId);
                 // Insert provider ID into the user_providers table
                 tx.executeSql(
-                  `INSERT OR REPLACE INTO user_providers (provider_name, provider_user_id) VALUES (?, ?, ?)`,
+                  `INSERT OR REPLACE INTO user_providers (provider_name, provider_user_id) VALUES (?, ?)`,
                   [providerName, providerUserId],
                   () => {
                     console.log(`${providerName} ID stored in the database:`, providerUserId);
@@ -235,3 +236,38 @@ export const insertProviderIdIntoDb = (providerName: string, providerUserId: str
     });
   };
 
+  export const insertTwitterAccountIntoDb = (consumerKey: string, 
+    consumerSecret: string, 
+    accessToken: string, 
+    accessTokenSecret: string,
+    accountName: string) => {
+    return new Promise<void>((resolve, reject) => {
+      const db = SQLite.openDatabase(
+        { name: 'database_default.sqlite3', location: 'default' },
+        () => {
+          db.transaction((tx: Transaction) => {
+
+                // Insert Twitter account into the twitter_accounts table
+                tx.executeSql(
+                  `INSERT INTO twitter_accounts (twitter_consumer_key, twitter_consumer_secret, twitter_access_token, twitter_access_token_secret, account_name) VALUES (?, ?, ?, ?, ?)`,
+                  [consumerKey, consumerSecret, accessToken, accessTokenSecret, accountName],
+                  () => {
+                    console.log('Twitter account stored in the database');
+                    resolve();
+                  },
+                  (error) => {
+                    console.log('Error storing Twitter account in the database:', error);
+                    reject(error);
+                  }
+                );
+
+          });
+        },
+        (error) => {
+          console.log('Error opening database:', error);
+          reject(error);
+        }
+      );
+    }
+    );
+  }

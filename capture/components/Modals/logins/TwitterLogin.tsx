@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Modal, View, Text, TextInput, Button, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { getTwitterUserInfo } from "../../../lib/Apis/twitter";
+import { insertTwitterAccountIntoDb } from "../../../lib/Services/dbService";
+import { insertProviderIdIntoDb } from "../../../lib/Services/dbService";
 
 interface TwitterLoginProps {
     isVisible: boolean;
@@ -28,13 +30,28 @@ const TwitterLogin: React.FC<TwitterLoginProps> = ({ isVisible, onClose }) => {
         }
         // Call the API to validate the Twitter credentials
         let results = await getTwitterUserInfo(consumerApiKey, consumerApiSecret, accessToken, accessTokenSecret);
-        if (!results.ok) {
+
+        console.log(typeof results);
+        console.log("Twitter User Info:", results);
+
+        
+        if (!results.data) {
             Alert.alert("Error", "Failed to validate Twitter credentials. Please check your details and try again.");
             return;
         }
-        console.log("Twitter User Info:", results.data);
-        // insert into the database here
-
+        
+        // now insert into the database, accountName is results.data.name
+        let dbresults = await insertTwitterAccountIntoDb(
+            consumerApiKey,
+            consumerApiSecret,
+            accessToken,
+            accessTokenSecret,
+            results.data.name
+        );
+        await insertProviderIdIntoDb('twitter', results.data.id); // Store the Twitter user ID in the user_providers table
+        
+        console.log("DB Insert Results:", dbresults);
+        
         Alert.alert("Success", "Twitter credentials validated successfully.");
         onClose();
     };

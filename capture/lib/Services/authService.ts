@@ -103,9 +103,6 @@ export const handleLogin = async (provider: string,
         }
   
       }
-      if (provider === 'Twitter') {
-        // await loginWithTwitter();
-      }
   
       // Show the calendar
       setIsCalendarVisible(true);

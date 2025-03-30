@@ -214,18 +214,6 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
             if (provider === 'LinkedIn') {
                 console.log('LinkedIn SignUp');
             }
-            if (provider === 'Twitter') {
-                console.log('Twitter SignUp');
-                // This is the normal oauth flow but we are not doing that as
-                // we are not going to pay Elon money to allow more than 100 users through a oauth flow
-                // await loginWithTwitter();
-
-                // instead we are going to make a UI that allows the user to enter their
-                // consumer_api_key, consumer_api_secret, access_token, access_token_secret
-                // and then we will store that in the database and use that to post to twitter
-                
-                
-            }
           // Show the calendar
           setIsNewAccountVisible(false);
         } catch (error) {
@@ -328,10 +316,10 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
             </View>
           </Modal>
         
-        {/* <TwitterLogin
+        <TwitterLogin
             isVisible={isTwitterLoginVisible}
             onClose={() => setIsTwitterLoginVisible(false)}
-            /> */}
+            />
 
         </Modal>
     );

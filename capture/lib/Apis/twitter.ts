@@ -66,8 +66,21 @@ export async function  getTwitterUserInfo(
             'Content-Type': 'application/json',
         },
     });
+    // return response
+    if (response.ok) {
+        const jsonResponse = await response.json();
+        console.log(JSON.stringify(jsonResponse, null, 4));
+        return jsonResponse;
+    } else {
+        // console.log("Failed to fetch user info:", await response.text());
+        return await response.json();
+    }
+        // return JSON.stringify(jsonResponse, null, 4);
+    // } else {
+    //     console.error("Failed to fetch user info:", await response.text());
+    //     return response        
+    // }
 
-    return response;
 }
 
 
