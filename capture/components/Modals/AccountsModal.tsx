@@ -9,7 +9,7 @@ import { insertProviderIdIntoDb } from '../../lib/Services/dbService';
 import TwitterLogin from './logins/TwitterLogin';
 import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
-import {fetchSocialMediaAccounts } from '../../lib/Services/dbService';
+import {fetchSocialMediaAccounts, fetchProviderIdFromDb } from '../../lib/Services/dbService';
 
 
 interface AccountsModalProps {
@@ -191,36 +191,6 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
          console.log('Error signing in: ', error);
         }
       };
-
-      const fetchProviderIdFromDb  = async (providerUserId: string): Promise<boolean> => {
-        try {
-            console.log('Fetching provider_user_id from database:', providerUserId);
-            const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
-            return new Promise<boolean>((resolve, reject) => {
-                db.transaction(tx => {
-                    tx.executeSql(
-                        'SELECT COUNT(*) as count FROM user_providers WHERE provider_user_id = ?',
-                        [providerUserId],
-                        (_, results) => {
-                            if (results.rows.item(0).count > 0) {
-                                resolve(true);
-                            } else {
-                                resolve(false);
-                            }
-                        },
-                        (error) => {
-                            console.log('Error fetching provider_user_id from database:', error);
-                            resolve(false);  
-                        }
-                    );
-                });
-            });
-        } catch (error) {
-            console.error('Database operation failed:', error);
-            return false;
-        }
-    };
-    
 
 
     return (
