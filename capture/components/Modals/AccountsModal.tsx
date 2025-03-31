@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from 'react-native';
-import SQLite, { SQLiteDatabase, Transaction, ResultSet, openDatabase } from 'react-native-sqlite-storage';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faGoogle, faMicrosoft, faLinkedin, faTwitter, faFacebook } from '@fortawesome/free-brands-svg-icons';
 import TwitterLogin from './logins/TwitterLogin';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
-import { handleNewSignUp, forceUpdateAccounts } from '../../lib/Services/dbService';
+import { handleNewSignUp, forceUpdateAccounts, removeAccount } from '../../lib/Services/dbService';
 
 
 interface AccountsModalProps {
@@ -18,8 +17,6 @@ interface AccountsModalProps {
     isTwitterLoginVisible: boolean;
     setIsTwitterLoginVisible: React.Dispatch<React.SetStateAction<boolean>>;
 }
-
-
 
 const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible, 
                                                         onClose, 
@@ -42,29 +39,14 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
         }
     }, [isVisible]);
     
-    const removeAccount = async (accountId: number) => {
-        const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
-        db.transaction(tx => {
-            tx.executeSql(
-                'DELETE FROM user_providers WHERE provider_user_id = ?',
-                [accountId],
-                () => {
-                    Alert.alert('Account Removed', 'The account has been removed successfully.');
-                    forceUpdateAccounts(setAccounts);
-                },
-                (error) => {
-                    console.log('Error removing account: ', error);
-                }
-            );
-        });
-    };
+    
 
     const renderAccountItem = ({ item }: { item: SocialMediaAccount }) => (
         <View style={styles.accountItem}>
             <Text style={styles.accountText}>{item.provider_name}</Text>
             <TouchableOpacity
                 style={styles.removeButton}
-                onPress={() => removeAccount(item.provider_user_id)}
+                onPress={() => removeAccount(item.provider_user_id, setAccounts)}
             >
                 <Text style={styles.removeButtonText}>Remove</Text>
             </TouchableOpacity>

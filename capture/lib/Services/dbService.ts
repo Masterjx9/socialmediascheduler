@@ -446,3 +446,22 @@ export const insertProviderIdIntoDb = (providerName: string, providerUserId: str
     }
     );
   }
+
+  export const removeAccount = async (accountId: number,
+    setAccounts: React.Dispatch<React.SetStateAction<SocialMediaAccount[]>> 
+  ) => {
+          const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+          db.transaction(tx => {
+              tx.executeSql(
+                  'DELETE FROM user_providers WHERE provider_user_id = ?',
+                  [accountId],
+                  () => {
+                      Alert.alert('Account Removed', 'The account has been removed successfully.');
+                      forceUpdateAccounts(setAccounts);
+                  },
+                  (error) => {
+                      console.log('Error removing account: ', error);
+                  }
+              );
+          });
+      };
