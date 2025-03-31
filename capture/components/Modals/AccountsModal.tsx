@@ -3,13 +3,9 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from
 import SQLite, { SQLiteDatabase, Transaction, ResultSet, openDatabase } from 'react-native-sqlite-storage';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faGoogle, faMicrosoft, faLinkedin, faTwitter, faFacebook } from '@fortawesome/free-brands-svg-icons';
-import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
-import { loginWithTwitter } from '../../lib/Helpers/twitterHelper'
-import { insertProviderIdIntoDb } from '../../lib/Services/dbService';
 import TwitterLogin from './logins/TwitterLogin';
-import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
-import {fetchSocialMediaAccounts, fetchProviderIdFromDb } from '../../lib/Services/dbService';
+import { handleNewSignUp, forceUpdateAccounts } from '../../lib/Services/dbService';
 
 
 interface AccountsModalProps {
@@ -23,10 +19,6 @@ interface AccountsModalProps {
     setIsTwitterLoginVisible: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-interface HandleNewSignUpParams {
-    provider: string;
-    GoogleSignin?: any; 
-}
 
 
 const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible, 
@@ -43,14 +35,10 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
     const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
     const [isNewAccountVisible, setIsNewAccountVisible] = useState(false);
 
-    const forceUpdateAccounts = async () => {
-        const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
-        fetchSocialMediaAccounts(db, setAccounts)    
-    }
 
    useEffect(() => {
         if (isVisible) {
-        forceUpdateAccounts(); 
+        forceUpdateAccounts(setAccounts)
         }
     }, [isVisible]);
     
@@ -62,7 +50,7 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
                 [accountId],
                 () => {
                     Alert.alert('Account Removed', 'The account has been removed successfully.');
-                    forceUpdateAccounts();
+                    forceUpdateAccounts(setAccounts);
                 },
                 (error) => {
                     console.log('Error removing account: ', error);
@@ -82,116 +70,6 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
             </TouchableOpacity>
         </View>
     );
-
-    const handleNewSignUp = async ({ provider, GoogleSignin }: HandleNewSignUpParams) => {
-        try {
-          if (provider === 'Google' && GoogleSignin) {
-            console.log('Google SignUp');
-           
-            const user = await GoogleSignin.getCurrentUser();
-            const isSignedIn = user !== null;
-            
-            if (isSignedIn) {
-                const proceed = await new Promise((resolve) => {
-                  Alert.alert(
-                    'Warning',
-                    'You are already signed into a Google account. In order to add another Google account we must sign you out of the current account. We will add your new account to the list of accounts after you sign in. IF YOU CANCEL THIS OPERATION YOU WILL BE BROUGHT BACK TO THE MAIN LOGIN SCREEN.',
-                    [
-                      { text: 'Cancel', onPress: () => resolve(false), style: 'cancel' },
-                      { text: 'OK', onPress: () => resolve(true) },
-                    ],
-                    { cancelable: false }
-                  );
-                });
-        
-                if (!proceed) {
-                  console.log('User canceled the sign-in process');
-                  return;
-                }
-              }
-
-              try {
-            await GoogleSignin.revokeAccess();
-            await GoogleSignin.signOut();            
-
-            await GoogleSignin.hasPlayServices();
-            const userInfo = await GoogleSignin.signIn();
-            console.log(userInfo);
-            const providerUserId = userInfo.user.id;
-              
-            const existingProviderId = await fetchProviderIdFromDb (providerUserId);
-            console.log('Existing Provider ID: ', existingProviderId);
-            if (existingProviderId) {
-                Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
-                return;
-            }
-
-            console.log("New Provider User ID: ", providerUserId);
-
-            await insertProviderIdIntoDb(provider, providerUserId);
-
-            forceUpdateAccounts();
-            forceUpdateAccounts();
-        } catch (error) {
-            setIsAccountsVisible(false);
-            setIsCalendarVisible(false);
-            setIsLoginVisible(true);
-            return null;
-
-            }
-          }
-          if (provider === 'Facebook') {
-            console.log('Facebook SignUp');
-            const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
-
-            // console.log(LoginManager.logInWithPermissions);
-            // console.log(Settings);
-
-            if (result.isCancelled) {
-              console.log('User canceled the signup process');
-              return;
-            }
-
-            const data = await AccessToken.getCurrentAccessToken();
-            if (!data) {
-              console.log('No access token found');
-              Alert.alert('Error', 'No access token found');
-              return;
-            }
-
-            console.log('Access token:', data.accessToken.toString());
-            const providerUserId = data.userID;
-
-            const existingProviderId = await fetchProviderIdFromDb(providerUserId);
-            console.log('Existing Provider ID: ', existingProviderId);
-            if (existingProviderId) {
-              Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
-              return;
-            }
-
-            console.log('New Provider User ID:', providerUserId);
-
-
-            await insertProviderIdIntoDb(provider, providerUserId);
-            forceUpdateAccounts();
-            
-
-
-
-
-          }
-          if (provider === 'Microsoft') {
-            console.log('Microsoft SignUp');
-          }
-            if (provider === 'LinkedIn') {
-                console.log('LinkedIn SignUp');
-            }
-          setIsNewAccountVisible(false);
-        } catch (error) {
-         console.log('Error signing in: ', error);
-        }
-      };
-
 
     return (
         <Modal
@@ -238,16 +116,40 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
           >
             <View style={styles.modalContainer}>
               <Text style={styles.title}>Add an Account</Text>
-              <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Google', GoogleSignin: GoogleSignin })}>
+              <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Google', 
+                                                                                            GoogleSignin: GoogleSignin,
+                                                                                            setIsAccountsVisible: setIsAccountsVisible,
+                                                                                            setIsNewAccountVisible: setIsNewAccountVisible,
+                                                                                            setIsCalendarVisible: setIsCalendarVisible,
+                                                                                            setIsLoginVisible: setIsLoginVisible,
+                                                                                            setAccounts: setAccounts })}>
                 <FontAwesomeIcon icon={faGoogle} size={24} /><Text style={styles.loginText}>Login with Google</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Facebook' })}>
+                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Facebook', 
+                                                                                            GoogleSignin: GoogleSignin,
+                                                                                            setIsAccountsVisible: setIsAccountsVisible,
+                                                                                            setIsNewAccountVisible: setIsNewAccountVisible,
+                                                                                            setIsCalendarVisible: setIsCalendarVisible,
+                                                                                            setIsLoginVisible: setIsLoginVisible,
+                                                                                            setAccounts: setAccounts })}>
                 <FontAwesomeIcon icon={faFacebook} size={24} /><Text style={styles.loginText}>Login with Facebook</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Microsoft' })}>
+                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Microsoft', 
+                                                                                            GoogleSignin: GoogleSignin,
+                                                                                            setIsAccountsVisible: setIsAccountsVisible,
+                                                                                            setIsNewAccountVisible: setIsNewAccountVisible,
+                                                                                            setIsCalendarVisible: setIsCalendarVisible,
+                                                                                            setIsLoginVisible: setIsLoginVisible,
+                                                                                            setAccounts: setAccounts })}>
                 <FontAwesomeIcon icon={faMicrosoft} size={24} /><Text style={styles.loginText}>Login with Microsoft</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'LinkedIn' })}>
+                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'LinkedIn', 
+                                                                                            GoogleSignin: GoogleSignin,
+                                                                                            setIsAccountsVisible: setIsAccountsVisible,
+                                                                                            setIsNewAccountVisible: setIsNewAccountVisible,
+                                                                                            setIsCalendarVisible: setIsCalendarVisible,
+                                                                                            setIsLoginVisible: setIsLoginVisible,
+                                                                                            setAccounts: setAccounts })}>
                 <FontAwesomeIcon icon={faLinkedin} size={24} /><Text style={styles.loginText}>Login with LinkedIn</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.loginButton} onPress={() => setIsTwitterLoginVisible(true)}>
