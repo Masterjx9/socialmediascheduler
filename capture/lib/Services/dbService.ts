@@ -19,7 +19,7 @@ export const insertFakeData = (db: SQLiteDatabase) => {
       const unixTime = Math.floor(Date.now() / 1000);
       tx.executeSql(
         `INSERT INTO content (user_id, content_type, content_data, post_date, published) VALUES (?, ?, ?, ?, ?)`,
-        [1, 'post', 'testphone', unixTime, 0],
+        [1, 'post', 'testphone', unixTime, {}],
         () => {
           console.log('Fake data inserted successfully');
         },
@@ -47,7 +47,7 @@ export const createTables = (tx: Transaction) => {
         description TEXT,
         user_providers TEXT,
         tags TEXT,
-        published INTEGER NOT NULL DEFAULT (0),
+        published TEXT NOT NULL DEFAULT '{}',
       );
     `);
     tx.executeSql(`
@@ -125,6 +125,14 @@ export const fetchDbData = (db: SQLiteDatabase, setDbData: React.Dispatch<React.
       });
 
       // fetch all data from all tables
+      tx.executeSql('SELECT * FROM twitter_accounts', [], (tx: Transaction, results: ResultSet) => {
+        const rows = results.rows;
+        let data: any[] = [];
+        for (let i = 0; i < rows.length; i++) {
+          data.push(rows.item(i));
+        }
+        console.log('Fetched data:', data);
+      });
 
       tx.executeSql('SELECT * FROM content', [], (tx: Transaction, results: ResultSet) => {
         const rows = results.rows;
@@ -181,7 +189,7 @@ export const fetchContentFromBeforeCurrentTime = async () => {
             db.transaction(tx => {
                 const currentTime = Math.floor(Date.now() / 1000);
                 tx.executeSql(
-                    `SELECT * FROM content WHERE post_date < ? AND published = 0`,
+                  `SELECT * FROM content WHERE post_date < ? AND (published NOT LIKE '%"final":"success"%')`,                
                     [currentTime],
                     (_, results) => {
                         const rows = results.rows;
@@ -466,3 +474,76 @@ export const insertProviderIdIntoDb = (providerName: string, providerUserId: str
               );
           });
       };
+
+
+
+export const fetchProviderNamesByIds = async (providerIds: string[]): Promise<{ [id: string]: string }> => {
+  const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+
+  return new Promise((resolve, reject) => {
+    const placeholders = providerIds.map(() => '?').join(',');
+    const sql = `SELECT provider_user_id, provider_name FROM user_providers WHERE provider_user_id IN (${placeholders})`;
+
+    db.transaction(tx => {
+      tx.executeSql(
+        sql,
+        providerIds,
+        (_, results) => {
+          const map: { [id: string]: string } = {};
+          for (let i = 0; i < results.rows.length; i++) {
+            const row = results.rows.item(i);
+            map[row.provider_user_id] = row.provider_name;
+          }
+          resolve(map);
+        },
+        (err) => {
+          console.log('Error fetching provider names by IDs:', err);
+          reject(err);
+        }
+      );
+    });
+  });
+};
+
+export const fetchTwitterCredentials = async (providerUserId: string): Promise<{
+  consumerKey: string;
+  consumerSecret: string;
+  accessToken: string;
+  accessTokenSecret: string;
+} | null> => {
+  try {
+    console.log('Fetching Twitter credentials for provider_user_id:', providerUserId);
+    const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+    return new Promise((resolve, reject) => {
+      db.transaction(tx => {
+        tx.executeSql(
+          `SELECT twitter_consumer_key, twitter_consumer_secret, twitter_access_token, twitter_access_token_secret
+           FROM twitter_accounts
+           WHERE twitter_accounts.twitter_access_token LIKE ? || '-%'`,
+          [providerUserId],
+  
+          (_, results) => {
+            if (results.rows.length > 0) {
+              const row = results.rows.item(0);
+              resolve({
+                consumerKey: row.twitter_consumer_key,
+                consumerSecret: row.twitter_consumer_secret,
+                accessToken: row.twitter_access_token,
+                accessTokenSecret: row.twitter_access_token_secret,
+              });
+            } else {
+              resolve(null);
+            }
+          },
+          error => {
+            console.error('Error fetching Twitter credentials:', error);
+            reject(error);
+          }
+        );
+      });
+    });
+  } catch (error) {
+    console.error('DB open error:', error);
+    return null;
+  }
+};

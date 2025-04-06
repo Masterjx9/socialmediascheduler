@@ -1,61 +1,145 @@
-import { fetchContentFromBeforeCurrentTime } from "./dbService"
-import { postTextToTwitter } from "../Apis/twitter";
-import { postMediaToLinkedIn } from "../Apis/linkedin";
+import {fetchContentFromBeforeCurrentTime} from './dbService';
+import {postTextToTwitter} from '../Apis/twitter';
+import {postMediaToLinkedIn} from '../Apis/linkedin';
+import {fetchProviderNamesByIds} from './dbService';
+import { fetchTwitterCredentials } from './dbService';
+import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
+
 export const contentCheck = async () => {
-    console.log("contentCheck called");
-    // fetch data from database 
-    let contentData = await fetchContentFromBeforeCurrentTime();
-    // example data:
-    // [{"content_data": "test", "content_id": 1, "content_type": "post", "description": null, "post_date": 1727999400, "published": 0, "tags": null, "user_id": 1}, {"content_data": "test", "content_id": 3, "content_type": "post", "description": null, "post_date": 1731867900, "published": 0, "tags": null, "user_id": 1}, {"content_data": "test on the 16th", "content_id": 4, "content_type": "post", "description": null, "post_date": 1731781860, "published": 0, "tags": null, "user_id": 1}]
-    // we don't have to filter data, check time, nor check if data is correct, nor see if its been published as it's already filtered in the dbService
-    // we loop through the data to post different social media accounts
-    // for now we are only posting to twitter then linkedin
+  console.log('contentCheck called');
+  // fetch data from database
+  let contentData = await fetchContentFromBeforeCurrentTime();
+  // example data:
+  // [{"content_data": "test on the 17ttest", "content_id": 1, "content_type": "post", "description": null, "post_date": 1743964260, "published": {}, "tags": null, "user_providers": "[\"12345674897456163\"]"}]
 
+  // forloop for contentData:
+  // We user the conent.user_providers to know which social media account to post to. - Goal is to get the credentials for each account.
+  // NOTE: We create a function in dbservice to fetch of provider_name based on content.user_providers.
+  // NOTE: We then go through each account table that matches the provider_name and get the credentials for each account.
+  // We then check if the credentials are valid. If not, we send a notification to the user to update their credentials.
+  // If the credentials are valid, we post to the social media account using the content.content_data.
 
-    // forloop:
-        // we get user_id and creds from the dbService
-        // if the status is unauthorized, we send a noticification via notifee? - Still thinking
-        // we post to twitter
-        // we post to linkedin
-        // we post to etc
-        // we update the status to published
-        // NOTE: We need to add a published_at field to the database
-    // We commit the changes to the database
-    // We send a notification to the user that the content has been posted via notifee (If the app is closed)
-
-    for (const content of contentData) {
-        const { user_id, content_id, content_data } = content;
-
-        // Fetch user credentials from dbService
-        // const userCreds = await fetchUserCredentials(user_id);
-
-        // Check if user credentials are valid
-        // if (!userCreds || userCreds.status === 'unauthorized') {
-        //     // Send notification via notifee
-        //     await sendNotification(user_id, 'Unauthorized access. Please update your credentials.');
-        //     continue;
-        // }
-
-        // Post to Twitter
-        // await postTextToTwitter(userCreds.twitter, content_data);
-        // await postTextToTwitter(content_data,
-        //     "consumer_api_key",
-        //     "consumer_api_secret",
-        //     "access_token",
-        //     "access_token_secret"
-        // )
-
-
-        // // Post to LinkedIn
-        // await postMediaToLinkedIn(userCreds.linkedin, content_data);
-
-        // // Update the status to published
-        // await updateContentStatus(content_id, { published: 1, published_at: new Date() });
-
-        // // Send notification to the user that the content has been posted
-        // await sendNotification(user_id, 'Your content has been posted successfully.');
+  for (const content of contentData) {
+    const {user_id, content_id, content_data} = content;
+  
+    const userProviders = JSON.parse(
+      content.user_providers || '[]',
+    ) as string[];
+    const providerNameMap = await fetchProviderNamesByIds(userProviders);
+  
+    console.log('userProviders:', userProviders);
+    console.log('providerNameMap:', providerNameMap);
+    // Now loop through each provider
+  
+    let publishedStatus: Record<string, string> = {};
+    try {
+      try {
+        publishedStatus = content.published ? JSON.parse(content.published) : {};
+      } catch {
+        publishedStatus = {};
+      }
+  
+      for (const providerId of userProviders) {
+        const providerName = providerNameMap[providerId];
+  
+        switch (providerName) {
+          case 'twitter':
+            console.log('Posting to Twitter...');
+            const twitterCreds = await fetchTwitterCredentials(providerId);
+            if (!twitterCreds) {
+              console.warn(`No Twitter credentials found for providerId: ${providerId}`);
+              publishedStatus[providerId] = 'failed';
+              break;
+            }
+  
+            try {
+              await postTextToTwitter(
+                content_data,
+                twitterCreds.consumerKey,
+                twitterCreds.consumerSecret,
+                twitterCreds.accessToken,
+                twitterCreds.accessTokenSecret
+              );
+              publishedStatus[providerId] = 'success';
+            } catch (error) {
+              console.error(`Failed to post to Twitter for ${providerId}:`, error);
+              publishedStatus[providerId] = 'failed';
+            }
+  
+            break;
+  
+          case 'linkedin':
+            // Fetch from linkedin_accounts, then post
+            console.log('Posting to LinkedIn...');
+            break;
+          case 'facebook':
+            // Fetch from meta_accounts, then post
+            console.log('Posting to Facebook...');
+            break;
+          case 'google':
+            // Fetch from google_accounts, then post
+            console.log('Posting to Google...');
+            break;
+  
+          default:
+            console.warn(`Unknown provider for ID ${providerId}`);
+        }
+  
+        console.log('TEST TEST TEST');
+        console.log(contentData);
+      }
+  
+      const allSucceeded = userProviders.every(id => publishedStatus[id] === 'success');
+      if (allSucceeded) {
+        publishedStatus['final'] = 'success';
+      }
+  
+    } finally {
+      const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+      await new Promise<void>((resolve, reject) => {
+        db.transaction(tx => {
+          tx.executeSql(
+            `UPDATE content SET published = ? WHERE content_id = ?`,
+            [JSON.stringify(publishedStatus), content_id],
+            () => {
+              console.log(`Updated published status for content_id ${content_id}`);
+              resolve();
+            },
+            (err) => {
+              console.error('Error updating published status:', err);
+              reject(err);
+            }
+          );
+        });
+      });
     }
+  }
+  
+};
+// Fetch user credentials from dbService
+// const userCreds = await fetchUserCredentials(user_id);
 
-    console.log("TEST TEST TEST");
-    console.log(contentData);
-}
+// Check if user credentials are valid
+// if (!userCreds || userCreds.status === 'unauthorized') {
+//     // Send notification via notifee
+//     await sendNotification(user_id, 'Unauthorized access. Please update your credentials.');
+//     continue;
+// }
+
+// Post to Twitter
+// await postTextToTwitter(userCreds.twitter, content_data);
+    // await postTextToTwitter(content_data,
+    //     "consumer_api_key",
+    //     "consumer_api_secret",
+    //     "access_token",
+    //     "access_token_secret"
+    // )
+
+// // Post to LinkedIn
+// await postMediaToLinkedIn(userCreds.linkedin, content_data);
+
+// // Update the status to published
+// await updateContentStatus(content_id, { published: 1, published_at: new Date() });
+
+// // Send notification to the user that the content has been posted
+// await sendNotification(user_id, 'Your content has been posted successfully.');

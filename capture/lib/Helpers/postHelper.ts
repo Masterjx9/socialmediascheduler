@@ -35,7 +35,7 @@ export const handlePost = async (content: string,
       } else {
           tx.executeSql(
             `INSERT INTO content (content_type, content_data, user_providers, post_date, published) VALUES (?, ?, ?, ?, ?)`,
-            ['post', content, JSON.stringify(user_providers), unixTimestamp, 0],
+            ['post', content, JSON.stringify(user_providers), unixTimestamp, {}],
             (_, result) => {
               console.log('Post saved to the database');
               console.log('Post ID:', result.insertId);
