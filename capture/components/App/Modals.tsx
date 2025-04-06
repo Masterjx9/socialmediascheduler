@@ -62,8 +62,15 @@ interface ModalsContainerProps {
             setIsPostVisible(false);
             setSelectedItem(null);
           }}
-          onPost={async (content, unixTimestamp, content_id) =>
-            await handlePost(content, unixTimestamp, setDbData, setIsPostVisible, setSelectedItem, content_id)
+          onPost={async (content, unixTimestamp, content_id, user_providers) =>
+            {
+              console.log('onPostModal called');
+              console.log('Post content:', content);
+              console.log('Selected date (Unix timestamp):', unixTimestamp);
+              console.log('Selected item:', content_id);
+              console.log('Selected providers:', user_providers);
+              await handlePost(content, unixTimestamp, setDbData, setIsPostVisible, setSelectedItem, content_id, user_providers)
+            }
           }
           selectedDate={selectedDate}
           item={selectedItem}

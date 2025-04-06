@@ -6,23 +6,26 @@ export const handlePost = async (content: string,
     setDbData: React.Dispatch<React.SetStateAction<any[]>>,  
     setIsPostVisible: React.Dispatch<React.SetStateAction<boolean>>, 
     setSelectedItem: React.Dispatch<React.SetStateAction<any>>,
-    content_id?: number
+    content_id?: number,
+    user_providers?: string[],
 ) => {
     console.log('Post content:', content);
     
     // Use the Unix timestamp directly
     console.log('Selected date (Unix timestamp):', unixTimestamp);
+    console.log('Selected item:', content_id);
+    console.log('Selected providers:', user_providers);
     
     try {
       const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
       db.transaction((tx: Transaction) => {
         if (content_id) {
         tx.executeSql(
-          `UPDATE content SET content_data = ?, post_date = ? WHERE content_id = ?`,
-          [content, unixTimestamp, content_id],
+          `UPDATE content SET content_data = ?, post_date = ?, user_providers = ? WHERE content_id = ?`,
+          [content, unixTimestamp, JSON.stringify(user_providers), content_id],
           (_, result) => {
             console.log('Post updated in the database');
-            console.log('Post ID:', result.insertId);
+            console.log('Post ID:', result);
             fetchDbData(db, setDbData); // Refresh data
           },
           (error) => {
@@ -31,8 +34,8 @@ export const handlePost = async (content: string,
         );
       } else {
           tx.executeSql(
-            `INSERT INTO content (user_id, content_type, content_data, post_date, published) VALUES (?, ?, ?, ?, ?)`,
-            [1, 'post', content, unixTimestamp, 0],
+            `INSERT INTO content (content_type, content_data, user_providers, post_date, published) VALUES (?, ?, ?, ?, ?)`,
+            ['post', content, JSON.stringify(user_providers), unixTimestamp, 0],
             (_, result) => {
               console.log('Post saved to the database');
               console.log('Post ID:', result.insertId);

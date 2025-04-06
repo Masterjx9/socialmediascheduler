@@ -1,40 +1,92 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-
+import type { SocialMediaAccount } from '../../types/SociaMedia';
+import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
+import { fetchSocialMediaAccounts } from '../../lib/Services/dbService';
 interface PostModalProps {
   isVisible: boolean;
   onClose: () => void;
   // onPost: (content: string, unixTimestamp: number) => void;
-  onPost: (content: string, unixTimestamp: number, content_id?: number) => void;
+  onPost: (content: string, unixTimestamp: number, content_id?: number, user_providers?: string[]) => void;
   item?: any;
   selectedDate: string;
 }
 
 const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item, selectedDate }) => {
   const [content, setContent] = useState('');
+  const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
+  
   const [selectedTime, setSelectedTime] = useState<Date | null>(null); 
   const [localSelectedDate, setLocalSelectedDate] = useState(selectedDate);
   const [isTimePickerVisible, setIsTimePickerVisible] = useState(false); 
-  
-  useEffect(() => {
-    if (item) {
-      setContent(item.content_data);
+  const [showAccountList, setShowAccountList] = useState(false);
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
 
-      // Extract date and time from item.post_date
-      const postDate = new Date(item.post_date * 1000);
-      setSelectedTime(postDate);
-      const dateString = postDate.toISOString().split('T')[0]; // YYYY-MM-DD
-      setLocalSelectedDate(dateString);
-    } else {
-      setContent('');
-      setSelectedTime(null);
-      setLocalSelectedDate(selectedDate);
-    }
+  const toggleAccountSelection = (id: string) => {
+    setSelectedAccounts((prev) => {
+      const updated = prev.includes(id)
+        ? prev.filter((uid) => uid !== id)
+        : [...prev, id];
+  
+      if (item) {
+        item.user_providers = [...updated]; 
+      }
+  
+      return updated;
+    });
+  };
+  
+
+
+  useEffect(() => {
+    const useEffectAsync = async () => {
+      const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+      fetchSocialMediaAccounts(db, setAccounts);
+      console.log('Social Media Accounts:', accounts);
+
+      if (item) {
+        setContent(item.content_data);
+        if (item.user_providers) {
+          try {
+            const parsed = JSON.parse(item.user_providers);
+            if (Array.isArray(parsed)) {
+              setSelectedAccounts(parsed.map(String));
+            } else {
+              setSelectedAccounts([]);
+            }
+          } catch (e) {
+            console.warn('Failed to parse user_providers:', e);
+            setSelectedAccounts([]);
+          }
+        } else {
+          setSelectedAccounts([]);
+        }
+        
+
+        // Extract date and time from item.post_date
+        const postDate = new Date(item.post_date * 1000);
+        setSelectedTime(postDate);
+        const dateString = postDate.toISOString().split('T')[0]; // YYYY-MM-DD
+        setLocalSelectedDate(dateString);
+      } else {
+        setContent('');
+        setSelectedTime(null);
+        setLocalSelectedDate(selectedDate);
+      }
+    };
+
+    useEffectAsync();
   }, [item, selectedDate]);
 
+  useEffect(() => {
+    if (!item && accounts.length > 0) {
+      setSelectedAccounts(accounts.map(acc => acc.provider_user_id.toString()));
+    }
+  }, [accounts, item]);
+
   const handlePost = () => {
-    if (content.trim() && selectedTime && selectedDate) {
+    if (content.trim() && selectedTime && selectedDate && selectedAccounts.length > 0) {
       // Combine selectedDate and selectedTime to create full timestamp
       const [year, month, day] = selectedDate.split('-').map(Number);
       const fullDateTime = new Date(year, month - 1, day, selectedTime.getHours(), selectedTime.getMinutes());
@@ -42,11 +94,11 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
       // Convert to Unix time
       const unixTimestamp = Math.floor(fullDateTime.getTime() / 1000);
 
-      onPost(content, unixTimestamp, item?.content_id); // Pass both content and timestamp
+      onPost(content, unixTimestamp, item?.content_id, selectedAccounts); 
       setContent('');
       setSelectedTime(null);
     } else {
-      Alert.alert('Incomplete Post', 'Please write something and pick a time before posting.');
+      Alert.alert('Incomplete Post', 'Please write something, pick a time, and select at least one account.');
     }
   };
   
@@ -71,6 +123,28 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
       animationType="slide"
       onRequestClose={onClose}
     >
+      <TouchableOpacity onPress={() => setShowAccountList(!showAccountList)} style={styles.timeButton}>
+  <Text style={styles.timeButtonText}>Select Accounts</Text>
+</TouchableOpacity>
+
+    {showAccountList && (
+      <View style={{ backgroundColor: '#fff', borderRadius: 5, padding: 10, marginBottom: 20 }}>
+        {accounts.map((account) => (
+          <TouchableOpacity
+            key={account.provider_user_id}
+            style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 5 }}
+            onPress={() => toggleAccountSelection(account.provider_user_id.toString())}
+          >
+            <View style={{
+              width: 20, height: 20, marginRight: 10, borderRadius: 3,
+              borderWidth: 1, borderColor: '#000', backgroundColor: selectedAccounts.includes(account.provider_user_id.toString()) ? '#1DA1F2' : '#fff'
+            }} />
+            <Text>{account.provider_name}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    )}
+
       <View style={styles.modalContainer}>
         <Text style={styles.title}>Create a Post</Text>
 

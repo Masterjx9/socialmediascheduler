@@ -45,6 +45,7 @@ export const createTables = (tx: Transaction) => {
         content_data TEXT NOT NULL,
         post_date DATE NOT NULL,
         description TEXT,
+        user_providers TEXT,
         tags TEXT,
         published INTEGER NOT NULL DEFAULT (0),
       );

@@ -46,10 +46,10 @@ export const contentCheck = async () => {
         // )
 
 
-        // Post to LinkedIn
+        // // Post to LinkedIn
         // await postMediaToLinkedIn(userCreds.linkedin, content_data);
 
-        // Update the status to published
+        // // Update the status to published
         // await updateContentStatus(content_id, { published: 1, published_at: new Date() });
 
         // // Send notification to the user that the content has been posted
