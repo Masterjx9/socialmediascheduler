@@ -4,6 +4,7 @@ import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
 import RNFS from 'react-native-fs';
 import { Alert } from 'react-native';
 import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
+import { openLinkedInLogin } from '../Apis/linkedin';
 
 export const listDirectoryContents = async (path: string) => {
     try {
@@ -349,6 +350,7 @@ export const handleNewSignUp = async ({
     }
       if (provider === 'LinkedIn') {
           console.log('LinkedIn SignUp');
+          openLinkedInLogin()
       }
     setIsNewAccountVisible(false);
   } catch (error) {

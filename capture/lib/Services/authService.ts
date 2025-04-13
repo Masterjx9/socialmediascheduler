@@ -2,7 +2,7 @@ import { fetchUserIdFromDb, insertProviderIdIntoDb } from './dbService';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
 import { loginWithTwitter } from '../Helpers/twitterHelper';
-import { Linking } from 'react-native';
+import { openLinkedInLogin } from '../Apis/linkedin';
 import { useEffect } from 'react';
 
 
@@ -44,6 +44,9 @@ export const logOutALL = async (
 export const handleLogin = async (provider: string, 
     setIsCalendarVisible: React.Dispatch<React.SetStateAction<boolean>>) => {
     try {
+      if (provider === 'LinkedIn') {
+        openLinkedInLogin()
+      }
       if (provider === 'Google') {
         console.log('Google login');
         await GoogleSignin.hasPlayServices();

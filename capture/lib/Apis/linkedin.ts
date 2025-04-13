@@ -1,17 +1,31 @@
+import { Linking } from 'react-native';
+import { LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET } from '@env';
 const fs = require('fs').promises;
+
+export function openLinkedInLogin() {
+  const redirectUri = 'socialmediascheduler://callback';
+
+  // This is linkedIn's client ID for your app
+  // Replace with your actual client ID
+  // for now this is using the development client ID
+  // from meetup. Any use of this client ID will be rate limited
+  const clientId = LINKEDIN_CLIENT_ID;
+
+  const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile%20w_member_social`;
+  
+  Linking.openURL(authUrl);
+}
 
 export async function getAccessToken(
   code: string,
-  appId: string,
-  appSecret: string,
 ): Promise<any> {
   const url = 'https://www.linkedin.com/oauth/v2/accessToken';
   const data = new URLSearchParams({
     grant_type: 'authorization_code',
     code: code,
     redirect_uri: 'http://localhost:8080/callback',
-    client_id: appId,
-    client_secret: appSecret,
+    client_id: LINKEDIN_CLIENT_ID,
+    client_secret: LINKEDIN_CLIENT_SECRET,
   });
 
   const response = await fetch(url, {
