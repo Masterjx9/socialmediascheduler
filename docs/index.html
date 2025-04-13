@@ -1,18 +1,12 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>LinkedIn Redirect</title>
-    <script>
-      const code = new URLSearchParams(window.location.search).get("code");
-      if (code) {
-        window.location = `socialmediascheduler://callback?code=${code}`;
-      } else {
-        document.body.innerText = "No code provided in redirect.";
-      }
-    </script>
-  </head>
-  <body>
-    Redirecting...
-  </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Social Media Scheduler - Default Settings</title>
+</head>
+<body>
+  <h1>Default Settings</h1>
+  <p>This page is used for default settings for the Social Media Scheduler app.</p>
+</body>
 </html>
