@@ -2,7 +2,9 @@ import {fetchContentFromBeforeCurrentTime} from './dbService';
 import {postTextToTwitter} from '../Apis/twitter';
 import {postMediaToLinkedIn} from '../Apis/linkedin';
 import {fetchProviderNamesByIds} from './dbService';
-import { fetchTwitterCredentials } from './dbService';
+import { fetchTwitterCredentials,
+        fetchLinkedInCredentials
+ } from './dbService';
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
 
 export const contentCheck = async () => {
@@ -68,9 +70,23 @@ export const contentCheck = async () => {
   
             break;
   
-          case 'linkedin':
+          case 'LinkedIn':
             // Fetch from linkedin_accounts, then post
             console.log('Posting to LinkedIn...');
+            const linkedInCreds = await fetchLinkedInCredentials(providerId);
+            if (!linkedInCreds) {
+              console.warn(`No LinkedIn credentials found for providerId: ${providerId}`);
+              publishedStatus[providerId] = 'failed';
+              break;
+            }
+            try {
+              await postMediaToLinkedIn(linkedInCreds.appToken, null,{"description": content_data}, null);
+              publishedStatus[providerId] = 'success';
+            }
+            catch (error) {
+              console.error(`Failed to post to LinkedIn for ${providerId}:`, error);
+              publishedStatus[providerId] = 'failed';
+            }
             break;
           case 'facebook':
             // Fetch from meta_accounts, then post

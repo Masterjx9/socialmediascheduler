@@ -4,7 +4,8 @@ import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
 import RNFS from 'react-native-fs';
 import { Alert } from 'react-native';
 import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
-import { openLinkedInLogin } from '../Apis/linkedin';
+import { getLinkedInAccessToken, openLinkedInLogin, getLinkedInUserInfo } from '../Apis/linkedin';
+import { Linking } from 'react-native';
 
 export const listDirectoryContents = async (path: string) => {
     try {
@@ -71,14 +72,13 @@ export const createTables = (tx: Transaction) => {
     `);
     tx.executeSql(`
       CREATE TABLE IF NOT EXISTS linkedin_accounts (
-        app_id TEXT,
-        app_secret TEXT,
         app_token TEXT,
         app_refresh_token TEXT,
         app_token_expires_in INTEGER,
         app_token_refresh_expires_in INTEGER,
         account_name TEXT,
-        timestamp DATETIME
+        timestamp DATETIME,
+        sub_id TEXT
       );
     `);
   };
@@ -126,6 +126,16 @@ export const fetchDbData = (db: SQLiteDatabase, setDbData: React.Dispatch<React.
       });
 
       // fetch all data from all tables
+
+      tx.executeSql('SELECT * FROM linkedin_accounts', [], (tx: Transaction, results: ResultSet) => {
+        const rows = results.rows;
+        let data: any[] = [];
+        for (let i = 0; i < rows.length; i++) {
+          data.push(rows.item(i));
+        }
+        console.log('Fetched data:', data);
+      });
+
       tx.executeSql('SELECT * FROM twitter_accounts', [], (tx: Transaction, results: ResultSet) => {
         const rows = results.rows;
         let data: any[] = [];
@@ -348,13 +358,56 @@ export const handleNewSignUp = async ({
     if (provider === 'Microsoft') {
       console.log('Microsoft SignUp');
     }
-      if (provider === 'LinkedIn') {
-          console.log('LinkedIn SignUp');
-          openLinkedInLogin()
-      }
+    if (provider === 'LinkedIn') {
+      console.log('LinkedIn SignUp');
+
+      
+      // Inside handleDeepLink:
+      const handleDeepLink = async (event: { url: string }) => {
+        const match = event.url.match(/code=([^&]+)/);
+        const code = match?.[1];
+        if (code) {
+          console.log('Got LinkedIn Code:', code);
+          subscription.remove(); 
+          const linkedAC = await getLinkedInAccessToken({
+            grant_type: 'authorization_code',
+            code: code,
+          });
+          
+          
+          console.log('LinkedIn Access Token:', linkedAC);
+          // do whatever with `code`
+          const accountInfo = await getLinkedInUserInfo(linkedAC.access_token);
+          console.log('LinkedIn Account Info:', accountInfo);
+          const existingProviderId = await fetchProviderIdFromDb(accountInfo.sub);
+          console.log('Existing Provider ID: ', existingProviderId);
+          if (existingProviderId) {
+            Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
+            return;
+          }
+          await insertProviderIdIntoDb(provider, accountInfo.sub);
+          await insertLinkedInAccountIntoDb(
+            linkedAC.access_token,
+            accountInfo.name,
+            new Date().toISOString(),
+            accountInfo.sub,
+            linkedAC.expires_in,
+            // linkedAC.refresh_token,
+            // linkedAC.refresh_token_expires_in
+          );
+          forceUpdateAccounts(setAccounts);
+          setIsCalendarVisible(true);
+
+        }
+      };
+      
+      const subscription = Linking.addEventListener('url', handleDeepLink);
+        openLinkedInLogin();
+    }
+
     setIsNewAccountVisible(false);
   } catch (error) {
-   console.log('Error signing in: ', error);
+    console.log('Error signing in: ', error);
   }
 };
 
@@ -458,25 +511,86 @@ export const insertProviderIdIntoDb = (providerName: string, providerUserId: str
     );
   }
 
-  export const removeAccount = async (accountId: number,
-    setAccounts: React.Dispatch<React.SetStateAction<SocialMediaAccount[]>> 
+  export const insertLinkedInAccountIntoDb = (
+    appToken: string,
+    accountName: string,
+    timestamp: string,
+    subId: string,
+    appTokenExpiresIn: number,
+    appRefreshToken?: string,
+    appTokenRefreshExpiresIn?: number
   ) => {
-          const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
-          db.transaction(tx => {
-              tx.executeSql(
-                  'DELETE FROM user_providers WHERE provider_user_id = ?',
-                  [accountId],
-                  () => {
-                      Alert.alert('Account Removed', 'The account has been removed successfully.');
-                      forceUpdateAccounts(setAccounts);
-                  },
-                  (error) => {
-                      console.log('Error removing account: ', error);
-                  }
-              );
+    return new Promise<void>((resolve, reject) => {
+      const db = SQLite.openDatabase(
+        { name: 'database_default.sqlite3', location: 'default' },
+        () => {
+          console.log(appToken, accountName, timestamp, subId, appTokenExpiresIn, appRefreshToken, appTokenRefreshExpiresIn);
+          db.transaction((tx: Transaction) => {
+            tx.executeSql(
+              `INSERT INTO linkedin_accounts 
+                (app_token, app_refresh_token, app_token_expires_in, app_token_refresh_expires_in, account_name, timestamp, sub_id) 
+               VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              [
+                appToken,
+                appRefreshToken ?? null,
+                appTokenExpiresIn,
+                appTokenRefreshExpiresIn ?? null,
+                accountName,
+                timestamp,
+                subId,
+              ],
+              () => {
+                console.log('LinkedIn account stored in the database');
+                resolve();
+              },
+              (error) => {
+                console.log('Error storing LinkedIn account in the database:', error);
+                reject(error);
+              }
+            );
           });
-      };
+        },
+        (error) => {
+          console.log('Error opening database:', error);
+          reject(error);
+        }
+      );
+    });
+  };
 
+
+  export const removeAccount = async (
+    accountType: string,
+    accountId: number,
+    setAccounts: React.Dispatch<React.SetStateAction<SocialMediaAccount[]>>
+  ) => {
+    const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+  
+    db.transaction(tx => {
+      // Remove from provider-specific table
+      if (accountType === 'linkedin') {
+        tx.executeSql('DELETE FROM linkedin_accounts WHERE sub_id = ?', [accountId]);
+      } else if (accountType === 'facebook') {
+        tx.executeSql('DELETE FROM meta_accounts WHERE sub_id = ?', [accountId]);
+      } else if (accountType === 'google') {
+        tx.executeSql('DELETE FROM twitter_accounts WHERE sub_id = ?', [accountId]);
+      }
+  
+      // Remove from user_providers table
+      tx.executeSql(
+        'DELETE FROM user_providers WHERE provider_user_id = ?',
+        [accountId],
+        () => {
+          Alert.alert('Account Removed', 'The account has been removed successfully.');
+          forceUpdateAccounts(setAccounts);
+        },
+        (error) => {
+          console.log('Error removing account: ', error);
+        }
+      );
+    });
+  };
+  
 
 
 export const fetchProviderNamesByIds = async (providerIds: string[]): Promise<{ [id: string]: string }> => {
@@ -549,3 +663,50 @@ export const fetchTwitterCredentials = async (providerUserId: string): Promise<{
     return null;
   }
 };
+
+export const fetchLinkedInCredentials = async (providerUserId: string): Promise<{
+  appToken: string;
+  appRefreshToken?: string;
+  appTokenExpiresIn: number;
+  appTokenRefreshExpiresIn?: number;
+  accountName: string;
+  timestamp: string;
+} | null> => {
+  try {
+    console.log('Fetching LinkedIn credentials for provider_user_id:', providerUserId);
+    const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+    return new Promise((resolve, reject) => {
+      db.transaction(tx => {
+        tx.executeSql(
+          `SELECT app_token, app_refresh_token, app_token_expires_in, app_token_refresh_expires_in, account_name, timestamp
+           FROM linkedin_accounts
+           WHERE linkedin_accounts.sub_id = ?`,
+          [providerUserId],
+  
+          (_, results) => {
+            if (results.rows.length > 0) {
+              const row = results.rows.item(0);
+              resolve({
+                appToken: row.app_token,
+                appRefreshToken: row.app_refresh_token,
+                appTokenExpiresIn: row.app_token_expires_in,
+                appTokenRefreshExpiresIn: row.app_token_refresh_expires_in,
+                accountName: row.account_name,
+                timestamp: row.timestamp,
+              });
+            } else {
+              resolve(null);
+            }
+          },
+          error => {
+            console.error('Error fetching LinkedIn credentials:', error);
+            reject(error);
+          }
+        );
+      });
+    });
+  } catch (error) {
+    console.error('DB open error:', error);
+    return null;
+  }
+}

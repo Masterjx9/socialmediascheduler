@@ -46,7 +46,7 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
             <Text style={styles.accountText}>{item.provider_name}</Text>
             <TouchableOpacity
                 style={styles.removeButton}
-                onPress={() => removeAccount(item.provider_user_id, setAccounts)}
+                onPress={() => removeAccount(item.provider_name,item.provider_user_id, setAccounts)}
             >
                 <Text style={styles.removeButtonText}>Remove</Text>
             </TouchableOpacity>
@@ -116,15 +116,7 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
                                                                                             setAccounts: setAccounts })}>
                 <FontAwesomeIcon icon={faFacebook} size={24} /><Text style={styles.loginText}>Login with Facebook</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Microsoft', 
-                                                                                            GoogleSignin: GoogleSignin,
-                                                                                            setIsAccountsVisible: setIsAccountsVisible,
-                                                                                            setIsNewAccountVisible: setIsNewAccountVisible,
-                                                                                            setIsCalendarVisible: setIsCalendarVisible,
-                                                                                            setIsLoginVisible: setIsLoginVisible,
-                                                                                            setAccounts: setAccounts })}>
-                <FontAwesomeIcon icon={faMicrosoft} size={24} /><Text style={styles.loginText}>Login with Microsoft</Text>
-                </TouchableOpacity>
+
                 <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'LinkedIn', 
                                                                                             GoogleSignin: GoogleSignin,
                                                                                             setIsAccountsVisible: setIsAccountsVisible,

@@ -2,7 +2,7 @@ import { fetchUserIdFromDb, insertProviderIdIntoDb } from './dbService';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
 import { loginWithTwitter } from '../Helpers/twitterHelper';
-import { openLinkedInLogin } from '../Apis/linkedin';
+import { openLinkedInLogin, getLinkedInAccessToken } from '../Apis/linkedin';
 import { useEffect } from 'react';
 
 

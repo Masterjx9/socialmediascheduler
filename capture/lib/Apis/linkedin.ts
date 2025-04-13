@@ -2,31 +2,61 @@ import { Linking } from 'react-native';
 import { LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET } from '@env';
 const fs = require('fs').promises;
 
-export function openLinkedInLogin() {
-  const redirectUri = 'socialmediascheduler://callback';
+// This is linkedIn's client ID for your app
+// Replace with your actual client ID
+// for now this is using the development client ID
+// from meetup. Any use of this client ID will be rate limited
+export const clientId = LINKEDIN_CLIENT_ID;
 
-  // This is linkedIn's client ID for your app
-  // Replace with your actual client ID
-  // for now this is using the development client ID
-  // from meetup. Any use of this client ID will be rate limited
-  const clientId = LINKEDIN_CLIENT_ID;
+// This is the redirect URI you set in your LinkedIn app settings
+// Replace with your actual redirect URI
+// for now this is using the development redirect URI
+// from meetup. Any use of this redirect URI will be rate limited 
+const redirectUri = 'https://masterjx9.github.io/socialmediascheduler/linkedin-redirect/index.html';
+
+// This is the client secret for your LinkedIn app
+// Replace with your actual client secret
+// for now this is using the development client secret
+// from meetup. Any use of this client secret will be rate limited
+export const clientSecret = LINKEDIN_CLIENT_SECRET;
+export function openLinkedInLogin() {
+  
+  
 
   const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile%20w_member_social`;
   
   Linking.openURL(authUrl);
 }
 
-export async function getAccessToken(
-  code: string,
-): Promise<any> {
+export async function getLinkedInAccessToken({
+  grant_type,
+  code,
+  refresh_token,
+  }: {
+  grant_type: 'authorization_code' | 'refresh_token',
+  code?: string,
+  refresh_token?: string,
+}): Promise<any> {
+
   const url = 'https://www.linkedin.com/oauth/v2/accessToken';
-  const data = new URLSearchParams({
-    grant_type: 'authorization_code',
-    code: code,
-    redirect_uri: 'http://localhost:8080/callback',
-    client_id: LINKEDIN_CLIENT_ID,
-    client_secret: LINKEDIN_CLIENT_SECRET,
-  });
+  let data: any;
+  if (grant_type === 'authorization_code' && code) {
+    data = new URLSearchParams({
+      grant_type: grant_type,
+      code: code,
+      redirect_uri: redirectUri,
+      client_id: clientId,
+      client_secret: clientSecret,
+    });
+  }
+  if (grant_type === 'refresh_token' && refresh_token) {
+    data = new URLSearchParams({
+      grant_type: grant_type,
+      refresh_token: refresh_token,
+      client_id: clientId,
+      client_secret: clientSecret,
+    });
+  }
 
   const response = await fetch(url, {
     method: 'POST',
@@ -39,7 +69,8 @@ export async function getAccessToken(
   return response.json();
 }
 
-async function getUserInfo(accessToken: string): Promise<any> {
+
+export async function getLinkedInUserInfo(accessToken: string): Promise<any> {
   const url = 'https://api.linkedin.com/v2/userinfo';
   const response = await fetch(url, {
     method: 'GET',
@@ -55,7 +86,7 @@ async function initializeUpload(
   mediaType: string,
   fileSize?: number,
 ): Promise<any> {
-  const personUrn = (await getUserInfo(accessToken)).sub;
+  const personUrn = (await getLinkedInUserInfo(accessToken)).sub;
   const url = `https://api.linkedin.com/rest/${mediaType}s?action=initializeUpload`;
   const postHeaders = {
     Authorization: `Bearer ${accessToken}`,
@@ -132,7 +163,7 @@ async function finalizeVideoUpload(
   const headers = {
     Authorization: `Bearer ${accessToken}`,
     'X-Restli-Protocol-Version': '2.0.0',
-    'LinkedIn-Version': '202304',
+    'LinkedIn-Version': '202411',
     'Content-Type': 'application/json',
   };
   const postBody = {
@@ -159,7 +190,7 @@ export async function postMediaToLinkedIn(
   mediaUrl: any,
   tags: Array<string> | null = null,
 ) {
-  const personUrn = (await getUserInfo(accessToken)).sub;
+  const personUrn = (await getLinkedInUserInfo(accessToken)).sub;
   let mediaUrn: string;
   let mediaTitle: string = '';
   let postBody: any;
@@ -205,7 +236,7 @@ export async function postMediaToLinkedIn(
   const postHeaders = {
     Authorization: `Bearer ${accessToken}`,
     'X-Restli-Protocol-Version': '2.0.0',
-    'LinkedIn-Version': '202304',
+    'LinkedIn-Version': '202411',
     'Content-Type': 'application/json',
   };
   postBody = {
