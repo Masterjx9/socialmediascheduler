@@ -1,9 +1,11 @@
 import {fetchContentFromBeforeCurrentTime} from './dbService';
 import {postTextToTwitter} from '../Apis/twitter';
 import {postMediaToLinkedIn} from '../Apis/linkedin';
+import { postToThreads } from '../Apis/meta';
 import {fetchProviderNamesByIds} from './dbService';
 import { fetchTwitterCredentials,
-        fetchLinkedInCredentials
+        fetchLinkedInCredentials,
+        fetchThreadsCredentials
  } from './dbService';
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
 
@@ -88,13 +90,35 @@ export const contentCheck = async () => {
               publishedStatus[providerId] = 'failed';
             }
             break;
-          case 'facebook':
-            // Fetch from meta_accounts, then post
-            console.log('Posting to Facebook...');
+          case 'Threads':
+            // Fetch from threads_accounts, then post
+            console.log('Posting to Threads...');
+            const threadsCreds = await fetchThreadsCredentials(providerId);
+            if (!threadsCreds) {
+              console.warn(`No Threads credentials found for providerId: ${providerId}`);
+              publishedStatus[providerId] = 'failed';
+              break;
+            }
+            try {
+              const publishData = await postToThreads(threadsCreds.accessToken, content_data);
+              console.log('Threads publish data:', publishData);
+              if (publishData.error) {
+                throw new Error(`Error publishing to Threads: ${publishData.error}`);
+              }
+              publishedStatus[providerId] = 'success';
+            }
+            catch (error) {
+              console.error(`Failed to post to Threads for ${providerId}:`, error);
+              publishedStatus[providerId] = 'failed';
+            }
             break;
-          case 'google':
-            // Fetch from google_accounts, then post
-            console.log('Posting to Google...');
+          case 'Instagram':
+              // Fetch from instagram_accounts, then post
+              console.log('Posting to Instagram...');
+              break;
+          case 'YouTube':
+            // Fetch from youtube_accounts, then post
+            console.log('Posting to YouTube...');
             break;
   
           default:

@@ -5,6 +5,7 @@ import RNFS from 'react-native-fs';
 import { Alert } from 'react-native';
 import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
 import { getLinkedInAccessToken, openLinkedInLogin, getLinkedInUserInfo } from '../Apis/linkedin';
+import { getThreadsAccessToken, openThreadsLogin, getThreadsUserInfo } from '../Apis/meta';
 import { Linking } from 'react-native';
 
 export const listDirectoryContents = async (path: string) => {
@@ -53,11 +54,11 @@ export const createTables = (tx: Transaction) => {
       );
     `);
     tx.executeSql(`
-      CREATE TABLE IF NOT EXISTS meta_accounts (
-        ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        meta_id TEXT,
-        meta_token TEXT,
-        account_name TEXT
+      CREATE TABLE IF NOT EXISTS instagram_accounts (
+        sub_id TEXT,
+        access_token TEXT,
+        access_token_expires_in TEXT,
+        timestamp DATETIME
       );
     `);
     tx.executeSql(`
@@ -79,6 +80,15 @@ export const createTables = (tx: Transaction) => {
         account_name TEXT,
         timestamp DATETIME,
         sub_id TEXT
+      );
+    `);
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS threads_accounts (
+        sub_id TEXT,
+        access_token TEXT,
+        access_token_expires_in TEXT,
+        account_name TEXT,
+        timestamp DATETIME
       );
     `);
   };
@@ -405,6 +415,52 @@ export const handleNewSignUp = async ({
         openLinkedInLogin();
     }
 
+    if (provider === 'Threads') {
+      console.log('Threads SignUp');
+
+      // We will do the same flow as LinkedIn for now
+      // Inside handleDeepLink:
+      const handleDeepLink = async (event: { url: string }) => {
+        const match = event.url.match(/code=([^&]+)/);
+        const code = match?.[1];
+        if (code) {
+          console.log('Got Threads Code:', code);
+          subscription.remove(); 
+          const threadsAC = await getThreadsAccessToken({
+            grant_type: 'authorization_code',
+            code: code,
+          });
+
+          console.log('Threads Access Token:', threadsAC);
+          // do whatever with `code`
+          const accountInfo = await getThreadsUserInfo(threadsAC.access_token);
+          console.log('Threads Account Info:', accountInfo);
+          // We will test from here first before inserting into the db
+          // successful test - lets continue
+          const existingProviderId = await fetchProviderIdFromDb(accountInfo.id);
+          console.log('Existing Provider ID: ', existingProviderId);
+          if (existingProviderId) {
+            Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
+            return;
+          }
+          await insertProviderIdIntoDb(provider, accountInfo.id);
+          await insertThreadsAccountIntoDb(
+            accountInfo.id,
+            threadsAC.access_token,
+            threadsAC.expires_in,
+            new Date().toISOString(),
+            accountInfo.username
+          );
+          forceUpdateAccounts(setAccounts);
+          setIsCalendarVisible(true);
+
+    }
+  };
+  
+        const subscription = Linking.addEventListener('url', handleDeepLink);
+          openThreadsLogin();
+      }
+
     setIsNewAccountVisible(false);
   } catch (error) {
     console.log('Error signing in: ', error);
@@ -558,6 +614,47 @@ export const insertProviderIdIntoDb = (providerName: string, providerUserId: str
     });
   };
 
+  export const insertThreadsAccountIntoDb = (
+    subId: string,
+    accessToken: string,
+    accessTokenExpiresIn: string,
+    timestamp: string,
+    accountName: string
+  ) => {
+    return new Promise<void>((resolve, reject) => {
+      const db = SQLite.openDatabase(
+        { name: 'database_default.sqlite3', location: 'default' },
+        () => {
+          db.transaction((tx: Transaction) => {
+            tx.executeSql(
+              `INSERT INTO threads_accounts 
+                (sub_id, access_token, access_token_expires_in, timestamp, account_name)
+               VALUES (?, ?, ?, ?, ?)`,
+              [
+                subId,
+                accessToken,
+                accessTokenExpiresIn,
+                timestamp,
+                accountName,
+              ],
+              () => {
+                console.log('Threads account stored in the database');
+                resolve();
+              },
+              (error) => {
+                console.log('Error storing Threads account in the database:', error);
+                reject(error);
+              }
+            );
+          });
+        },
+        (error) => {
+          console.log('Error opening database:', error);
+          reject(error);
+        }
+      );
+    });
+  }
 
   export const removeAccount = async (
     accountType: string,
@@ -565,15 +662,21 @@ export const insertProviderIdIntoDb = (providerName: string, providerUserId: str
     setAccounts: React.Dispatch<React.SetStateAction<SocialMediaAccount[]>>
   ) => {
     const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
-  
+    console.log('Removing account:', accountType, accountId);
+    // Check if the account type is valid
     db.transaction(tx => {
       // Remove from provider-specific table
-      if (accountType === 'linkedin') {
+      if (accountType === 'Linkedin') {
         tx.executeSql('DELETE FROM linkedin_accounts WHERE sub_id = ?', [accountId]);
-      } else if (accountType === 'facebook') {
-        tx.executeSql('DELETE FROM meta_accounts WHERE sub_id = ?', [accountId]);
-      } else if (accountType === 'google') {
-        tx.executeSql('DELETE FROM twitter_accounts WHERE sub_id = ?', [accountId]);
+      } else if (accountType === 'instagram') {
+        tx.executeSql('DELETE FROM instagram_accounts WHERE sub_id = ?', [accountId]);
+      } else if (accountType === 'youtube') {
+        tx.executeSql('DELETE FROM youtube_accounts WHERE sub_id = ?', [accountId]);
+      } else if (accountType === 'Threads') {
+        console.log('Deleting Threads account with ID:', accountId);
+        tx.executeSql('DELETE FROM threads_accounts WHERE sub_id = ?', [accountId]);
+      } else if (accountType === 'twitter') {
+        tx.executeSql('DELETE FROM twitter_accounts WHERE ID = ?', [accountId]);
       }
   
       // Remove from user_providers table
@@ -700,6 +803,51 @@ export const fetchLinkedInCredentials = async (providerUserId: string): Promise<
           },
           error => {
             console.error('Error fetching LinkedIn credentials:', error);
+            reject(error);
+          }
+        );
+      });
+    });
+  } catch (error) {
+    console.error('DB open error:', error);
+    return null;
+  }
+}
+
+export const fetchThreadsCredentials = async (providerUserId: string): Promise<{
+  subId: string;
+  accountName: string;
+  accessToken: string;
+  accessTokenExpiresIn: string;
+  timestamp: string;
+} | null> => {
+  try {
+    console.log('Fetching Threads credentials for provider_user_id:', providerUserId);
+    const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+    return new Promise((resolve, reject) => {
+      db.transaction(tx => {
+        tx.executeSql(
+          `SELECT sub_id, account_name, access_token, access_token_expires_in, timestamp
+           FROM threads_accounts
+           WHERE threads_accounts.sub_id = ?`,
+          [providerUserId],
+  
+          (_, results) => {
+            if (results.rows.length > 0) {
+              const row = results.rows.item(0);
+              resolve({
+                subId: row.sub_id,
+                accountName: row.account_name,
+                accessToken: row.access_token,
+                accessTokenExpiresIn: row.access_token_expires_in,
+                timestamp: row.timestamp,
+              });
+            } else {
+              resolve(null);
+            }
+          },
+          error => {
+            console.error('Error fetching Threads credentials:', error);
             reject(error);
           }
         );

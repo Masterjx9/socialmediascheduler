@@ -20,13 +20,9 @@ const redirectUri = 'https://masterjx9.github.io/socialmediascheduler/linkedin-r
 // from meetup. Any use of this client secret will be rate limited
 export const clientSecret = LINKEDIN_CLIENT_SECRET;
 export function openLinkedInLogin() {
-  
-  
-
   const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile%20w_member_social`;
-  
   Linking.openURL(authUrl);
-}
+  }
 
 export async function getLinkedInAccessToken({
   grant_type,

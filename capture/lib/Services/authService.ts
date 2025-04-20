@@ -3,6 +3,7 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
 import { loginWithTwitter } from '../Helpers/twitterHelper';
 import { openLinkedInLogin, getLinkedInAccessToken } from '../Apis/linkedin';
+import { openThreadsLogin, getThreadsAccessToken } from '../Apis/meta';
 import { useEffect } from 'react';
 
 
@@ -46,6 +47,9 @@ export const handleLogin = async (provider: string,
     try {
       if (provider === 'LinkedIn') {
         openLinkedInLogin()
+      }
+      if (provider === 'Threads') {
+        openThreadsLogin()
       }
       if (provider === 'Google') {
         console.log('Google login');

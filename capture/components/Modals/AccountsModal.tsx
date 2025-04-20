@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faGoogle, faMicrosoft, faLinkedin, faTwitter, faFacebook } from '@fortawesome/free-brands-svg-icons';
+import { faGoogle, faMicrosoft, faLinkedin, faTwitter, faFacebook, faThreads } from '@fortawesome/free-brands-svg-icons';
 import TwitterLogin from './logins/TwitterLogin';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
 import { handleNewSignUp, forceUpdateAccounts, removeAccount } from '../../lib/Services/dbService';
@@ -107,14 +107,14 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
                                                                                             setAccounts: setAccounts })}>
                 <FontAwesomeIcon icon={faGoogle} size={24} /><Text style={styles.loginText}>Login with Google</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Facebook', 
+                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Threads', 
                                                                                             GoogleSignin: GoogleSignin,
                                                                                             setIsAccountsVisible: setIsAccountsVisible,
                                                                                             setIsNewAccountVisible: setIsNewAccountVisible,
                                                                                             setIsCalendarVisible: setIsCalendarVisible,
                                                                                             setIsLoginVisible: setIsLoginVisible,
                                                                                             setAccounts: setAccounts })}>
-                <FontAwesomeIcon icon={faFacebook} size={24} /><Text style={styles.loginText}>Login with Facebook</Text>
+                <FontAwesomeIcon icon={faThreads} size={24} /><Text style={styles.loginText}>Login with Threads</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'LinkedIn', 

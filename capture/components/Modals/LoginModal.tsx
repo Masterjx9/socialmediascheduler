@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { View, Text, TouchableOpacity, Modal } from 'react-native';
-import { faGoogle, faFacebook, faMicrosoft, faLinkedin, faTwitter } from '@fortawesome/free-brands-svg-icons';
+import { faGoogle, faFacebook, faThreads, faMicrosoft, faLinkedin, faTwitter } from '@fortawesome/free-brands-svg-icons';
 import styles from '../../styles/AppStyles';
 import { handleLogin} from '../../lib/Services/authService';
 import TwitterLogin from './logins/TwitterLogin';
@@ -49,9 +49,9 @@ const LoginModal: React.FC<LoginModalProps> = ({
         <FontAwesomeIcon icon={faGoogle} size={24} />
         <Text style={styles.loginText}>Login with Google</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Facebook', setIsCalendarVisible)}>
-        <FontAwesomeIcon icon={faFacebook} size={24} />
-        <Text style={styles.loginText}>Login with Facebook</Text>
+        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Threads', setIsCalendarVisible)}>
+        <FontAwesomeIcon icon={faThreads} size={24} />
+        <Text style={styles.loginText}>Login with Threads</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Microsoft', setIsCalendarVisible)}>
         <FontAwesomeIcon icon={faMicrosoft} size={24} />

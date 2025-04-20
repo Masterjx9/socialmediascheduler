@@ -1,4 +1,99 @@
+import { THREADS_CLIENT_ID, THREADS_CLIENT_SECRET } from '@env';
+import { Linking } from 'react-native';
+
 const fs = require('fs').promises;
+
+
+// This is Thread's client ID for your app
+// Replace with your actual client ID
+// for now this is using the development client ID
+// from meetup. Any use of this client ID will be rate limited
+export const clientId = THREADS_CLIENT_ID;
+
+// This is the redirect URI you set in your Threads app settings
+// Replace with your actual redirect URI
+// for now this is using the development redirect URI
+// from meetup. Any use of this redirect URI will be rate limited 
+const redirectUri = 'https://masterjx9.github.io/socialmediascheduler/threads-redirect/index.html';
+
+
+// This is the client secret for your Threads app
+// Replace with your actual client secret
+// for now this is using the development client secret
+// from meetup. Any use of this client secret will be rate limited
+export const clientSecret = THREADS_CLIENT_SECRET;
+
+export async function openThreadsLogin() {
+  const authUrl = `https://threads.net/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=threads_basic,threads_content_publish&response_type=code`;
+  Linking.openURL(authUrl);
+}
+
+export async function getThreadsUserInfo(accessToken: string): Promise<any> {
+  const url = `https://graph.threads.net/v1.0/me?fields=id,username,name,threads_profile_picture_url,threads_biography`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  return response.json();
+}
+
+
+export async function getThreadsAccessToken({
+  grant_type,
+  code,
+  access_token,
+}: {
+  grant_type: 'authorization_code' | 'th_refresh_token';
+  code?: string;
+  access_token?: string;
+}): Promise<any> {
+  if (grant_type === 'authorization_code') {
+    const url = 'https://graph.threads.net/oauth/access_token';
+    const data = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code: code!,
+      redirect_uri: redirectUri,
+      client_id: clientId,
+      client_secret: clientSecret,
+    });
+
+    const shortTokenRes = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: data.toString(),
+    });
+
+    const shortTokenJson = await shortTokenRes.json();
+    const shortAccessToken = shortTokenJson.access_token;
+
+    if (!shortAccessToken) {
+      return shortTokenJson;
+    }
+
+    // Exchange short-lived for long-lived
+    const longTokenRes = await fetch(
+      `https://graph.threads.net/access_token?grant_type=th_exchange_token&client_secret=${clientSecret}&access_token=${shortAccessToken}`
+    );
+
+    return longTokenRes.json();
+  }
+
+  if (grant_type === 'th_refresh_token') {
+    const refreshUrl = `https://graph.threads.net/refresh_access_token?grant_type=th_refresh_token&access_token=${access_token}`;
+    const refreshRes = await fetch(refreshUrl);
+    return refreshRes.json();
+  }
+
+  throw new Error('Invalid grant_type');
+}
+
+
+
 
 export async function getAccessToken(
   code: string,
@@ -163,43 +258,44 @@ export async function postToIG(
 }
 
 export async function postToThreads(
-  metaId: string,
   threadsUserAccessToken: string,
-  text: string,
+  text: string
 ): Promise<any> {
-  // Step 1: Create a Threads Media Container with text
-  const containerUrl = `https://graph.threads.net/v1.0/${metaId}/threads`;
-  const containerPayload = new URLSearchParams({
-    media_type: 'TEXT',
-    text: text,
-    access_token: threadsUserAccessToken,
-  });
+  const containerUrl = `https://graph.threads.net/v1.0/me/threads?media_type=TEXT&text=${encodeURIComponent(
+    text
+  )}&access_token=${threadsUserAccessToken}`;
 
-  const containerResponse = await fetch(containerUrl, {
-    method: 'POST',
-    body: containerPayload.toString(),
-  });
-
+  const containerResponse = await fetch(containerUrl, { method: 'POST' });
   const containerData = await containerResponse.json();
+
   if (containerData.error) {
     console.error('Error in creating container:', containerData);
-    return containerData; // Return early if there's an error
+    return containerData;
   }
+
   const creationId = containerData.id;
 
-  // Step 2: Publish the Threads Media Container
-  const publishUrl = `https://graph.threads.net/v1.0/${metaId}/threads_publish`;
-  const publishPayload = new URLSearchParams({
-    creation_id: creationId,
-    access_token: threadsUserAccessToken,
-  });
+  let status = 'IN_PROGRESS';
+  for (let i = 0; i < 6; i++) {
+    const statusRes = await fetch(
+      `https://graph.threads.net/v1.0/${creationId}?fields=status_code&access_token=${threadsUserAccessToken}`
+    );
+    const statusJson = await statusRes.json();
+    status = statusJson.status_code;
 
-  const publishResponse = await fetch(publishUrl, {
-    method: 'POST',
-    body: publishPayload.toString(),
-  });
+    if (status === 'FINISHED') break;
+    if (status === 'ERROR' || status === 'EXPIRED') {
+      console.error('Container processing failed:', status);
+      return statusJson;
+    }
 
+    await new Promise((resolve) => setTimeout(resolve, 5000)); 
+  }
+
+  const publishUrl = `https://graph.threads.net/v1.0/me/threads_publish?creation_id=${creationId}&access_token=${threadsUserAccessToken}`;
+  const publishResponse = await fetch(publishUrl, { method: 'POST' });
   const publishData = await publishResponse.json();
+
   if (publishData.error) {
     console.error('Error in publishing container:', publishData);
   }
