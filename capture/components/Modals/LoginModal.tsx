@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { View, Text, TouchableOpacity, Modal } from 'react-native';
-import { faGoogle, faFacebook, faThreads, faMicrosoft, faLinkedin, faTwitter } from '@fortawesome/free-brands-svg-icons';
+import { faThreads, faLinkedin, faTwitter, faInstagram, faYoutube, faTiktok } from '@fortawesome/free-brands-svg-icons';
 import styles from '../../styles/AppStyles';
 import { handleLogin} from '../../lib/Services/authService';
 import TwitterLogin from './logins/TwitterLogin';
@@ -45,17 +45,17 @@ const LoginModal: React.FC<LoginModalProps> = ({
     >
     <View style={styles.modalContainer}>
         <Text style={styles.title}>Login</Text>
-        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Google', setIsCalendarVisible)}>
-        <FontAwesomeIcon icon={faGoogle} size={24} />
-        <Text style={styles.loginText}>Login with Google</Text>
+        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('YouTube', setIsCalendarVisible)}>
+        <FontAwesomeIcon icon={faYoutube} size={24} />
+        <Text style={styles.loginText}>Login with YouTube</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Instagram', setIsCalendarVisible)}>
+        <FontAwesomeIcon icon={faInstagram} size={24} />
+        <Text style={styles.loginText}>Login with Instagram</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Threads', setIsCalendarVisible)}>
         <FontAwesomeIcon icon={faThreads} size={24} />
         <Text style={styles.loginText}>Login with Threads</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('Microsoft', setIsCalendarVisible)}>
-        <FontAwesomeIcon icon={faMicrosoft} size={24} />
-        <Text style={styles.loginText}>Login with Microsoft</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('LinkedIn', setIsCalendarVisible)}>
         <FontAwesomeIcon icon={faLinkedin} size={24} />
@@ -64,6 +64,10 @@ const LoginModal: React.FC<LoginModalProps> = ({
         <TouchableOpacity style={styles.loginButton} onPress={() => setIsTwitterLoginVisible(true)}>
         <FontAwesomeIcon icon={faTwitter} size={24} />
         <Text style={styles.loginText}>Login with Twitter</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin('TikTok', setIsCalendarVisible)}>
+        <FontAwesomeIcon icon={faTiktok} size={24} />
+        <Text style={styles.loginText}>Login with TikTok</Text>
         </TouchableOpacity>
     </View>
 

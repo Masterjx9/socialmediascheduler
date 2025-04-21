@@ -3,7 +3,8 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
 import { loginWithTwitter } from '../Helpers/twitterHelper';
 import { openLinkedInLogin, getLinkedInAccessToken } from '../Apis/linkedin';
-import { openThreadsLogin, getThreadsAccessToken } from '../Apis/meta';
+import { openThreadsLogin, getThreadsAccessToken, openInstagramLogin } from '../Apis/meta';
+import { openGoogleLogin, getGoogleAccessToken } from '../Apis/youtube';
 import { useEffect } from 'react';
 
 
@@ -51,64 +52,14 @@ export const handleLogin = async (provider: string,
       if (provider === 'Threads') {
         openThreadsLogin()
       }
-      if (provider === 'Google') {
-        console.log('Google login');
-        await GoogleSignin.hasPlayServices();
-        const userInfo = await GoogleSignin.signIn();
-        console.log(userInfo);
-
-        let userId = await fetchUserIdFromDb(userInfo.user.id);
-
-        if (userId) {
-            console.log('User already exists, signing in...');
-        } else {
-            console.log('New user, inserting into database...');
-            await insertProviderIdIntoDb('google', userInfo.user.id);
-            //  userInfo.user.email will be used later for inserting into google table
-
-            userId = await fetchUserIdFromDb(userInfo.user.id);
-        }
-
-
-        
+      if (provider === 'YouTube') {
+       openGoogleLogin()
       }
-      if (provider === 'Facebook') {
-        console.log('Facebook login');
-        // Start Facebook login process
-        console.log(LoginManager)
-        const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
-  
-        if (result.isCancelled) {
-          console.log('Facebook login cancelled');
-          return;
-        }
-  
-        // Get the access token
-        const data = await AccessToken.getCurrentAccessToken();
-  
-        if (!data) {
-          throw new Error('Something went wrong obtaining access token');
-        }
-  
-        console.log('Facebook Access Token:', data.accessToken.toString());
-  
-        // Use the access token to get the user's Facebook profile info
-        const response = await fetch(`https://graph.facebook.com/me?access_token=${data.accessToken}&fields=id,name,email`);
-        const userInfo = await response.json();
-        console.log(userInfo);
-  
-        let userId = await fetchUserIdFromDb(userInfo.id);
-  
-        if (userId) {
-          console.log('User already exists, signing in...');
-        } else {
-          console.log('New user, inserting into database...');
-          await insertProviderIdIntoDb('facebook', userInfo.id);
-          // userInfo.email || userInfo.name will be used later for inserting into meta table
-
-          userId = await fetchUserIdFromDb(userInfo.id);
-        }
-  
+      if (provider === 'Instagram') {
+       openInstagramLogin()
+      }
+      if (provider === 'TikTok') {
+        // openTikTokLogin()
       }
   
       // Show the calendar

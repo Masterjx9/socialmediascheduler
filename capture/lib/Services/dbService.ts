@@ -5,7 +5,9 @@ import RNFS from 'react-native-fs';
 import { Alert } from 'react-native';
 import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
 import { getLinkedInAccessToken, openLinkedInLogin, getLinkedInUserInfo } from '../Apis/linkedin';
-import { getThreadsAccessToken, openThreadsLogin, getThreadsUserInfo } from '../Apis/meta';
+import { getThreadsAccessToken, openThreadsLogin, getThreadsUserInfo,
+  getInstagramUserInfo, getInstagramAccessToken, openInstagramLogin  } from '../Apis/meta';
+import { getGoogleAccessToken, openGoogleLogin, getYoutubeUserInfo } from '../Apis/youtube';
 import { Linking } from 'react-native';
 
 export const listDirectoryContents = async (path: string) => {
@@ -58,6 +60,7 @@ export const createTables = (tx: Transaction) => {
         sub_id TEXT,
         access_token TEXT,
         access_token_expires_in TEXT,
+        account_name TEXT,
         timestamp DATETIME
       );
     `);
@@ -275,99 +278,91 @@ export const handleNewSignUp = async ({
   setAccounts
  }: HandleNewSignUpParams) => {
   try {
-    if (provider === 'Google' && GoogleSignin) {
-      console.log('Google SignUp');
-     
-      const user = await GoogleSignin.getCurrentUser();
-      const isSignedIn = user !== null;
-      
-      if (isSignedIn) {
-          const proceed = await new Promise((resolve) => {
-            Alert.alert(
-              'Warning',
-              'You are already signed into a Google account. In order to add another Google account we must sign you out of the current account. We will add your new account to the list of accounts after you sign in. IF YOU CANCEL THIS OPERATION YOU WILL BE BROUGHT BACK TO THE MAIN LOGIN SCREEN.',
-              [
-                { text: 'Cancel', onPress: () => resolve(false), style: 'cancel' },
-                { text: 'OK', onPress: () => resolve(true) },
-              ],
-              { cancelable: false }
-            );
+    if (provider === 'YouTube') {
+      console.log('Youtube SignUp');
+     // We will do the same flow as LinkedIn for now
+      // Inside handleDeepLink:
+      const handleDeepLink = async (event: { url: string }) => {
+        const match = event.url.match(/code=([^&]+)/);
+        const code = match?.[1];
+        if (code) {
+          console.log('Got Youtube Code:', code);
+          subscription.remove(); 
+          const googleAC = await getGoogleAccessToken({
+            grant_type: 'authorization_code',
+            code: code,
           });
-  
-          if (!proceed) {
-            console.log('User canceled the sign-in process');
-            return;
-          }
+          console.log('Google Access Token:', googleAC);
+          // do whatever with `code`
+          const accountInfo = await getYoutubeUserInfo(googleAC.access_token);
+          console.log('Youtube Account Info:', accountInfo);
+          console.log('Channel name:', accountInfo.items[0].snippet.title);
+          // const existingProviderId = await fetchProviderIdFromDb(accountInfo.id);
+          // console.log('Existing Provider ID: ', existingProviderId);
+          // if (existingProviderId) {
+          //   Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
+          //   return;
+          // }
+          // await insertProviderIdIntoDb(provider, accountInfo.id);
+          // await insertYoutubeAccountIntoDb(
+          //   accountInfo.id,
+          //   googleAC.access_token,
+          //   googleAC.expires_in,
+          //   new Date().toISOString(),
+          //   accountInfo.username
+          // );
+          // forceUpdateAccounts(setAccounts);
+          // setIsCalendarVisible(true);
+
         }
-
-        try {
-      await GoogleSignin.revokeAccess();
-      await GoogleSignin.signOut();            
-
-      await GoogleSignin.hasPlayServices();
-      const userInfo = await GoogleSignin.signIn();
-      console.log(userInfo);
-      const providerUserId = userInfo.user.id;
-        
-      const existingProviderId = await fetchProviderIdFromDb (providerUserId);
-      console.log('Existing Provider ID: ', existingProviderId);
-      if (existingProviderId) {
-          Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
-          return;
-      }
-
-      console.log("New Provider User ID: ", providerUserId);
-
-      await insertProviderIdIntoDb(provider, providerUserId);
-
-      forceUpdateAccounts(setAccounts);
-  } catch (error) {
-      setIsAccountsVisible(false);
-      setIsCalendarVisible(false);
-      setIsLoginVisible(true);
-      return null;
-
-      }
-    }
-    if (provider === 'Facebook') {
-      console.log('Facebook SignUp');
-      const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
-
-      // console.log(LoginManager.logInWithPermissions);
-      // console.log(Settings);
-
-      if (result.isCancelled) {
-        console.log('User canceled the signup process');
-        return;
-      }
-
-      const data = await AccessToken.getCurrentAccessToken();
-      if (!data) {
-        console.log('No access token found');
-        Alert.alert('Error', 'No access token found');
-        return;
-      }
-
-      console.log('Access token:', data.accessToken.toString());
-      const providerUserId = data.userID;
-
-      const existingProviderId = await fetchProviderIdFromDb(providerUserId);
-      console.log('Existing Provider ID: ', existingProviderId);
-      if (existingProviderId) {
-        Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
-        return;
-      }
-
-      console.log('New Provider User ID:', providerUserId);
-
-
-      await insertProviderIdIntoDb(provider, providerUserId);
-      forceUpdateAccounts(setAccounts);
+      };
+      const subscription = Linking.addEventListener('url', handleDeepLink);
+      openGoogleLogin();
 
     }
-    if (provider === 'Microsoft') {
-      console.log('Microsoft SignUp');
+    if (provider === 'Instagram') {
+      console.log('Instagram SignUp');
+      // We will do the same flow as LinkedIn for now
+      // Inside handleDeepLink:
+      const handleDeepLink = async (event: { url: string }) => {
+        const match = event.url.match(/code=([^&]+)/);
+        const code = match?.[1];
+        if (code) {
+          console.log('Got Instagram Code:', code);
+          subscription.remove(); 
+          const instagramAC = await getInstagramAccessToken({
+            grant_type: 'authorization_code',
+            code: code,
+          });
+          console.log('Instagram Access Token:', instagramAC);
+          // do whatever with `code`
+          const accountInfo = await getInstagramUserInfo(instagramAC.access_token);
+          console.log('Instagram Account Info:', accountInfo);
+          // const existingProviderId = await fetchProviderIdFromDb(accountInfo.id);
+          // console.log('Existing Provider ID: ', existingProviderId);
+          // if (existingProviderId) {
+          //   Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
+          //   return;
+          // }
+          // await insertProviderIdIntoDb(provider, accountInfo.id);
+          // await insertInstagramAccountIntoDb(
+          //   accountInfo.id,
+          //   instagramAC.access_token,
+          //   instagramAC.expires_in,
+          //   new Date().toISOString(),
+          //   accountInfo.username
+          // );
+          // forceUpdateAccounts(setAccounts);
+          // setIsCalendarVisible(true);
+
+        }
+      };
+
+      const subscription = Linking.addEventListener('url', handleDeepLink);
+      openInstagramLogin();
+
     }
+    
     if (provider === 'LinkedIn') {
       console.log('LinkedIn SignUp');
 

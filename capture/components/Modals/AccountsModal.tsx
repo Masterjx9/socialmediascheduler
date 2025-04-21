@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faGoogle, faMicrosoft, faLinkedin, faTwitter, faFacebook, faThreads } from '@fortawesome/free-brands-svg-icons';
+import { faLinkedin, faTwitter, faThreads, faInstagram, faYoutube, faTiktok } from '@fortawesome/free-brands-svg-icons';
 import TwitterLogin from './logins/TwitterLogin';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
 import { handleNewSignUp, forceUpdateAccounts, removeAccount } from '../../lib/Services/dbService';
@@ -98,14 +98,23 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
           >
             <View style={styles.modalContainer}>
               <Text style={styles.title}>Add an Account</Text>
-              <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Google', 
+              <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'YouTube', 
                                                                                             GoogleSignin: GoogleSignin,
                                                                                             setIsAccountsVisible: setIsAccountsVisible,
                                                                                             setIsNewAccountVisible: setIsNewAccountVisible,
                                                                                             setIsCalendarVisible: setIsCalendarVisible,
                                                                                             setIsLoginVisible: setIsLoginVisible,
                                                                                             setAccounts: setAccounts })}>
-                <FontAwesomeIcon icon={faGoogle} size={24} /><Text style={styles.loginText}>Login with Google</Text>
+                <FontAwesomeIcon icon={faYoutube} size={24} /><Text style={styles.loginText}>Login with YouTube</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Instagram', 
+                                                                                            GoogleSignin: GoogleSignin,
+                                                                                            setIsAccountsVisible: setIsAccountsVisible,
+                                                                                            setIsNewAccountVisible: setIsNewAccountVisible,
+                                                                                            setIsCalendarVisible: setIsCalendarVisible,
+                                                                                            setIsLoginVisible: setIsLoginVisible,
+                                                                                            setAccounts: setAccounts })}>
+                <FontAwesomeIcon icon={faInstagram} size={24} /><Text style={styles.loginText}>Login with Instagram</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Threads', 
                                                                                             GoogleSignin: GoogleSignin,
@@ -127,7 +136,16 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
                 <FontAwesomeIcon icon={faLinkedin} size={24} /><Text style={styles.loginText}>Login with LinkedIn</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.loginButton} onPress={() => setIsTwitterLoginVisible(true)}>
-                <FontAwesomeIcon icon={faTwitter} size={24} /><Text style={styles.loginText}>Login with Twitter</Text>
+                <FontAwesomeIcon icon={faTwitter} size={24} /><Text style={styles.loginText}>Login with X/Twitter</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'TikTok', 
+                                                                                            GoogleSignin: GoogleSignin,
+                                                                                            setIsAccountsVisible: setIsAccountsVisible,
+                                                                                            setIsNewAccountVisible: setIsNewAccountVisible,
+                                                                                            setIsCalendarVisible: setIsCalendarVisible,
+                                                                                            setIsLoginVisible: setIsLoginVisible,
+                                                                                            setAccounts: setAccounts })}>
+                <FontAwesomeIcon icon={faTiktok} size={24} /><Text style={styles.loginText}>Login with TikTok</Text>
                 </TouchableOpacity>
 
             </View>

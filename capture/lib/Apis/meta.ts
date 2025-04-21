@@ -1,30 +1,115 @@
-import { THREADS_CLIENT_ID, THREADS_CLIENT_SECRET } from '@env';
+import { THREADS_CLIENT_ID, THREADS_CLIENT_SECRET,
+  INSTAGRAM_CLIENT_ID, INSTAGRAM_CLIENT_SECRET } from '@env';
+
 import { Linking } from 'react-native';
 
 const fs = require('fs').promises;
+
+// This is Instagram's client ID for your app
+// Replace with your actual client ID
+// for now this is using the development client ID
+// from meetup. Any use of this client ID will be rate limited
+export const instagramClientId = INSTAGRAM_CLIENT_ID;
+
+// This is the redirect URI you set in your Instagrams app settings
+// Replace with your actual redirect URI
+// for now this is using the development redirect URI
+// from meetup. Any use of this redirect URI will be rate limited 
+const instagramRedirectUri = 'https://masterjx9.github.io/socialmediascheduler/linkedin-redirect/index.html';
+
+
+// This is the client secret for your Instagrams app
+// Replace with your actual client secret
+// for now this is using the development client secret
+// from meetup. Any use of this client secret will be rate limited
+export const instagramClientSecret = INSTAGRAM_CLIENT_SECRET;
+
+
 
 
 // This is Thread's client ID for your app
 // Replace with your actual client ID
 // for now this is using the development client ID
 // from meetup. Any use of this client ID will be rate limited
-export const clientId = THREADS_CLIENT_ID;
+export const threadsClientId = THREADS_CLIENT_ID;
 
 // This is the redirect URI you set in your Threads app settings
 // Replace with your actual redirect URI
 // for now this is using the development redirect URI
 // from meetup. Any use of this redirect URI will be rate limited 
-const redirectUri = 'https://masterjx9.github.io/socialmediascheduler/threads-redirect/index.html';
+const threadsRedirectUri = 'https://masterjx9.github.io/socialmediascheduler/linkedin-redirect/index.html';
 
 
 // This is the client secret for your Threads app
 // Replace with your actual client secret
 // for now this is using the development client secret
 // from meetup. Any use of this client secret will be rate limited
-export const clientSecret = THREADS_CLIENT_SECRET;
+export const threadsClientSecret = THREADS_CLIENT_SECRET;
+
+export async function openInstagramLogin() {
+  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${instagramClientId}&redirect_uri=${encodeURIComponent(instagramRedirectUri)}&scope=instagram_business_basic,instagram_business_content_publish&response_type=code`;
+  console.log('authUrl', authUrl);
+  Linking.openURL(authUrl);
+}
+
+export async function getInstagramUserInfo(accessToken: string): Promise<any> {
+  const url = `https://graph.instagram.com/me?fields=id,username,name,profile_picture_url`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  return response.json();
+}
+
+export async function getInstagramAccessToken({
+  grant_type,
+  code,
+  access_token,
+}: {
+  grant_type: 'authorization_code' | 'ig_refresh_token';
+  code?: string;
+  access_token?: string;
+}): Promise<any> {
+  if (grant_type === 'authorization_code') {
+    console.log('grant_type', grant_type);
+    console.log('code', code);
+    console.log('access_token', access_token);
+    const url = 'https://api.instagram.com/oauth/access_token';
+    const data = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code: code!,
+      redirect_uri: instagramRedirectUri,
+      client_id: instagramClientId,
+      client_secret: instagramClientSecret,
+    });
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: data.toString(),
+    });
+
+    console.log('response', response);
+    return response.json();
+  }
+
+  if (grant_type === 'ig_refresh_token') {
+    const refreshUrl = `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${access_token}`;
+    const refreshRes = await fetch(refreshUrl);
+    return refreshRes.json();
+  }
+
+  throw new Error('Invalid grant_type');
+}
 
 export async function openThreadsLogin() {
-  const authUrl = `https://threads.net/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=threads_basic,threads_content_publish&response_type=code`;
+  const authUrl = `https://threads.net/oauth/authorize?client_id=${threadsClientId}&redirect_uri=${encodeURIComponent(threadsRedirectUri)}&scope=threads_basic,threads_content_publish&response_type=code`;
+  console.log('authUrl', authUrl);
   Linking.openURL(authUrl);
 }
 
@@ -55,9 +140,9 @@ export async function getThreadsAccessToken({
     const data = new URLSearchParams({
       grant_type: 'authorization_code',
       code: code!,
-      redirect_uri: redirectUri,
-      client_id: clientId,
-      client_secret: clientSecret,
+      redirect_uri: threadsRedirectUri,
+      client_id: threadsClientId,
+      client_secret: threadsClientSecret,
     });
 
     const shortTokenRes = await fetch(url, {
@@ -77,7 +162,7 @@ export async function getThreadsAccessToken({
 
     // Exchange short-lived for long-lived
     const longTokenRes = await fetch(
-      `https://graph.threads.net/access_token?grant_type=th_exchange_token&client_secret=${clientSecret}&access_token=${shortAccessToken}`
+      `https://graph.threads.net/access_token?grant_type=th_exchange_token&client_secret=${threadsClientSecret}&access_token=${shortAccessToken}`
     );
 
     return longTokenRes.json();
