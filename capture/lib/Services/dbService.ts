@@ -65,6 +65,24 @@ export const createTables = (tx: Transaction) => {
       );
     `);
     tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS youtube_accounts (
+        sub_id TEXT,
+        access_token TEXT,
+        access_token_expires_in TEXT,
+        account_name TEXT,
+        timestamp DATETIME
+      );
+    `);
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS tiktok_accounts (
+        sub_id TEXT,
+        access_token TEXT,
+        access_token_expires_in TEXT,
+        account_name TEXT,
+        timestamp DATETIME
+      );
+    `);
+    tx.executeSql(`
       CREATE TABLE IF NOT EXISTS twitter_accounts (
         ID INTEGER PRIMARY KEY AUTOINCREMENT,
         twitter_consumer_key TEXT,
@@ -297,22 +315,22 @@ export const handleNewSignUp = async ({
           const accountInfo = await getYoutubeUserInfo(googleAC.access_token);
           console.log('Youtube Account Info:', accountInfo);
           console.log('Channel name:', accountInfo.items[0].snippet.title);
-          // const existingProviderId = await fetchProviderIdFromDb(accountInfo.id);
-          // console.log('Existing Provider ID: ', existingProviderId);
-          // if (existingProviderId) {
-          //   Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
-          //   return;
-          // }
-          // await insertProviderIdIntoDb(provider, accountInfo.id);
-          // await insertYoutubeAccountIntoDb(
-          //   accountInfo.id,
-          //   googleAC.access_token,
-          //   googleAC.expires_in,
-          //   new Date().toISOString(),
-          //   accountInfo.username
-          // );
-          // forceUpdateAccounts(setAccounts);
-          // setIsCalendarVisible(true);
+          const existingProviderId = await fetchProviderIdFromDb(accountInfo.id);
+          console.log('Existing Provider ID: ', existingProviderId);
+          if (existingProviderId) {
+            Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
+            return;
+          }
+          await insertProviderIdIntoDb(provider, accountInfo.items[0].id);
+          await insertYoutubeAccountIntoDb(
+            accountInfo.items[0].id,
+            googleAC.access_token,
+            googleAC.expires_in,
+            new Date().toISOString(),
+            accountInfo.items[0].snippet.title
+          );
+          forceUpdateAccounts(setAccounts);
+          setIsCalendarVisible(true);
 
         }
       };
@@ -338,22 +356,22 @@ export const handleNewSignUp = async ({
           // do whatever with `code`
           const accountInfo = await getInstagramUserInfo(instagramAC.access_token);
           console.log('Instagram Account Info:', accountInfo);
-          // const existingProviderId = await fetchProviderIdFromDb(accountInfo.id);
-          // console.log('Existing Provider ID: ', existingProviderId);
-          // if (existingProviderId) {
-          //   Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
-          //   return;
-          // }
-          // await insertProviderIdIntoDb(provider, accountInfo.id);
-          // await insertInstagramAccountIntoDb(
-          //   accountInfo.id,
-          //   instagramAC.access_token,
-          //   instagramAC.expires_in,
-          //   new Date().toISOString(),
-          //   accountInfo.username
-          // );
-          // forceUpdateAccounts(setAccounts);
-          // setIsCalendarVisible(true);
+          const existingProviderId = await fetchProviderIdFromDb(accountInfo.id);
+          console.log('Existing Provider ID: ', existingProviderId);
+          if (existingProviderId) {
+            Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
+            return;
+          }
+          await insertProviderIdIntoDb(provider, accountInfo.id);
+          await insertInstagramAccountIntoDb(
+            accountInfo.id,
+            instagramAC.access_token,
+            "864000",
+            new Date().toISOString(),
+            accountInfo.username
+          );
+          forceUpdateAccounts(setAccounts);
+          setIsCalendarVisible(true);
 
         }
       };
@@ -649,7 +667,92 @@ export const insertProviderIdIntoDb = (providerName: string, providerUserId: str
         }
       );
     });
+  };
+
+
+export const insertYoutubeAccountIntoDb = (
+    subId: string,
+    accessToken: string,
+    accessTokenExpiresIn: string,
+    timestamp: string,
+    accountName: string
+  ) => {
+    return new Promise<void>((resolve, reject) => {
+      const db = SQLite.openDatabase(
+        { name: 'database_default.sqlite3', location: 'default' },
+        () => {
+          db.transaction((tx: Transaction) => {
+            tx.executeSql(
+              `INSERT INTO youtube_accounts 
+                (sub_id, access_token, access_token_expires_in, timestamp, account_name)
+               VALUES (?, ?, ?, ?, ?)`,
+              [
+                subId,
+                accessToken,
+                accessTokenExpiresIn,
+                timestamp,
+                accountName,
+              ],
+              () => {
+                console.log('Youtube account stored in the database');
+                resolve();
+              },
+              (error) => {
+                console.log('Error storing Youtube account in the database:', error);
+                reject(error);
+              }
+            );
+          });
+        },
+        (error) => {
+          console.log('Error opening database:', error);
+          reject(error);
+        }
+      );
+    });
   }
+
+export const insertInstagramAccountIntoDb = (
+    subId: string,
+    accessToken: string,
+    accessTokenExpiresIn: string,
+    timestamp: string,
+    accountName: string
+  ) => {
+    return new Promise<void>((resolve, reject) => {
+      const db = SQLite.openDatabase(
+        { name: 'database_default.sqlite3', location: 'default' },
+        () => {
+          db.transaction((tx: Transaction) => {
+            tx.executeSql(
+              `INSERT INTO instagram_accounts 
+                (sub_id, access_token, access_token_expires_in, timestamp, account_name)
+               VALUES (?, ?, ?, ?, ?)`,
+              [
+                subId,
+                accessToken,
+                accessTokenExpiresIn,
+                timestamp,
+                accountName,
+              ],
+              () => {
+                console.log('Instagram account stored in the database');
+                resolve();
+              },
+              (error) => {
+                console.log('Error storing Instagram account in the database:', error);
+                reject(error);
+              }
+            );
+          });
+        },
+        (error) => {
+          console.log('Error opening database:', error);
+          reject(error);
+        }
+      );
+    });
+  };
 
   export const removeAccount = async (
     accountType: string,
@@ -843,6 +946,96 @@ export const fetchThreadsCredentials = async (providerUserId: string): Promise<{
           },
           error => {
             console.error('Error fetching Threads credentials:', error);
+            reject(error);
+          }
+        );
+      });
+    });
+  } catch (error) {
+    console.error('DB open error:', error);
+    return null;
+  }
+}
+
+export const fetchInstagramCredentials = async (providerUserId: string): Promise<{
+  subId: string;
+  accountName: string;
+  accessToken: string;
+  accessTokenExpiresIn: string;
+  timestamp: string;
+} | null> => {
+  try {
+    console.log('Fetching Instagram credentials for provider_user_id:', providerUserId);
+    const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+    return new Promise((resolve, reject) => {
+      db.transaction(tx => {
+        tx.executeSql(
+          `SELECT sub_id, account_name, access_token, access_token_expires_in, timestamp
+           FROM instagram_accounts
+           WHERE instagram_accounts.sub_id = ?`,
+          [providerUserId],
+  
+          (_, results) => {
+            if (results.rows.length > 0) {
+              const row = results.rows.item(0);
+              resolve({
+                subId: row.sub_id,
+                accountName: row.account_name,
+                accessToken: row.access_token,
+                accessTokenExpiresIn: row.access_token_expires_in,
+                timestamp: row.timestamp,
+              });
+            } else {
+              resolve(null);
+            }
+          },
+          error => {
+            console.error('Error fetching Instagram credentials:', error);
+            reject(error);
+          }
+        );
+      });
+    });
+  } catch (error) {
+    console.error('DB open error:', error);
+    return null;
+  }
+}
+
+export const fetchYoutubeCredentials = async (providerUserId: string): Promise<{
+  subId: string;
+  accountName: string;
+  accessToken: string;
+  accessTokenExpiresIn: string;
+  timestamp: string;
+} | null> => {
+  try {
+    console.log('Fetching Youtube credentials for provider_user_id:', providerUserId);
+    const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+    return new Promise((resolve, reject) => {
+      db.transaction(tx => {
+        tx.executeSql(
+          `SELECT sub_id, account_name, access_token, access_token_expires_in, timestamp
+           FROM youtube_accounts
+           WHERE youtube_accounts.sub_id = ?`,
+          [providerUserId],
+  
+          (_, results) => {
+            if (results.rows.length > 0) {
+              const row = results.rows.item(0);
+              resolve({
+                subId: row.sub_id,
+                accountName: row.account_name,
+                accessToken: row.access_token,
+                accessTokenExpiresIn: row.access_token_expires_in,
+                timestamp: row.timestamp,
+              });
+            } else {
+              resolve(null);
+            }
+          },
+          error => {
+            console.error('Error fetching Youtube credentials:', error);
             reject(error);
           }
         );
