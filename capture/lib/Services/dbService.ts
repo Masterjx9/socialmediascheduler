@@ -176,7 +176,7 @@ export const fetchDbData = (db: SQLiteDatabase, setDbData: React.Dispatch<React.
         console.log('Fetched data:', data);
       });
 
-      tx.executeSql('SELECT * FROM content', [], (tx: Transaction, results: ResultSet) => {
+      tx.executeSql('SELECT * FROM content WHERE json_extract(publish, "$.final") IS NOT "success"', [], (tx: Transaction, results: ResultSet) => {
         const rows = results.rows;
         let data: any[] = [];
         for (let i = 0; i < rows.length; i++) {
@@ -185,6 +185,7 @@ export const fetchDbData = (db: SQLiteDatabase, setDbData: React.Dispatch<React.
         console.log('Fetched data:', data);
         setDbData(data);
       });
+
 
       tx.executeSql('SELECT * FROM user_providers', [], (tx: Transaction, results: ResultSet) => {
         const rows = results.rows;
