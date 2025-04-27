@@ -7,14 +7,14 @@ import { fetchSocialMediaAccounts } from '../../lib/Services/dbService';
 interface PostModalProps {
   isVisible: boolean;
   onClose: () => void;
-  // onPost: (content: string, unixTimestamp: number) => void;
-  onPost: (content: string, unixTimestamp: number, content_id?: number, user_providers?: string[]) => void;
+  onPost: (contentDescription: string, unixTimestamp: number, content_id?: number, user_providers?: string[]) => void;
   item?: any;
   selectedDate: string;
+  contentMode: string;
 }
 
-const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item, selectedDate }) => {
-  const [content, setContent] = useState('');
+const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item, selectedDate, contentMode }) => {
+  const [contentDescription, setContent] = useState('');
   const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
   
   const [selectedTime, setSelectedTime] = useState<Date | null>(null); 
@@ -86,7 +86,7 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
   }, [accounts, item]);
 
   const handlePost = () => {
-    if (content.trim() && selectedTime && selectedDate && selectedAccounts.length > 0) {
+    if (contentDescription.trim() && selectedTime && selectedDate && selectedAccounts.length > 0) {
       // Combine selectedDate and selectedTime to create full timestamp
       const [year, month, day] = selectedDate.split('-').map(Number);
       const fullDateTime = new Date(year, month - 1, day, selectedTime.getHours(), selectedTime.getMinutes());
@@ -94,7 +94,7 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
       // Convert to Unix time
       const unixTimestamp = Math.floor(fullDateTime.getTime() / 1000);
 
-      onPost(content, unixTimestamp, item?.content_id, selectedAccounts); 
+      onPost(contentDescription, unixTimestamp, item?.content_id, selectedAccounts); 
       setContent('');
       setSelectedTime(null);
     } else {
@@ -127,23 +127,27 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
   <Text style={styles.timeButtonText}>Select Accounts</Text>
 </TouchableOpacity>
 
-    {showAccountList && (
-      <View style={{ backgroundColor: '#fff', borderRadius: 5, padding: 10, marginBottom: 20 }}>
-        {accounts.map((account) => (
-          <TouchableOpacity
-            key={account.provider_user_id}
-            style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 5 }}
-            onPress={() => toggleAccountSelection(account.provider_user_id.toString())}
-          >
-            <View style={{
-              width: 20, height: 20, marginRight: 10, borderRadius: 3,
-              borderWidth: 1, borderColor: '#000', backgroundColor: selectedAccounts.includes(account.provider_user_id.toString()) ? '#1DA1F2' : '#fff'
-            }} />
-            <Text>{account.provider_name}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    )}
+{showAccountList && (
+  <View style={{ backgroundColor: '#fff', borderRadius: 5, padding: 10, marginBottom: 20 }}>
+    {accounts.filter(account => contentMode === 'post' ? 
+                                account.provider_name !== 'Instagram' && 
+                                account.provider_name !== 'YouTube' &&
+                                account.provider_name !== 'TikTok' : true).map(account => (
+      <TouchableOpacity
+        key={account.provider_user_id}
+        style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 5 }}
+        onPress={() => toggleAccountSelection(account.provider_user_id.toString())}
+      >
+        <View style={{
+          width: 20, height: 20, marginRight: 10, borderRadius: 3,
+          borderWidth: 1, borderColor: '#000', backgroundColor: selectedAccounts.includes(account.provider_user_id.toString()) ? '#1DA1F2' : '#fff'
+        }} />
+        <Text>{account.provider_name}</Text>
+      </TouchableOpacity>
+    ))}
+  </View>
+)}
+
 
       <View style={styles.modalContainer}>
         <Text style={styles.title}>Create a Post</Text>
@@ -152,7 +156,7 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
           style={styles.textInput}
           placeholder="What's happening?"
           multiline
-          value={content}
+          value={contentDescription}
           onChangeText={setContent}
         />
 

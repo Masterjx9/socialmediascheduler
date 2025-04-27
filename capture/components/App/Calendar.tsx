@@ -20,17 +20,22 @@ interface CalendarModalProps {
   setIsPostVisible: React.Dispatch<React.SetStateAction<boolean>>;
   setIsSettingsVisible: React.Dispatch<React.SetStateAction<boolean>>;
   setSelectedItem: React.Dispatch<React.SetStateAction<any>>;
+  setContentMode: React.Dispatch<React.SetStateAction<string>>;
+  setSelectedFile: React.Dispatch<React.SetStateAction<string>>;
+  
 }
 
     const renderItem = ({ item }: { item: any },
         setDbData: React.Dispatch<React.SetStateAction<any[]>>,  
     setIsPostVisible: React.Dispatch<React.SetStateAction<boolean>>, 
-    setSelectedItem: React.Dispatch<React.SetStateAction<any>>
+    setSelectedItem: React.Dispatch<React.SetStateAction<any>>,
+    setContentMode: React.Dispatch<React.SetStateAction<string>>
 ) => (
     <View style={styles.listItemContainer}>
     <Text style={styles.listItemText}>
       Post Date: {new Date(item.post_date * 1000).toLocaleString()}
     </Text>
+    <Text style={styles.listItemText}>{item.content_type}</Text>
     <View style={styles.iconContainer}>
 
     <TouchableOpacity style={styles.listItem}
@@ -81,7 +86,9 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
   setIsAccountsVisible,
   setIsPostVisible,
   setIsSettingsVisible,
-    setSelectedItem
+    setSelectedItem,
+    setContentMode,
+  setSelectedFile,
 }) => {
   return (
     <Modal
@@ -109,13 +116,15 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
       <FlatList
         data={dbData} // Use the data fetched from the database
         keyExtractor={(item) => item.content_id.toString()} // Use a unique key (e.g., content_id)
-        renderItem={({ item }) => renderItem({ item }, setDbData, setIsPostVisible, setSelectedItem)} // Render the list items
+        renderItem={({ item }) => renderItem({ item }, setDbData, setIsPostVisible, setSelectedItem, setContentMode)} // Render each item using the renderItem function
         style={styles.listContainer} // Style for the list container
       />
       <FooterNavBar
+        setSelectedFile={setSelectedFile}
         setIsAccountsVisible={setIsAccountsVisible}
         setIsPostVisible={setIsPostVisible}
         setIsSettingsVisible={setIsSettingsVisible}
+        setContentMode={setContentMode} 
       />
     </Modal>
   );

@@ -9,10 +9,11 @@ export const handleFileImport = async () => {
 
       if (res && res.length > 0) {
         res.forEach((file) => {
-          console.log('Selected file:', file.uri);
-          // Handle the file (e.g., upload it, save it to your app's storage, etc.)
-          Alert.alert('File Selected', `You selected: ${file.name}`);
+          console.log('Selected file:', file);
+
         });
+        // return all the files selected
+        return res.map((file) => file.uri);
       }
     } catch (err) {
       if (DocumentPicker.isCancel(err)) {

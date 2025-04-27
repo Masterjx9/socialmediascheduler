@@ -1,7 +1,10 @@
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
 import { fetchDbData } from '../Services/dbService';
 
-export const handlePost = async (content: string, 
+export const handlePost = async (
+  content_type: string,
+  content_data: string,
+  contentDescription: string, 
     unixTimestamp: number, 
     setDbData: React.Dispatch<React.SetStateAction<any[]>>,  
     setIsPostVisible: React.Dispatch<React.SetStateAction<boolean>>, 
@@ -9,7 +12,9 @@ export const handlePost = async (content: string,
     content_id?: number,
     user_providers?: string[],
 ) => {
-    console.log('Post content:', content);
+    console.log('Content type:', content_type);
+    console.log('Content data:', content_data);
+    console.log('Post description:', contentDescription);
     
     // Use the Unix timestamp directly
     console.log('Selected date (Unix timestamp):', unixTimestamp);
@@ -21,8 +26,8 @@ export const handlePost = async (content: string,
       db.transaction((tx: Transaction) => {
         if (content_id) {
         tx.executeSql(
-          `UPDATE content SET content_data = ?, post_date = ?, user_providers = ? WHERE content_id = ?`,
-          [content, unixTimestamp, JSON.stringify(user_providers), content_id],
+          `UPDATE content SET content_data = ?, description = ?, post_date = ?, user_providers = ? WHERE content_id = ?`,
+          [content_data, contentDescription, unixTimestamp, JSON.stringify(user_providers), content_id],
           (_, result) => {
             console.log('Post updated in the database');
             console.log('Post ID:', result);
@@ -34,8 +39,8 @@ export const handlePost = async (content: string,
         );
       } else {
           tx.executeSql(
-            `INSERT INTO content (content_type, content_data, user_providers, post_date, published) VALUES (?, ?, ?, ?, ?)`,
-            ['post', content, JSON.stringify(user_providers), unixTimestamp, {}],
+            `INSERT INTO content (content_type, content_data, description, user_providers, post_date, published) VALUES (?, ?, ?, ?, ?, ?)`,
+            [content_type, content_data, contentDescription, JSON.stringify(user_providers), unixTimestamp, {}],
             (_, result) => {
               console.log('Post saved to the database');
               console.log('Post ID:', result.insertId);

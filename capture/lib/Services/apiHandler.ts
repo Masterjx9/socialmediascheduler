@@ -24,7 +24,7 @@ export const contentCheck = async () => {
   // If the credentials are valid, we post to the social media account using the content.content_data.
 
   for (const content of contentData) {
-    const {user_id, content_id, content_data} = content;
+    const {content_type, content_id, content_data, description} = content;
   
     const userProviders = JSON.parse(
       content.user_providers || '[]',
@@ -58,7 +58,8 @@ export const contentCheck = async () => {
   
             try {
               await postTextToTwitter(
-                content_data,
+                // content_data,
+                description,
                 twitterCreds.consumerKey,
                 twitterCreds.consumerSecret,
                 twitterCreds.accessToken,
@@ -82,7 +83,8 @@ export const contentCheck = async () => {
               break;
             }
             try {
-              await postMediaToLinkedIn(linkedInCreds.appToken, null,{"description": content_data}, null);
+              await postMediaToLinkedIn(linkedInCreds.appToken, null,{"description": description}, null);
+              // await postMediaToLinkedIn(linkedInCreds.appToken, null,{"description": content_data}, null);
               publishedStatus[providerId] = 'success';
             }
             catch (error) {
@@ -100,7 +102,8 @@ export const contentCheck = async () => {
               break;
             }
             try {
-              const publishData = await postToThreads(threadsCreds.accessToken, content_data);
+              // const publishData = await postToThreads(threadsCreds.accessToken, content_data);
+              const publishData = await postToThreads(threadsCreds.accessToken, description);
               console.log('Threads publish data:', publishData);
               if (publishData.error) {
                 throw new Error(`Error publishing to Threads: ${publishData.error}`);
@@ -115,6 +118,7 @@ export const contentCheck = async () => {
           case 'Instagram':
               // Fetch from instagram_accounts, then post
               console.log('Posting to Instagram...');
+              console.log("content_type:", content_type);
               break;
           case 'YouTube':
             // Fetch from youtube_accounts, then post

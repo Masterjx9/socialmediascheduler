@@ -10,12 +10,16 @@ interface FooterNavBarProps {
     setIsAccountsVisible: React.Dispatch<React.SetStateAction<boolean>>;
     setIsPostVisible: React.Dispatch<React.SetStateAction<boolean>>;
     setIsSettingsVisible: React.Dispatch<React.SetStateAction<boolean>>;
+    setContentMode: React.Dispatch<React.SetStateAction<string>>;
+    setSelectedFile: React.Dispatch<React.SetStateAction<string>>;
   }
 
 const FooterNavBar: React.FC<FooterNavBarProps> = ({ 
   setIsAccountsVisible, 
   setIsPostVisible, 
-  setIsSettingsVisible 
+  setIsSettingsVisible,
+  setContentMode,
+  setSelectedFile,
 }) => (
 <View style={styles.footerNavBar}>
     <TouchableOpacity
@@ -31,7 +35,15 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
 
     <TouchableOpacity
     style={[styles.navButton]}
-    onPress={handleFileImport}
+    onPress={async () => { 
+          const filesSelected = await handleFileImport();
+          console.log('Files selected:', filesSelected);
+          if (filesSelected) {
+          setSelectedFile(filesSelected[0]);
+          }
+      setContentMode('image');
+      setIsPostVisible(true)
+        }}
     >
     <FontAwesomeIcon icon={faFileImport} size={24} />
     <Text>Import</Text>
@@ -39,7 +51,11 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
 
     <TouchableOpacity
     style={[styles.navButton]}
-    onPress={() => setIsPostVisible(true)}
+    onPress={async () => {
+      setContentMode('post');
+      setIsPostVisible(true);
+    }}
+    
     >
     <FontAwesomeIcon icon={faPen} size={24} />
     <Text>Post/Tweet</Text>
@@ -47,7 +63,11 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
 
     <TouchableOpacity
     style={[styles.navButton]}
-    onPress={takePicture}
+    onPress={async () => {
+      setContentMode('image');
+      takePicture()
+    }}
+    
     >
     <FontAwesomeIcon icon={faCamera} size={24} />
     <Text>Camera</Text>

@@ -28,6 +28,8 @@ const App = () => {
   const [isAccountsVisible, setIsAccountsVisible] = useState(false);
   const [isImportVisible, setIsImportVisible] = useState(false);
   const [isPostVisible, setIsPostVisible] = useState(false);
+  const [contentMode, setContentMode] = useState('post'); // 'post', 'image', or 'video'
+  const [selectedFile, setSelectedFile] = useState('');
   const [isTwitterLoginVisible, setIsTwitterLoginVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [dbData, setDbData] = useState<any[]>([]);
@@ -146,6 +148,7 @@ const App = () => {
             setIsTwitterLoginVisible={setIsTwitterLoginVisible}
             isPostVisible={isPostVisible}
             setIsPostVisible={setIsPostVisible}
+            contentMode={contentMode}
             selectedItem={selectedItem}
             setSelectedItem={setSelectedItem}
             selectedDate={selectedDate}
@@ -154,10 +157,12 @@ const App = () => {
             setIsCalendarVisible={setIsCalendarVisible}
             setIsLoginVisible={setIsLoginVisible}
             setDbData={setDbData}
-          />
+            selectedFile={selectedFile}
+            />
           <CalendarModal
             isCalendarVisible={isCalendarVisible}
             setIsCalendarVisible={setIsCalendarVisible}
+            setContentMode={setContentMode}
             onDayPress={onDayPress}
             selectedDate={selectedDate}
             setSelectedDate={setSelectedDate}
@@ -167,6 +172,7 @@ const App = () => {
             setIsPostVisible={setIsPostVisible}
             setIsSettingsVisible={setIsSettingsVisible}
             setSelectedItem={setSelectedItem}
+            setSelectedFile={setSelectedFile}
           />
         </>
       ) : (

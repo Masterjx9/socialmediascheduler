@@ -21,11 +21,14 @@ interface ModalsContainerProps {
     setIsCalendarVisible: React.Dispatch<React.SetStateAction<boolean>>;
     setIsLoginVisible: React.Dispatch<React.SetStateAction<boolean>>;
     setDbData: React.Dispatch<React.SetStateAction<any[]>>;
+    contentMode: string;
+    selectedFile: string;
   }
 
   const ModalsContainer: React.FC<ModalsContainerProps> = ({
     GoogleSignin,
-    
+    contentMode,
+    selectedFile,
     isAccountsVisible,
     setIsAccountsVisible,
     isTwitterLoginVisible,
@@ -57,23 +60,34 @@ interface ModalsContainerProps {
           />
 
         <PostModal
+    
           isVisible={isPostVisible}
-          onClose={() => {
+            onClose={() => {
             setIsPostVisible(false);
             setSelectedItem(null);
           }}
-          onPost={async (content, unixTimestamp, content_id, user_providers) =>
+          onPost={async (contentDescription, unixTimestamp, content_id, user_providers) =>
             {
               console.log('onPostModal called');
-              console.log('Post content:', content);
+              console.log('Post content:', contentDescription);
+              console.log("content type:", contentMode);
               console.log('Selected date (Unix timestamp):', unixTimestamp);
               console.log('Selected item:', content_id);
               console.log('Selected providers:', user_providers);
-              await handlePost(content, unixTimestamp, setDbData, setIsPostVisible, setSelectedItem, content_id, user_providers)
+              // NOTE:
+              // we stopped here:
+              // we need to see how hard it is to change all text to the description column in the database
+              // then content will always be the file path for image/video
+              // if not then we check what the contentMode is then set the text to the description column in the database
+              // for only images/videos
+              // This may have to be done in the dbservice but this is the starting point of the
+              // trace.
+              await handlePost(contentMode, selectedFile, contentDescription, unixTimestamp, setDbData, setIsPostVisible, setSelectedItem, content_id, user_providers)
             }
           }
           selectedDate={selectedDate}
           item={selectedItem}
+          contentMode={contentMode} 
         />
         
         <SettingsModal
