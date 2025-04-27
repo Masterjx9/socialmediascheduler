@@ -210,21 +210,32 @@ export async function createContainer(
   mediaUrl: string,
   metaId: string,
   description: string,
-  tags: string,
   mediaType: string = 'IMAGE',
+  tags?: string,
   coverUrl?: string,
   thumbOffset?: number,
 ): Promise<any> {
-  const hashtags = tags
+  console.log('metaAccessToken', metaAccessToken);
+  console.log('mediaUrl', mediaUrl);
+  console.log('metaId', metaId);
+  console.log('description', description);
+  console.log('mediaType', mediaType);
+  let hashtags = '';
+  let caption = '';
+  if (tags) {
+  hashtags = tags
     .split(' ')
     .map(tag => `#${tag}`)
     .join(' ');
-  const caption = `${description}\n\n${hashtags}`;
-  const url = `https://graph.facebook.com/v19.0/${metaId}/media`;
+    caption = `${description}\n\n${hashtags}`;
+  } else {
+    caption = description;
+  }
+  const url = `https://graph.instagram.com/v19.0/${metaId}/media`;
 
   const payload: any = {
     caption: caption,
-    access_token: metaAccessToken,
+    // access_token: metaAccessToken,
   };
 
   if (mediaType === 'IMAGE') {
@@ -250,15 +261,20 @@ export async function createContainer(
       payload.image_url = mediaUrl;
     }
   }
-
+  console.log('payload', payload);
   const response = await fetch(url, {
     method: 'POST',
+    headers:{
+      Authorization: `Bearer ${metaAccessToken}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
     body: new URLSearchParams(payload).toString(),
   });
 
   const data = await response.json();
   console.log(data);
-  return data.id;
+  // return data.id;
+  return data
 }
 
 export async function publishMedia(
@@ -266,14 +282,17 @@ export async function publishMedia(
   metaId: string,
   creationId: string,
 ): Promise<any> {
-  const url = `https://graph.facebook.com/v19.0/${metaId}/media_publish`;
+  const url = `https://graph.instagram.com/v19.0/${metaId}/media_publish`;
   const payload = new URLSearchParams({
     creation_id: creationId,
-    access_token: metaAccessToken,
+    // access_token: metaAccessToken,
   });
 
   const response = await fetch(url, {
     method: 'POST',
+    headers: {
+      Authorization: `Bearer ${metaAccessToken}`,
+    },
     body: payload.toString(),
   });
 
@@ -387,3 +406,103 @@ export async function postToThreads(
 
   return publishData;
 }
+
+import RNFS from 'react-native-fs';
+
+export async function uploadContentTo0x0(
+  filePath: string,
+  fileName: string
+): Promise<{ url: string, token: string }> {
+  try {
+  const url = 'https://0x0.st/';
+  console.log('Uploading to 0x0:', filePath, fileName);
+  console.log('url:', url);
+
+  // Read the file content properly
+  let uploadUri = filePath;
+  
+  // If it's a content:// URI, copy it to a temp path
+  if (filePath.startsWith('content://')) {
+    const tempPath = `${RNFS.TemporaryDirectoryPath}/${fileName}`;
+    console.log('Copying content URI to temp file:', tempPath);
+    await RNFS.copyFile(filePath, tempPath);
+    uploadUri = 'file://' + tempPath; // IMPORTANT: fetch FormData needs file://
+  }
+
+  const formData = new FormData();
+  formData.append('file', {
+    uri: uploadUri,
+    name: fileName,
+    type: 'application/octet-stream',
+  } as any);
+  formData.append('secret', '');
+
+  console.log('formData ready');
+
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'User-Agent': 'curl/7.79.1',
+      },
+    });
+
+    console.log('fetch completed');
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Fetch failed with HTTP error:', response.status, errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    console.log('response:', response);
+
+    const urlText = await response.text();
+    console.log('urlText:', urlText);
+
+    const token = response.headers.get('X-Token') || '';
+    console.log('token:', token);
+
+    return { url: urlText.trim(), token };
+  } catch (error) {
+    console.error('Error during uploadContentTo0x0:', error);
+    throw error;
+  }
+}
+
+
+export async function deleteContentFrom0x0(uploadResponse: { url: string, token: string }): Promise<any> {
+  try {
+    console.log('Deleting content from 0x0:', uploadResponse.url);
+
+    const formData = new FormData();
+    formData.append('token', uploadResponse.token);
+    formData.append('delete', '');
+
+    const response = await fetch(uploadResponse.url, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'User-Agent': 'curl/7.79.1', // Same trick to avoid 403
+      },
+    });
+
+    console.log('Delete fetch completed');
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Delete failed with HTTP error:', response.status, errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    const resultText = await response.text();
+    console.log('Delete result text:', resultText);
+
+    return { success: true, result: resultText.trim() };
+  } catch (error) {
+    console.error('Error during deleteContentFrom0x0:', error);
+    return { success: false, error: error };
+  }
+}
+

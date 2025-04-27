@@ -1,6 +1,6 @@
 
 export interface SocialMediaAccount {
-    provider_user_id: number;  
+    provider_user_id: string;  
     provider_name: string;
 }
 

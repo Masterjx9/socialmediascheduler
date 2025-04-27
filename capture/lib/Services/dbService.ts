@@ -757,26 +757,32 @@ export const insertInstagramAccountIntoDb = (
 
   export const removeAccount = async (
     accountType: string,
-    accountId: number,
+    accountId: string,
     setAccounts: React.Dispatch<React.SetStateAction<SocialMediaAccount[]>>
   ) => {
     const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
-    console.log('Removing account:', accountType, accountId);
+    console.log('Removing account:', accountType.toLowerCase(), accountId);
+    console.log('Removing account:', accountType.toLowerCase(), accountId);
+    console.log('Removing account:', accountType.toLowerCase(), accountId);
+    console.log('Removing account:', accountType.toLowerCase(), accountId);
+    console.log('Removing account:', accountType.toLowerCase(), accountId);
     // Check if the account type is valid
     db.transaction(tx => {
       // Remove from provider-specific table
-      if (accountType === 'Linkedin') {
+      if (accountType.toLowerCase() === 'linkedin') {
         tx.executeSql('DELETE FROM linkedin_accounts WHERE sub_id = ?', [accountId]);
-      } else if (accountType === 'instagram') {
+      } else if (accountType.toLowerCase() === 'instagram') {
+        console.log('Deleting Instagram account with ID:', accountId);
         tx.executeSql('DELETE FROM instagram_accounts WHERE sub_id = ?', [accountId]);
-      } else if (accountType === 'youtube') {
+      } else if (accountType.toLowerCase() === 'youtube') {
         tx.executeSql('DELETE FROM youtube_accounts WHERE sub_id = ?', [accountId]);
-      } else if (accountType === 'Threads') {
+      } else if (accountType.toLowerCase() === 'threads') {
         console.log('Deleting Threads account with ID:', accountId);
         tx.executeSql('DELETE FROM threads_accounts WHERE sub_id = ?', [accountId]);
-      } else if (accountType === 'twitter') {
+      } else if (accountType.toLowerCase() === 'twitter') {
         tx.executeSql('DELETE FROM twitter_accounts WHERE ID = ?', [accountId]);
       }
+      console.log("test test test test")  
   
       // Remove from user_providers table
       tx.executeSql(

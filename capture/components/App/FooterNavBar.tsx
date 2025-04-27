@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faCamera, faPen, faUserGroup, faFileImport, faGear } from '@fortawesome/free-solid-svg-icons';
 import { takePicture } from '../../lib/Helpers/photoHelper';
 import { handleFileImport } from '../../lib/Helpers/fileHelper';
-
+import { copyToScheduledContent } from '../../lib/Helpers/fileHelper';
 
 interface FooterNavBarProps {
     setIsAccountsVisible: React.Dispatch<React.SetStateAction<boolean>>;
@@ -36,11 +36,17 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
     <TouchableOpacity
     style={[styles.navButton]}
     onPress={async () => { 
-          const filesSelected = await handleFileImport();
-          console.log('Files selected:', filesSelected);
-          if (filesSelected) {
-          setSelectedFile(filesSelected[0]);
-          }
+      const filesSelected = await handleFileImport();
+      console.log('Files selected:', filesSelected);
+      
+      if (filesSelected) {
+        const originalUri = filesSelected[0];
+        const importedFileUri = await copyToScheduledContent(originalUri);
+      
+        console.log('Copied file path:', importedFileUri);
+        setSelectedFile(importedFileUri);
+      }
+      
       setContentMode('image');
       setIsPostVisible(true)
         }}

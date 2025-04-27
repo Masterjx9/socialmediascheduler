@@ -1,6 +1,6 @@
 import DocumentPicker, { types } from 'react-native-document-picker';
 import { PermissionsAndroid, Platform, Alert, Linking } from 'react-native';
-
+import RNFS from 'react-native-fs';
 export const handleFileImport = async () => {
     try {
       const res = await DocumentPicker.pick({
@@ -23,3 +23,22 @@ export const handleFileImport = async () => {
       }
     }
   };
+
+  export async function copyToScheduledContent(contentUri: string): Promise<string> {
+    const scheduledContentDir = `${RNFS.DocumentDirectoryPath}/scheduledContent`;
+  
+    // Make sure the folder exists
+    const exists = await RNFS.exists(scheduledContentDir);
+    if (!exists) {
+      await RNFS.mkdir(scheduledContentDir);
+    }
+  
+    // Generate a random filename or use the original name if you can extract it
+    const filename = `content_${Date.now()}.jpg`; // or .png depending on your picker
+    const destPath = `${scheduledContentDir}/${filename}`;
+  
+    await RNFS.copyFile(contentUri, destPath);
+    console.log('File copied to scheduled content folder:', destPath);
+  
+    return 'file://' + destPath;
+  }

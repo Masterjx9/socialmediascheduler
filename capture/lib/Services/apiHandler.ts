@@ -1,14 +1,21 @@
 import {fetchContentFromBeforeCurrentTime} from './dbService';
 import {postTextToTwitter} from '../Apis/twitter';
 import {postMediaToLinkedIn} from '../Apis/linkedin';
-import { postToThreads } from '../Apis/meta';
+import { postToThreads, 
+          createContainer, 
+          uploadContentTo0x0, 
+          publishMedia,
+          deleteContentFrom0x0,
+          getInstagramUserInfo
+        } from '../Apis/meta';
 import {fetchProviderNamesByIds} from './dbService';
 import { fetchTwitterCredentials,
         fetchLinkedInCredentials,
-        fetchThreadsCredentials
+        fetchThreadsCredentials,
+        fetchInstagramCredentials,
+        fetchYoutubeCredentials
  } from './dbService';
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
-
 export const contentCheck = async () => {
   console.log('contentCheck called');
   // fetch data from database
@@ -119,6 +126,37 @@ export const contentCheck = async () => {
               // Fetch from instagram_accounts, then post
               console.log('Posting to Instagram...');
               console.log("content_type:", content_type);
+              // upload to 0x0
+              const instaCreds = await fetchInstagramCredentials(providerId);
+              if (!instaCreds) {
+                console.warn(`No Instagram credentials found for providerId: ${providerId}`);
+                publishedStatus[providerId] = 'failed';
+                break;
+              }
+              console.log("instaCreds:", instaCreds);
+              try {
+                // test to see if instagram endpoint works
+                const info = await getInstagramUserInfo(instaCreds.accessToken)
+                console.log("info:", info);
+              const uploadResponse = await uploadContentTo0x0(content_data, "test.jpeg");
+              console.log("uploadResponse:", uploadResponse);
+              if (content_type === "image") {
+                const container = await createContainer(instaCreds.accessToken, uploadResponse.url, instaCreds.subId, description, "IMAGE")
+                console.log("container:", container);
+                if (container.error) {
+                  throw new Error(`Error creating container on Instagram: ${container.error}`);
+                }
+                const publishData = await publishMedia(instaCreds.accessToken, instaCreds.subId, container.id);
+                console.log('Instagram publish data:', publishData);
+              }
+              publishedStatus[providerId] = 'success';
+              const conentCleanUpResponse = await deleteContentFrom0x0(uploadResponse);
+              console.log("conentCleanUpResponse:", conentCleanUpResponse);
+            }
+            catch (error) {
+              console.error(`Failed to post to Instagram for ${providerId}:`, error);
+              publishedStatus[providerId] = 'failed';
+            }
               break;
           case 'YouTube':
             // Fetch from youtube_accounts, then post
