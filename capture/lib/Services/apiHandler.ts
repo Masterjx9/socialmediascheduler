@@ -6,7 +6,9 @@ import { postToThreads,
           uploadContentTo0x0, 
           publishMedia,
           deleteContentFrom0x0,
-          getInstagramUserInfo
+          getInstagramUserInfo,
+          uploadContentToTmpFiles,
+          validateAndUploadContentData
         } from '../Apis/meta';
 import {fetchProviderNamesByIds} from './dbService';
 import { fetchTwitterCredentials,
@@ -138,10 +140,13 @@ export const contentCheck = async () => {
                 // test to see if instagram endpoint works
                 const info = await getInstagramUserInfo(instaCreds.accessToken)
                 console.log("info:", info);
-              const uploadResponse = await uploadContentTo0x0(content_data, "test.jpeg");
+              // const uploadResponse = await uploadContentTo0x0(content_data, "test.jpeg");
+              // here is the function you will make to ensure the content_data which is like file:///data/user/0/com.socialmediaschedulerapp/files/scheduledContent/content_1745783125326.jpg has a within a 4:5 to 1.91:1 range for aspect ratio
+              // const uploadResponse = await uploadContentToTmpFiles(content_data, "test.jpeg")
+              const uploadResponse = await validateAndUploadContentData(content_data, "test.jpeg")
               console.log("uploadResponse:", uploadResponse);
               if (content_type === "image") {
-                const container = await createContainer(instaCreds.accessToken, uploadResponse.url, instaCreds.subId, description, "IMAGE")
+                const container = await createContainer(instaCreds.accessToken, uploadResponse.real_url, instaCreds.subId, description, "IMAGE")
                 console.log("container:", container);
                 if (container.error) {
                   throw new Error(`Error creating container on Instagram: ${container.error}`);
@@ -150,8 +155,8 @@ export const contentCheck = async () => {
                 console.log('Instagram publish data:', publishData);
               }
               publishedStatus[providerId] = 'success';
-              const conentCleanUpResponse = await deleteContentFrom0x0(uploadResponse);
-              console.log("conentCleanUpResponse:", conentCleanUpResponse);
+              // const conentCleanUpResponse = await deleteContentFrom0x0(uploadResponse);
+              // console.log("conentCleanUpResponse:", conentCleanUpResponse);
             }
             catch (error) {
               console.error(`Failed to post to Instagram for ${providerId}:`, error);

@@ -130,9 +130,9 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
 {showAccountList && (
   <View style={{ backgroundColor: '#fff', borderRadius: 5, padding: 10, marginBottom: 20 }}>
     {accounts.filter(account => contentMode === 'post' ? 
-                                account.provider_name !== 'Instagram' && 
-                                account.provider_name !== 'YouTube' &&
-                                account.provider_name !== 'TikTok' : true).map(account => (
+                                account.provider_name !== 'instagram' && 
+                                account.provider_name !== 'youtube' &&
+                                account.provider_name !== 'tiktok' : true).map(account => (
       <TouchableOpacity
         key={account.provider_user_id}
         style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 5 }}

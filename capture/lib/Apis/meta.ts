@@ -1,8 +1,9 @@
 import { THREADS_CLIENT_ID, THREADS_CLIENT_SECRET,
   INSTAGRAM_CLIENT_ID, INSTAGRAM_CLIENT_SECRET } from '@env';
-
+  import ImageResizer from '@bam.tech/react-native-image-resizer';
+  import { Image } from 'react-native';
 import { Linking } from 'react-native';
-
+import { NativeModules } from 'react-native';
 const fs = require('fs').promises;
 
 // This is Instagram's client ID for your app
@@ -282,22 +283,22 @@ export async function publishMedia(
   metaId: string,
   creationId: string,
 ): Promise<any> {
-  const url = `https://graph.instagram.com/v19.0/${metaId}/media_publish`;
-  const payload = new URLSearchParams({
-    creation_id: creationId,
-    // access_token: metaAccessToken,
-  });
+  console.log("metaAccessToken", metaAccessToken);
+  console.log("metaId", metaId);
+  console.log("creationId", creationId);
+
+  const url = `https://graph.instagram.com/v19.0/${metaId}/media_publish?creation_id=${creationId}`;
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${metaAccessToken}`,
     },
-    body: payload.toString(),
   });
 
   return response.json();
 }
+
 
 export async function publishThreadsMedia(
   metaAccessToken: string,
@@ -506,3 +507,126 @@ export async function deleteContentFrom0x0(uploadResponse: { url: string, token:
   }
 }
 
+export async function uploadContentToTmpFiles(
+  filePath: string,
+  fileName: string
+): Promise<{ url: string, real_url: string }> {
+  try {
+    console.log('Uploading to tmpfiles.org:', filePath, fileName);
+
+    let uploadUri = filePath;
+
+    if (filePath.startsWith('content://')) {
+      const tempPath = `${RNFS.TemporaryDirectoryPath}/${fileName}`;
+      console.log('Copying content URI to temp file:', tempPath);
+      await RNFS.copyFile(filePath, tempPath);
+      uploadUri = 'file://' + tempPath;
+    }
+
+    const formData = new FormData();
+    formData.append('file', {
+      uri: uploadUri,
+      name: fileName,
+      type: 'application/octet-stream',
+    } as any);
+
+    console.log('formData ready');
+
+    const response = await fetch('https://tmpfiles.org/api/v1/upload', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    console.log('fetch completed');
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Fetch failed with HTTP error:', response.status, errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('upload response:', data);
+
+    const realUrl = data.data.url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+
+    return { url: data.data.url, real_url: realUrl };
+  } catch (error) {
+    console.error('Error during uploadContentToTmpFiles:', error);
+    throw error;
+  }
+}
+
+export async function validateAndUploadContentData(
+  contentDataPath: string,
+  fileName: string
+): Promise<{ url: string; real_url: string }> {
+  // 1. get original dimensions
+  const { width, height } = await new Promise<{ width: number; height: number }>((ok, err) =>
+    Image.getSize(contentDataPath, (w, h) => ok({ width: w, height: h }), err)
+  );
+  console.log('Original dimensions:', width, height);
+  console.log('Original path:', contentDataPath);
+  console.log('Original file name:', fileName);
+
+  const ar = width / height;
+
+  // 2. compute target size if out-of-range
+  let targetW = width;
+  let targetH = height;
+
+  if (ar < 0.8) {
+    targetW = Math.max(320, Math.round(height * 0.8));        // widen
+  } else if (ar > 1.91) {
+    targetH = Math.max(320, Math.round(width / 1.91));        // shorten
+  }
+
+  let finalPath = contentDataPath;
+  console.log('Target dimensions:', targetW, targetH);
+  console.log('Target path:', finalPath);
+  console.log('Target file name:', fileName);
+  console.log('ImageResizer:', ImageResizer);
+  console.log('ImageResizer.createResizedImage:', ImageResizer.createResizedImage);
+  // 3. resize only when needed
+  let cleanPath = contentDataPath.replace('file://', '');
+  if (targetW !== width || targetH !== height) {
+    // test console.logs since I am getting a  [TypeError: Cannot read property 'createResizedImage' of null] error
+    console.log('Resizing image...');
+    console.log('cleanPath:', cleanPath);
+    console.log('targetW:', targetW);
+    console.log('targetH:', targetH);
+    console.log('fileName:', fileName);
+    console.log('ImageResizer:', ImageResizer);
+    console.log('ImageResizer.createResizedImage:', ImageResizer.createResizedImage);
+    console.log('createResizedImage function:', ImageResizer.createResizedImage.toString());
+    console.log('createResizedImage function:', ImageResizer.createResizedImage.toString());
+    console.log('createResizedImage function:', ImageResizer.createResizedImage.toString());
+    console.log('createResizedImage function:', ImageResizer.createResizedImage.toString());
+    console.log('NativeModules.ImageResizer:', NativeModules.ImageResizer);
+    console.log('NativeModules.ImageResizer:', NativeModules.ImageResizer);
+    console.log('NativeModules.ImageResizer:', NativeModules.ImageResizer);
+    console.log('NativeModules.ImageResizer:', NativeModules.ImageResizer);
+    console.log('NativeModules.ImageResizer:', NativeModules);
+    const result = await ImageResizer.createResizedImage(
+      contentDataPath,
+      1080,
+      1350,
+      'JPEG',
+      90,
+      0,
+      undefined,
+      false,
+      { mode: 'stretch' }
+    );
+    
+    finalPath = result.uri;
+  }
+  console.log('Final dimensions:', targetW, targetH);
+  console.log('Final path:', finalPath);
+  console.log('Final file name:', fileName);
+  // 4. upload
+  return uploadContentToTmpFiles(finalPath, fileName);
+}
