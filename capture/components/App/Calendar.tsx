@@ -22,6 +22,7 @@ interface CalendarModalProps {
   setSelectedItem: React.Dispatch<React.SetStateAction<any>>;
   setContentMode: React.Dispatch<React.SetStateAction<string>>;
   setSelectedFile: React.Dispatch<React.SetStateAction<string>>;
+  setImageResizeNeeded: React.Dispatch<React.SetStateAction<boolean>>;
   
 }
 
@@ -29,7 +30,8 @@ interface CalendarModalProps {
         setDbData: React.Dispatch<React.SetStateAction<any[]>>,  
     setIsPostVisible: React.Dispatch<React.SetStateAction<boolean>>, 
     setSelectedItem: React.Dispatch<React.SetStateAction<any>>,
-    setContentMode: React.Dispatch<React.SetStateAction<string>>
+    setContentMode: React.Dispatch<React.SetStateAction<string>>,
+    setImageResizeNeeded: React.Dispatch<React.SetStateAction<boolean>>
 ) => (
     <View style={styles.listItemContainer}>
     <Text style={styles.listItemText}>
@@ -89,6 +91,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
     setSelectedItem,
     setContentMode,
   setSelectedFile,
+  setImageResizeNeeded,
 }) => {
   return (
     <Modal
@@ -116,7 +119,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
       <FlatList
         data={dbData} // Use the data fetched from the database
         keyExtractor={(item) => item.content_id.toString()} // Use a unique key (e.g., content_id)
-        renderItem={({ item }) => renderItem({ item }, setDbData, setIsPostVisible, setSelectedItem, setContentMode)} // Render each item using the renderItem function
+        renderItem={({ item }) => renderItem({ item }, setDbData, setIsPostVisible, setSelectedItem, setContentMode, setImageResizeNeeded)} // Render each item using the renderItem function
         style={styles.listContainer} // Style for the list container
       />
       <FooterNavBar
@@ -125,6 +128,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
         setIsPostVisible={setIsPostVisible}
         setIsSettingsVisible={setIsSettingsVisible}
         setContentMode={setContentMode} 
+        setImageResizeNeeded={setImageResizeNeeded}
       />
     </Modal>
   );

@@ -2,9 +2,10 @@ import { TextInput, View, Text, TouchableOpacity, Modal, FlatList } from 'react-
 import styles from '../../styles/AppStyles';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faCamera, faPen, faUserGroup, faFileImport, faGear } from '@fortawesome/free-solid-svg-icons';
-import { takePicture } from '../../lib/Helpers/photoHelper';
+import { takePicture } from '../../lib/Helpers/cameraHelper';
 import { handleFileImport } from '../../lib/Helpers/fileHelper';
 import { copyToScheduledContent } from '../../lib/Helpers/fileHelper';
+import { validateImageSize } from '../../lib/Helpers/imageHelper';
 
 interface FooterNavBarProps {
     setIsAccountsVisible: React.Dispatch<React.SetStateAction<boolean>>;
@@ -12,6 +13,7 @@ interface FooterNavBarProps {
     setIsSettingsVisible: React.Dispatch<React.SetStateAction<boolean>>;
     setContentMode: React.Dispatch<React.SetStateAction<string>>;
     setSelectedFile: React.Dispatch<React.SetStateAction<string>>;
+    setImageResizeNeeded: React.Dispatch<React.SetStateAction<boolean>>;
   }
 
 const FooterNavBar: React.FC<FooterNavBarProps> = ({ 
@@ -20,6 +22,7 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
   setIsSettingsVisible,
   setContentMode,
   setSelectedFile,
+  setImageResizeNeeded
 }) => (
 <View style={styles.footerNavBar}>
     <TouchableOpacity
@@ -41,9 +44,16 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
       
       if (filesSelected) {
         const originalUri = filesSelected[0];
+        // Check if the file is an image and needs resizing
+        const imageResizeResult = await validateImageSize(originalUri, false, 'instagram_image');
+        console.log('Image resize needed:', imageResizeResult);
+        setImageResizeNeeded(imageResizeResult);
+
         const importedFileUri = await copyToScheduledContent(originalUri);
       
         console.log('Copied file path:', importedFileUri);
+
+
         setSelectedFile(importedFileUri);
       }
       

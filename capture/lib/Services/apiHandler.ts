@@ -8,7 +8,6 @@ import { postToThreads,
           deleteContentFrom0x0,
           getInstagramUserInfo,
           uploadContentToTmpFiles,
-          validateAndUploadContentData
         } from '../Apis/meta';
 import {fetchProviderNamesByIds} from './dbService';
 import { fetchTwitterCredentials,
@@ -141,9 +140,8 @@ export const contentCheck = async () => {
                 const info = await getInstagramUserInfo(instaCreds.accessToken)
                 console.log("info:", info);
               // const uploadResponse = await uploadContentTo0x0(content_data, "test.jpeg");
-              // here is the function you will make to ensure the content_data which is like file:///data/user/0/com.socialmediaschedulerapp/files/scheduledContent/content_1745783125326.jpg has a within a 4:5 to 1.91:1 range for aspect ratio
-              // const uploadResponse = await uploadContentToTmpFiles(content_data, "test.jpeg")
-              const uploadResponse = await validateAndUploadContentData(content_data, "test.jpeg")
+              const uploadResponse = await uploadContentToTmpFiles(content_data, "test.jpeg")
+              
               console.log("uploadResponse:", uploadResponse);
               if (content_type === "image") {
                 const container = await createContainer(instaCreds.accessToken, uploadResponse.real_url, instaCreds.subId, description, "IMAGE")

@@ -11,9 +11,12 @@ interface PostModalProps {
   item?: any;
   selectedDate: string;
   contentMode: string;
+  imageResizeNeeded: boolean;
+  setImageResizeOptions: React.Dispatch<React.SetStateAction<'portrait' | 'landscape' | 'square'>>;
+  
 }
 
-const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item, selectedDate, contentMode }) => {
+const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item, selectedDate, contentMode, imageResizeNeeded, setImageResizeOptions }) => {
   const [contentDescription, setContent] = useState('');
   const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
   
@@ -151,6 +154,30 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
 
       <View style={styles.modalContainer}>
         <Text style={styles.title}>Create a Post</Text>
+
+        {imageResizeNeeded && (
+  <View style={{ marginBottom: 20 }}>
+    <Text style={{ color: 'white', fontSize: 16, marginBottom: 10 }}>Resize Options:</Text>
+    <TouchableOpacity onPress={async () => {
+      setImageResizeOptions('portrait');
+    }}>
+      <Text style={{ color: 'lightblue', fontSize: 16 }}>Resize to 1080x1350 (4:5 portrait)</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity onPress={async () => {
+      setImageResizeOptions('square');
+    }}>
+      <Text style={{ color: 'lightblue', fontSize: 16, marginTop: 10 }}>Resize to 1080x1080 (1:1 square)</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity onPress={async () => {
+      setImageResizeOptions('landscape');
+    }}>
+      <Text style={{ color: 'lightblue', fontSize: 16, marginTop: 10 }}>Resize to 1080x566 (1.91:1 landscape)</Text>
+    </TouchableOpacity>
+  </View>
+)}
+
 
         <TextInput
           style={styles.textInput}

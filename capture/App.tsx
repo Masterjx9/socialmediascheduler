@@ -30,6 +30,8 @@ const App = () => {
   const [isPostVisible, setIsPostVisible] = useState(false);
   const [contentMode, setContentMode] = useState('post'); // 'post', 'image', or 'video'
   const [selectedFile, setSelectedFile] = useState('');
+  const [imageResizeNeeded, setImageResizeNeeded] = useState(false);
+  const [imageResizeOptions, setImageResizeOptions] = useState<"portrait" | "square" | "landscape">('portrait'); // 'portrait', 'square', 'landscape'
   const [isTwitterLoginVisible, setIsTwitterLoginVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [dbData, setDbData] = useState<any[]>([]);
@@ -158,6 +160,11 @@ const App = () => {
             setIsLoginVisible={setIsLoginVisible}
             setDbData={setDbData}
             selectedFile={selectedFile}
+            imageResizeNeeded={imageResizeNeeded}
+            setImageResizeNeeded={setImageResizeNeeded}
+            setSelectedFile={setSelectedFile}
+            imageResizeOptions={imageResizeOptions}
+            setImageResizeOptions={setImageResizeOptions}
             />
           <CalendarModal
             isCalendarVisible={isCalendarVisible}
@@ -173,6 +180,7 @@ const App = () => {
             setIsSettingsVisible={setIsSettingsVisible}
             setSelectedItem={setSelectedItem}
             setSelectedFile={setSelectedFile}
+            setImageResizeNeeded={setImageResizeNeeded}
           />
         </>
       ) : (

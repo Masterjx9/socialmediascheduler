@@ -3,6 +3,7 @@ import SettingsModal from '../Modals/SettingsModal';
 import PostModal from '../Modals/PostModal';
 import { logOutALL } from '../../lib/Services/authService';
 import { handlePost } from '../../lib/Helpers/postHelper';
+import ImageResizer from '@bam.tech/react-native-image-resizer';
 import React from 'react';
 
 interface ModalsContainerProps {
@@ -23,11 +24,17 @@ interface ModalsContainerProps {
     setDbData: React.Dispatch<React.SetStateAction<any[]>>;
     contentMode: string;
     selectedFile: string;
+    imageResizeNeeded: boolean;
+    setImageResizeNeeded: React.Dispatch<React.SetStateAction<boolean>>;
+    setSelectedFile: React.Dispatch<React.SetStateAction<string>>;
+    imageResizeOptions: "portrait" | "landscape" | "square";
+    setImageResizeOptions: React.Dispatch<React.SetStateAction<"portrait" | "landscape" | "square">>;
   }
 
   const ModalsContainer: React.FC<ModalsContainerProps> = ({
     GoogleSignin,
     contentMode,
+    imageResizeNeeded,
     selectedFile,
     isAccountsVisible,
     setIsAccountsVisible,
@@ -43,6 +50,10 @@ interface ModalsContainerProps {
     setIsCalendarVisible,
     setIsLoginVisible,
     setDbData,
+    setImageResizeNeeded,
+    setSelectedFile,
+    imageResizeOptions,
+    setImageResizeOptions,
   }) => {
     return (
       <>
@@ -74,20 +85,46 @@ interface ModalsContainerProps {
               console.log('Selected date (Unix timestamp):', unixTimestamp);
               console.log('Selected item:', content_id);
               console.log('Selected providers:', user_providers);
-              // NOTE:
-              // we stopped here:
-              // we need to see how hard it is to change all text to the description column in the database
-              // then content will always be the file path for image/video
-              // if not then we check what the contentMode is then set the text to the description column in the database
-              // for only images/videos
-              // This may have to be done in the dbservice but this is the starting point of the
-              // trace.
-              await handlePost(contentMode, selectedFile, contentDescription, unixTimestamp, setDbData, setIsPostVisible, setSelectedItem, content_id, user_providers)
+              let finalFile = selectedFile;
+              if (imageResizeNeeded === true) {
+                console.log('Image resize needed:', imageResizeNeeded);
+                console.log('Image resize options:', imageResizeOptions);
+                let resizeWidth: number;
+                let resizeHeight: number;
+                if (imageResizeOptions === "portrait") {
+                  console.log('Portrait mode selected');
+                  resizeWidth = 1080;
+                  resizeHeight = 1350;
+                }
+                else if (imageResizeOptions === "landscape") {
+                  console.log('Landscape mode selected');
+                  resizeWidth = 1350;
+                  resizeHeight = 1080;
+                } else if (imageResizeOptions === "square") {
+                  console.log('Square mode selected');
+                  resizeWidth = 1080;
+                  resizeHeight = 1080;
+                } else {
+                  console.log('Invalid image resize option selected');
+                  return;
+                }
+                const result = await ImageResizer.createResizedImage(selectedFile,
+                  resizeWidth, resizeHeight, 'JPEG', 100, 0, undefined, false, { mode: 'stretch' });
+                console.log('Original image URI:', selectedFile);
+                finalFile = result.uri;
+                await setSelectedFile(result.uri);
+                console.log('Resized image URI:', finalFile);
+                }
+
+              await handlePost(contentMode, finalFile, contentDescription, unixTimestamp, setDbData, setIsPostVisible, setSelectedItem, content_id, user_providers)
             }
           }
           selectedDate={selectedDate}
           item={selectedItem}
           contentMode={contentMode} 
+          imageResizeNeeded={imageResizeNeeded}
+
+          setImageResizeOptions={setImageResizeOptions}
         />
         
         <SettingsModal
