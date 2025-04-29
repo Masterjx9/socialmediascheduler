@@ -49,7 +49,7 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
       console.log('Social Media Accounts:', accounts);
 
       if (item) {
-        setContent(item.content_data);
+        setContent(item.description);
         if (item.user_providers) {
           try {
             const parsed = JSON.parse(item.user_providers);

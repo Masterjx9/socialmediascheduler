@@ -42,7 +42,7 @@ interface CalendarModalProps {
 
     <TouchableOpacity style={styles.listItem}
     onPress={() => {
-      console.log
+      console.log('Edit button pressed for item:', item);
       setSelectedItem(item);
       setIsPostVisible(true);
     }}
