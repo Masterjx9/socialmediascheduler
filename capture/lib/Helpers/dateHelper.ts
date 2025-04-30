@@ -35,7 +35,7 @@ export const onDayPress = async (day: DateData,
       const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
       db.transaction((tx: Transaction) => {
       tx.executeSql(
-        `SELECT * FROM content WHERE post_date BETWEEN ? AND ?`,
+        `SELECT * FROM content WHERE post_date BETWEEN ? AND ? AND published NOT LIKE '%"final":"success"%'`,
         [startOfDayUnix, endOfDayUnix],
         (_, results) => {
         const rows = results.rows;

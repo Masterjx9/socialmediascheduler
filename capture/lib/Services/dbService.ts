@@ -9,6 +9,7 @@ import { getThreadsAccessToken, openThreadsLogin, getThreadsUserInfo,
   getInstagramUserInfo, getInstagramAccessToken, openInstagramLogin  } from '../Apis/meta';
 import { getGoogleAccessToken, openGoogleLogin, getYoutubeUserInfo } from '../Apis/youtube';
 import { Linking } from 'react-native';
+import { getUnixTimestampsForDay } from '../Helpers/dateHelper';
 
 export const listDirectoryContents = async (path: string) => {
     try {
@@ -176,7 +177,7 @@ export const fetchDbData = (db: SQLiteDatabase, setDbData: React.Dispatch<React.
         console.log('Fetched data:', data);
       });
 
-      tx.executeSql('SELECT * FROM content WHERE json_extract(publish, "$.final") IS NOT "success"', [], (tx: Transaction, results: ResultSet) => {
+      tx.executeSql(`SELECT * FROM content WHERE (published NOT LIKE '%"final":"success"%')`, [], (tx: Transaction, results: ResultSet) => {
         const rows = results.rows;
         let data: any[] = [];
         for (let i = 0; i < rows.length; i++) {
@@ -198,6 +199,39 @@ export const fetchDbData = (db: SQLiteDatabase, setDbData: React.Dispatch<React.
 
     });
   };
+
+  export async function refreshDbDataForDate(
+    dateString: string,
+    setDbData: React.Dispatch<React.SetStateAction<any[]>>
+  ) {
+    const { startOfDayUnix, endOfDayUnix } = getUnixTimestampsForDay(dateString);
+    console.log('Start of day (Unix):', startOfDayUnix);
+    console.log('End of day (Unix):', endOfDayUnix);
+    try {
+      const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+      db.transaction((tx: Transaction) => {
+        tx.executeSql(
+          `SELECT * FROM content WHERE post_date BETWEEN ? AND ? AND published NOT LIKE '%"final":"success"%'`,
+          [startOfDayUnix, endOfDayUnix],
+          (_, results) => {
+            const rows = results.rows;
+            const data: any[] = [];
+            for (let i = 0; i < rows.length; i++) {
+              data.push(rows.item(i));
+            }
+            setDbData(data);
+          },
+          (error) => {
+            console.log('Error fetching content from the database:', error);
+          }
+        );
+      });
+    } catch (error) {
+      console.log('Error opening database:', error);
+    }
+  }
+
+  
 
 // check if there are any rows in user_providers to confirm if any accounts exist
 export const checkIfAccountsExist = async (): Promise<boolean> => {
@@ -232,7 +266,7 @@ export const fetchContentFromBeforeCurrentTime = async () => {
             db.transaction(tx => {
                 const currentTime = Math.floor(Date.now() / 1000);
                 tx.executeSql(
-                  `SELECT * FROM content WHERE post_date < ? AND (published NOT LIKE '%"final":"success"%')`,                
+                  `SELECT * FROM content WHERE post_date < ? AND published NOT LIKE '%"final":"success"%'`,                
                     [currentTime],
                     (_, results) => {
                         const rows = results.rows;

@@ -1,6 +1,6 @@
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
 import { fetchDbData } from '../Services/dbService';
-
+import { refreshDbDataForDate } from '../Services/dbService';
 export const handlePost = async (
   content_type: string,
   content_data: string,
@@ -58,4 +58,6 @@ export const handlePost = async (
     
     setIsPostVisible(false); 
     setSelectedItem(null);
+    const selectedDateStr = new Date(unixTimestamp * 1000).toISOString().split('T')[0];
+    refreshDbDataForDate(selectedDateStr, setDbData);
   };
