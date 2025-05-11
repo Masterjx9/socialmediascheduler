@@ -350,27 +350,40 @@ export async function postVideoToTwitter(
     let processingInfo: any = (await response.json()).processing_info;
     if (processingInfo) {
         console.log(processingInfo);
-        while (processingInfo.state !== 'succeeded') {
-            console.log(processingInfo);
+        // replace the loop block with this
+while (processingInfo && processingInfo.state !== 'succeeded') {
+  if (processingInfo.state === 'failed') {
+    console.error('Video processing failed.');
+    return;
+  }
 
-            if (processingInfo.state === 'failed') {
-                console.error("Video processing failed.");
-                return;
-            }
-            console.log("Waiting for video processing...");
-            await new Promise(resolve => setTimeout(resolve, processingInfo.check_after_secs * 1000));
-            response = await fetch(`https://upload.twitter.com/1.1/media/upload.json?command=STATUS&media_id=${mediaId}`, {
-                method: "GET",
-                headers: {
-                    ...finalizeAuthHeader,
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-            });
-            console.log(await response.json());
-            processingInfo = (await response.json()).processing_info;
-        }
+  console.log('Waiting for video processing...');
+  await new Promise(res => setTimeout(res, processingInfo.check_after_secs * 1000));
+
+  const statusRequest = {
+    url: `https://upload.twitter.com/1.1/media/upload.json?command=STATUS&media_id=${mediaId}`,
+    method: 'GET',
+  };
+
+  const statusAuthHeader = oauth.toHeader(
+    oauth.authorize(statusRequest, {
+      key: twitterAccessToken,
+      secret: twitterAccessTokenSecret,
+    }),
+  );
+
+ response = await fetch(statusRequest.url, {
+  method: statusRequest.method,
+  headers: { ...statusAuthHeader },   
+});
+
+
+  processingInfo = (await response.json()).processing_info;
+  console.log(processingInfo);
+}
+
     }
-
+    console.log("Video processing succeeded.");
     // Step 4: Post a tweet
     const tweetData = {
         text: twitterPayload["description"],
@@ -378,7 +391,7 @@ export async function postVideoToTwitter(
             media_ids: [mediaId],
         },
     };
-
+    console.log("tweetData", tweetData);
     const tweetRequest = {
         url: "https://api.twitter.com/2/tweets",
         method: "POST",

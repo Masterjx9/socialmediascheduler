@@ -179,7 +179,7 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
       <View style={styles.modalContainer}>
         <Text style={styles.title}>Create a Post</Text>
 
-        {imageResizeNeeded && (
+        {imageResizeNeeded && contentMode === 'image' && (
 <View style={{ marginBottom: 20 }}>
   <Text style={{ color: 'white', fontSize: 16, marginBottom: 10 }}>Resize Options:</Text>
 

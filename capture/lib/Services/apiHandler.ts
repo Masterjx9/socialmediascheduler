@@ -1,4 +1,5 @@
 import {fetchContentFromBeforeCurrentTime} from './dbService';
+import { uploadVideoToYouTube } from '../Apis/youtube';
 import {postTextToTwitter, postImageToTwitter, postVideoToTwitter} from '../Apis/twitter';
 import {postMediaToLinkedIn} from '../Apis/linkedin';
 import { postToThreads, 
@@ -73,7 +74,7 @@ export const contentCheck = async () => {
                 twitterCreds.accessToken,
                 twitterCreds.accessTokenSecret
               );
-            } if (content_type === 'image') {
+            } if (content_type === 'image' || content_type === 'video') {
               const fullPath = content_data;
               console.log("fullPath:", fullPath);
               const fileNameFromPath = fullPath.substring(fullPath.lastIndexOf('/') + 1);
@@ -86,10 +87,21 @@ export const contentCheck = async () => {
               console.log("shortBase:", shortBase);
               const shortName = shortBase + '.' + extension;
               console.log("shortName:", shortName);
-              const twitterPayload = {
-                image_path: fullPath,
-                description: description,
+              let twitterPayload;
+              if (content_type === 'image') {
+                twitterPayload = {
+                  image_path: fullPath,
+                  description: description,
+                };
               }
+              if (content_type === 'video') {
+                twitterPayload = {
+                  video_path: fullPath,
+                  description: description,
+                };
+              }
+              
+              if (content_type === 'image') {
               await postImageToTwitter(
                 twitterPayload,
                 twitterCreds.consumerKey,
@@ -97,6 +109,16 @@ export const contentCheck = async () => {
                 twitterCreds.accessToken,
                 twitterCreds.accessTokenSecret
               );
+            }
+              if (content_type === 'video') {
+                await postVideoToTwitter(
+                  twitterPayload,
+                  twitterCreds.consumerKey,
+                  twitterCreds.consumerSecret,
+                  twitterCreds.accessToken,
+                  twitterCreds.accessTokenSecret
+                );
+              }
 
             }
               publishedStatus[providerId] = 'success';
@@ -257,6 +279,44 @@ export const contentCheck = async () => {
           case 'YouTube':
             // Fetch from youtube_accounts, then post
             console.log('Posting to YouTube...');
+            const youtubeCreds = await fetchYoutubeCredentials(providerId);
+            if (!youtubeCreds) {
+              console.warn(`No YouTube credentials found for providerId: ${providerId}`);
+              publishedStatus[providerId] = 'failed';
+              break;
+            }  
+            try {
+              if (content_type === "post" || content_type === "image") {
+                console.log("This should never ever happen ever");
+                // if anyone wants to make logic to safely failing this, please do
+                // this should never happen because you can make a text post on youtube
+                // maybe the community post but not sure if there is an API for that
+                // and would be out of scope for this project
+              }
+              if (content_type === "video") {
+                const fullPath = content_data;
+                const fileNameFromPath = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+                const extension = fileNameFromPath.substring(fileNameFromPath.lastIndexOf('.') + 1).toLowerCase();
+
+                console.log("fullPath:", fullPath);
+                console.log("fileNameFromPath:", fileNameFromPath);
+                console.log("extension:", extension);
+
+                const videoResult = await uploadVideoToYouTube(
+                  youtubeCreds.accessToken,
+                  fullPath,
+                  description || fileNameFromPath,   // title fallback
+                  description || ''                  // description
+                );
+                console.log('YouTube upload result:', videoResult);
+
+                publishedStatus[providerId] = 'success';
+              }
+
+            }catch (error) {
+              console.error(`Failed to post to YouTube for ${providerId}:`, error);
+              publishedStatus[providerId] = 'failed';
+            }
             break;
   
           default:

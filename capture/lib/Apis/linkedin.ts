@@ -118,15 +118,21 @@ async function uploadVideoParts(
 ): Promise<string[]> {
   const chunkSize = 4 * 1024 * 1024; // 4 MB
   const uploadedPartIds: string[] = [];
-
-  
-  
+  console.log('Uploading video parts...');
+  console.log('filePath', filePath);
+  console.log('chunkSize', chunkSize);
   try {
+    console.log('uploadInstructions', uploadInstructions);
     for (const instruction of uploadInstructions) {
+      console.log('instruction', instruction);
       const uploadUrl = instruction.uploadUrl;
       const firstByte = instruction.firstByte;
       const lastByte = instruction.lastByte;
       const length = lastByte - firstByte + 1;
+      console.log('length', length);
+      console.log('firstByte', firstByte);
+      console.log('lastByte', lastByte);
+      
       const base64Chunk = await RNFS.read(filePath, length, firstByte, 'base64');
       const buffer      = Buffer.from(base64Chunk, 'base64');
 
@@ -137,11 +143,12 @@ async function uploadVideoParts(
         },
         body: buffer,
       });
-
+      console.log('response', response);
       if (response.status !== 200 && response.status !== 201) {
         throw new Error(`Failed to upload chunk: ${await response.text()}`);
       }
-
+      console.log('response headers', response.headers);
+      console.log('response status', response.status);
       uploadedPartIds.push(response.headers.get('etag') || '');
       console.log(`Uploaded bytes ${firstByte}-${lastByte}`);
     }
@@ -204,7 +211,7 @@ export async function postMediaToLinkedIn(
 
     const uploadedPartIds = await uploadVideoParts(
       uploadInstructions,
-      mediaUrl,
+      mediaUrl.video_path,
     );
     await finalizeVideoUpload(accessToken, videoUrn, uploadedPartIds);
 

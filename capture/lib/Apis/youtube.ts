@@ -1,5 +1,7 @@
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_WEB_CLIENT_SECRET } from "@env";
 import { Linking } from "react-native";
+import RNFS from 'react-native-fs';
+import { Buffer } from 'buffer';
 
 const fs = require("fs").promises;
 
@@ -96,3 +98,58 @@ export async function getGoogleAccessToken({
     throw new Error('Invalid grant_type');
   }
   
+
+  export async function uploadVideoToYouTube(
+  accessToken: string,
+  videoPath: string,
+  title: string,
+  description: string,
+  categoryId = '22',                       // default = “People & Blogs”
+  privacyStatus: 'private' | 'public' | 'unlisted' = 'private',
+) {
+  /* STEP 1 – start a resumable-upload session */
+  console.log("accessToken", accessToken);
+  const initRes = await fetch(
+    'https://www.googleapis.com/upload/youtube/v3/videos?part=snippet,status&uploadType=resumable',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json; charset=UTF-8',
+        'X-Upload-Content-Type': 'video/mp4',
+      },
+      body: JSON.stringify({
+        snippet: { title, description, categoryId },
+        status:  { privacyStatus },
+      }),
+    },
+  );
+
+  if (!initRes.ok) {
+    throw new Error(`YouTube init failed → ${await initRes.text()}`);
+  }
+
+  const uploadUrl = initRes.headers.get('Location');
+  if (!uploadUrl) {
+    throw new Error('YouTube init failed → no upload URL returned');
+  }
+
+  /* STEP 2 – PUT the raw video bytes to the upload URL */
+  const b64 = await RNFS.readFile(videoPath, 'base64');
+  const binary = Buffer.from(b64, 'base64');
+
+  const uploadRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'video/mp4',
+      'Content-Length': `${binary.length}`,
+    },
+    body: binary,
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error(`YouTube upload failed → ${await uploadRes.text()}`);
+  }
+
+  return uploadRes.json();       
+}
