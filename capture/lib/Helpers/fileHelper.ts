@@ -13,7 +13,8 @@ export const handleFileImport = async () => {
 
         });
         // return all the files selected
-        return res.map((file) => file.uri);
+        return res.map((file) => ({ uri: file.uri, type: file.type, name: file.name }));
+
       }
     } catch (err) {
       if (DocumentPicker.isCancel(err)) {
@@ -24,7 +25,7 @@ export const handleFileImport = async () => {
     }
   };
 
-  export async function copyToScheduledContent(contentUri: string): Promise<string> {
+  export async function copyToScheduledContent(contentUri: string, fileName: string): Promise<string> {
     const scheduledContentDir = `${RNFS.DocumentDirectoryPath}/scheduledContent`;
   
     // Make sure the folder exists
@@ -34,7 +35,8 @@ export const handleFileImport = async () => {
     }
   
     // Generate a random filename or use the original name if you can extract it
-    const filename = `content_${Date.now()}.jpg`; // or .png depending on your picker
+    // const filename = `content_${Date.now()}.jpg`; // or .png depending on your picker
+    const filename = `content_${Date.now()}_${fileName}`;
     const destPath = `${scheduledContentDir}/${filename}`;
   
     await RNFS.copyFile(contentUri, destPath);

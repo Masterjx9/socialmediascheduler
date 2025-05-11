@@ -8,6 +8,7 @@ import { handleFileImport } from '../../lib/Helpers/fileHelper';
 import { copyToScheduledContent } from '../../lib/Helpers/fileHelper';
 import { validateImageSize } from '../../lib/Helpers/imageHelper';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
+import { Alert } from 'react-native';
 
 import { fetchSocialMediaAccounts } from '../../lib/Services/dbService';
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
@@ -16,7 +17,7 @@ interface FooterNavBarProps {
     setIsAccountsVisible: React.Dispatch<React.SetStateAction<boolean>>;
     setIsPostVisible: React.Dispatch<React.SetStateAction<boolean>>;
     setIsSettingsVisible: React.Dispatch<React.SetStateAction<boolean>>;
-    setContentMode: React.Dispatch<React.SetStateAction<string>>;
+    setContentMode: React.Dispatch<React.SetStateAction<"post" | "image" | "video">>;
     setSelectedFile: React.Dispatch<React.SetStateAction<string>>;
     setImageResizeNeeded: React.Dispatch<React.SetStateAction<boolean>>;
   }
@@ -69,20 +70,44 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
       const filesSelected = await handleFileImport();
       console.log('Files selected:', filesSelected);
       
-      if (filesSelected) {
-        const originalUri = filesSelected[0];
-        // Check if the file is an image and needs resizing
+      if (filesSelected && filesSelected.length > 0) {
+        const originalUri = filesSelected[0].uri;
+        const fileName = filesSelected[0].name;
+
+        if (filesSelected[0].type === 'video/mp4') {
+        setContentMode('video');
+        const importedFileUri = await copyToScheduledContent(originalUri, fileName!);
+        console.log('Copied file path:', importedFileUri);
+        setSelectedFile(importedFileUri);
+        }
+
+        if (filesSelected[0].type === 'image/jpeg' || filesSelected[0].type === 'image/png') {
+          // Accounts example [{"provider_name": "YouTube", "provider_user_id": "UC-8P44nYjW_YorREgugs_cg"}]
+          // check if the ONLY account is youtube, if so then alert and return as youtube does not support image posting
+          if (accounts.length === 1 && accounts[0].provider_name.toLowerCase() === 'youtube') {
+            Alert.alert(
+              'YouTube does not support image posting',
+              'Please Add a different account to post images\nOr use the import option to import videos',
+              [{ text: 'OK', onPress: () => console.log('OK Pressed') }],
+              { cancelable: false }
+            );
+
+            return;
+          }
+        // Check if the file is an image and needs resizing for instagram requirements
+        console.log('Original file URI:', originalUri);
         const imageResizeResult = await validateImageSize(originalUri, false, 'instagram_image');
         console.log('Image resize needed:', imageResizeResult);
         setImageResizeNeeded(imageResizeResult);
 
-        const importedFileUri = await copyToScheduledContent(originalUri);
+        const importedFileUri = await copyToScheduledContent(originalUri,fileName!);
       
         console.log('Copied file path:', importedFileUri);
 
 
         setSelectedFile(importedFileUri);
         setContentMode('image');
+        }
         setIsPostVisible(true)
       }
       

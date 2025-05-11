@@ -29,7 +29,7 @@ const App = () => {
   const [isAccountsVisible, setIsAccountsVisible] = useState(false);
   const [isImportVisible, setIsImportVisible] = useState(false);
   const [isPostVisible, setIsPostVisible] = useState(false);
-  const [contentMode, setContentMode] = useState('post'); // 'post', 'image', or 'video'
+  const [contentMode, setContentMode] = useState<"post" | "image" | "video">('post'); // 'post', 'image', or 'video'
   const [selectedFile, setSelectedFile] = useState('');
   const [imageResizeNeeded, setImageResizeNeeded] = useState(false);
   const [imageResizeOptions, setImageResizeOptions] = useState<"portrait" | "square" | "landscape">('portrait'); // 'portrait', 'square', 'landscape'

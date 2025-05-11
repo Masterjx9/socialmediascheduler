@@ -20,7 +20,7 @@ interface CalendarModalProps {
   setIsPostVisible: React.Dispatch<React.SetStateAction<boolean>>;
   setIsSettingsVisible: React.Dispatch<React.SetStateAction<boolean>>;
   setSelectedItem: React.Dispatch<React.SetStateAction<any>>;
-  setContentMode: React.Dispatch<React.SetStateAction<string>>;
+  setContentMode: React.Dispatch<React.SetStateAction<"post" | "image" | "video">>;
   setSelectedFile: React.Dispatch<React.SetStateAction<string>>;
   setImageResizeNeeded: React.Dispatch<React.SetStateAction<boolean>>;
   
@@ -30,7 +30,7 @@ interface CalendarModalProps {
         setDbData: React.Dispatch<React.SetStateAction<any[]>>,  
     setIsPostVisible: React.Dispatch<React.SetStateAction<boolean>>, 
     setSelectedItem: React.Dispatch<React.SetStateAction<any>>,
-    setContentMode: React.Dispatch<React.SetStateAction<string>>,
+    setContentMode: React.Dispatch<React.SetStateAction<"post" | "image" | "video">>,
     setImageResizeNeeded: React.Dispatch<React.SetStateAction<boolean>>
 ) => (
     <View style={styles.listItemContainer}>

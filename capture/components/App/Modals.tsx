@@ -85,6 +85,7 @@ interface ModalsContainerProps {
               console.log('Selected item:', content_id);
               console.log('Selected providers:', user_providers);
               let finalFile = selectedFile;
+              if (contentMode === "image") {
               if (imageResizeNeeded === true) {
                 console.log('Image resize needed:', imageResizeNeeded);
                 console.log('Image resize options:', imageResizeOptions);
@@ -114,7 +115,8 @@ interface ModalsContainerProps {
                 await setSelectedFile(result.uri);
                 console.log('Resized image URI:', finalFile);
                 }
-
+              }
+              console.log('Final file to be posted:', finalFile);
               await handlePost(contentMode, finalFile, contentDescription, unixTimestamp, setDbData, setIsPostVisible, setSelectedItem, content_id, user_providers)
             }
           }

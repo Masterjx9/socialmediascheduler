@@ -132,10 +132,33 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
 
 {showAccountList && (
   <View style={{ backgroundColor: '#fff', borderRadius: 5, padding: 10, marginBottom: 20 }}>
-    {accounts.filter(account => contentMode === 'post' ? 
-                                account.provider_name.toLocaleLowerCase() !== 'instagram' && 
-                                account.provider_name.toLocaleLowerCase() !== 'youtube' &&
-                                account.provider_name.toLocaleLowerCase() !== 'tiktok' : true).map(account => (
+    {
+  accounts
+    .filter(account => 
+      contentMode === 'post' ? 
+        account.provider_name.toLocaleLowerCase() !== 'instagram' &&
+        account.provider_name.toLocaleLowerCase() !== 'youtube' &&
+        account.provider_name.toLocaleLowerCase() !== 'tiktok'
+        : true
+    )
+    .map(account => {
+      const lowerName = account.provider_name.toLowerCase();
+
+      const isExcluded = 
+        (contentMode === 'post' &&
+          ['instagram', 'youtube', 'tiktok'].includes(lowerName)) ||
+        (contentMode === 'image' &&
+          ['youtube'].includes(lowerName));
+
+      console.log('Account:', lowerName, 'Excluded:', isExcluded);
+
+      if (isExcluded && selectedAccounts.includes(account.provider_user_id.toString())) {
+        toggleAccountSelection(account.provider_user_id.toString());
+      }
+
+      if (isExcluded) return null;
+
+      return (
       <TouchableOpacity
         key={account.provider_user_id}
         style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 5 }}
@@ -147,7 +170,8 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
         }} />
         <Text>{account.provider_name}</Text>
       </TouchableOpacity>
-    ))}
+    )})}
+  
   </View>
 )}
 
