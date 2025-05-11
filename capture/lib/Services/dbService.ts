@@ -40,8 +40,8 @@ export const insertFakeData = (db: SQLiteDatabase) => {
 export const createTables = (tx: Transaction) => {
     tx.executeSql(`
       CREATE TABLE IF NOT EXISTS user_providers (
-      provider_name TEXT NOT NULL, -- e.g., 'google', 'meta', 'twitter', etc.
-      provider_user_id TEXT NOT NULL, -- e.g., Google sub, Meta ID, etc.
+      provider_name TEXT NOT NULL,
+      provider_user_id TEXT NOT NULL
       );
     `);
     tx.executeSql(`
@@ -53,7 +53,7 @@ export const createTables = (tx: Transaction) => {
         description TEXT,
         user_providers TEXT,
         tags TEXT,
-        published TEXT NOT NULL DEFAULT '{}',
+        published TEXT NOT NULL DEFAULT '{}'
       );
     `);
     tx.executeSql(`
@@ -89,8 +89,8 @@ export const createTables = (tx: Transaction) => {
         twitter_consumer_key TEXT,
         twitter_access_token TEXT,
         twitter_access_token_secret TEXT,
-        twitter_consumer_secret TEXT
-        account_name TEXT,
+        twitter_consumer_secret TEXT,
+        account_name TEXT
       );
     `);
     tx.executeSql(`
@@ -128,6 +128,7 @@ export const createTables = (tx: Transaction) => {
         [],
         (tx: Transaction, results: ResultSet) => {
           const rows = results.rows;
+          console.log('Rows:', rows);
           console.log(rows)
           for (let i = 0; i < rows.length; i++) {
             console.log('Row:', rows.item(i));
@@ -323,7 +324,6 @@ export const fetchUserIdFromDb = async (providerUserId: string): Promise<number 
 
 export const handleNewSignUp = async ({ 
   provider, 
-  GoogleSignin,
   setIsAccountsVisible,
   setIsNewAccountVisible,
   setIsCalendarVisible,

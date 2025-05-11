@@ -1,7 +1,7 @@
 import { Linking } from 'react-native';
 import { LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET } from '@env';
-const fs = require('fs').promises;
-
+import RNFS from 'react-native-fs';
+import { Buffer } from 'buffer';  
 // This is linkedIn's client ID for your app
 // Replace with your actual client ID
 // for now this is using the development client ID
@@ -87,7 +87,7 @@ async function initializeUpload(
   const postHeaders = {
     Authorization: `Bearer ${accessToken}`,
     'X-Restli-Protocol-Version': '2.0.0',
-    'LinkedIn-Version': '202304',
+    'LinkedIn-Version': '202504',
     'Content-Type': 'application/json',
   };
   const postBody: any = {
@@ -119,14 +119,16 @@ async function uploadVideoParts(
   const chunkSize = 4 * 1024 * 1024; // 4 MB
   const uploadedPartIds: string[] = [];
 
-  const fileHandle = await fs.open(filePath, 'r');
+  
+  
   try {
     for (const instruction of uploadInstructions) {
       const uploadUrl = instruction.uploadUrl;
       const firstByte = instruction.firstByte;
       const lastByte = instruction.lastByte;
-      const buffer = Buffer.alloc(lastByte - firstByte + 1);
-      await fileHandle.read(buffer, 0, buffer.length, firstByte);
+      const length = lastByte - firstByte + 1;
+      const base64Chunk = await RNFS.read(filePath, length, firstByte, 'base64');
+      const buffer      = Buffer.from(base64Chunk, 'base64');
 
       const response = await fetch(uploadUrl, {
         method: 'PUT',
@@ -143,8 +145,9 @@ async function uploadVideoParts(
       uploadedPartIds.push(response.headers.get('etag') || '');
       console.log(`Uploaded bytes ${firstByte}-${lastByte}`);
     }
-  } finally {
-    await fileHandle.close();
+  } catch (error) {
+    console.error('Error uploading video parts:', error);
+    throw error;
   }
 
   return uploadedPartIds;
@@ -159,7 +162,7 @@ async function finalizeVideoUpload(
   const headers = {
     Authorization: `Bearer ${accessToken}`,
     'X-Restli-Protocol-Version': '2.0.0',
-    'LinkedIn-Version': '202411',
+    'LinkedIn-Version': '202504',
     'Content-Type': 'application/json',
   };
   const postBody = {
@@ -187,11 +190,13 @@ export async function postMediaToLinkedIn(
   tags: Array<string> | null = null,
 ) {
   const personUrn = (await getLinkedInUserInfo(accessToken)).sub;
-  let mediaUrn: string;
+  let mediaUrn: string = '';
   let mediaTitle: string = '';
   let postBody: any;
   if (mediaType === 'video') {
-    const fileSize = fs.statSync(mediaUrl[`${mediaType}_path`]).size;
+    const fileStats = await RNFS.stat(mediaUrl[`${mediaType}_path`]);
+    const fileSize = Number(fileStats.size);
+
 
     const videoData = await initializeUpload(accessToken, mediaType, fileSize);
     const uploadInstructions = videoData.uploadInstructions;
@@ -215,14 +220,25 @@ export async function postMediaToLinkedIn(
     const putHeaders = {
       Authorization: `Bearer ${accessToken}`,
     };
+    console.log("attempting to read the file");
+    console.log(mediaUrl[`${mediaType}_path`]);
+    const base64Data   = await RNFS.readFile(mediaUrl[`${mediaType}_path`], 'base64');
+    const binaryBuffer = Buffer.from(base64Data, 'base64'); 
 
-    const mediaFile = await fs.readFile(mediaUrl[`${mediaType}_path`]);
+    console.log("file read");
+    console.log("binaryBuffer",binaryBuffer);
+
+    console.log("attempting to upload the file");
     const uploadResponse = await fetch(uploadUrl, {
       method: 'PUT',
-      headers: putHeaders,
-      body: mediaFile,
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,         
+        'Content-Type':  'application/octet-stream',
+        'Content-Length': String(binaryBuffer.length)
+      },
+      body: binaryBuffer                               
     });
-
+    console.log("file uploaded");
     if (uploadResponse.status !== 200 && uploadResponse.status !== 201) {
       throw new Error(`Image upload failed: ${await uploadResponse.text()}`);
     }
@@ -232,7 +248,7 @@ export async function postMediaToLinkedIn(
   const postHeaders = {
     Authorization: `Bearer ${accessToken}`,
     'X-Restli-Protocol-Version': '2.0.0',
-    'LinkedIn-Version': '202411',
+    'LinkedIn-Version': '202504',
     'Content-Type': 'application/json',
   };
   postBody = {
@@ -246,18 +262,19 @@ export async function postMediaToLinkedIn(
     },
     lifecycleState: 'PUBLISHED',
   };
+  console.log("mediaUrn",mediaUrn);
   if (mediaType === 'video' || mediaType === 'image') {
     if (mediaTitle) {
       postBody['content'] = {
         media: {
           title: mediaTitle,
-          id: mediaUrl,
+          id: mediaUrn,
         },
       };
     }
   }
 
-  console.log(postBody);
+  console.log("postbody",postBody);
   const response = await fetch('https://api.linkedin.com/rest/posts', {
     method: 'POST',
     headers: postHeaders,
@@ -265,5 +282,7 @@ export async function postMediaToLinkedIn(
   });
   console.log(response.statusText);
   console.log(response.status);
+  console.log("response headers",response.headers);
   console.log(await response.text());
 }
+

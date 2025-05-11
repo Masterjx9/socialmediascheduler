@@ -5,12 +5,12 @@ import { faLinkedin, faTwitter, faThreads, faInstagram, faYoutube, faTiktok } fr
 import TwitterLogin from './logins/TwitterLogin';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
 import { handleNewSignUp, forceUpdateAccounts, removeAccount } from '../../lib/Services/dbService';
+import { checkIfAccountsExist } from '../../lib/Services/dbService.ts';
 
 
 interface AccountsModalProps {
     isVisible: boolean;
     onClose: () => void;
-    GoogleSignin: any;  
     setIsLoginVisible: (visible: boolean) => void;
     setIsAccountsVisible: (visible: boolean) => void;
     setIsCalendarVisible: (visible: boolean) => void;
@@ -20,7 +20,6 @@ interface AccountsModalProps {
 
 const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible, 
                                                         onClose, 
-                                                        GoogleSignin, 
                                                         setIsLoginVisible,
                                                         setIsAccountsVisible,
                                                         setIsCalendarVisible,
@@ -99,7 +98,6 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
             <View style={styles.modalContainer}>
               <Text style={styles.title}>Add an Account</Text>
               <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'YouTube', 
-                                                                                            GoogleSignin: GoogleSignin,
                                                                                             setIsAccountsVisible: setIsAccountsVisible,
                                                                                             setIsNewAccountVisible: setIsNewAccountVisible,
                                                                                             setIsCalendarVisible: setIsCalendarVisible,
@@ -108,7 +106,6 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
                 <FontAwesomeIcon icon={faYoutube} size={24} /><Text style={styles.loginText}>Login with YouTube</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Instagram', 
-                                                                                            GoogleSignin: GoogleSignin,
                                                                                             setIsAccountsVisible: setIsAccountsVisible,
                                                                                             setIsNewAccountVisible: setIsNewAccountVisible,
                                                                                             setIsCalendarVisible: setIsCalendarVisible,
@@ -117,7 +114,6 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
                 <FontAwesomeIcon icon={faInstagram} size={24} /><Text style={styles.loginText}>Login with Instagram</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Threads', 
-                                                                                            GoogleSignin: GoogleSignin,
                                                                                             setIsAccountsVisible: setIsAccountsVisible,
                                                                                             setIsNewAccountVisible: setIsNewAccountVisible,
                                                                                             setIsCalendarVisible: setIsCalendarVisible,
@@ -127,7 +123,6 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'LinkedIn', 
-                                                                                            GoogleSignin: GoogleSignin,
                                                                                             setIsAccountsVisible: setIsAccountsVisible,
                                                                                             setIsNewAccountVisible: setIsNewAccountVisible,
                                                                                             setIsCalendarVisible: setIsCalendarVisible,
@@ -139,7 +134,6 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
                 <FontAwesomeIcon icon={faTwitter} size={24} /><Text style={styles.loginText}>Login with X/Twitter</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'TikTok', 
-                                                                                            GoogleSignin: GoogleSignin,
                                                                                             setIsAccountsVisible: setIsAccountsVisible,
                                                                                             setIsNewAccountVisible: setIsNewAccountVisible,
                                                                                             setIsCalendarVisible: setIsCalendarVisible,
@@ -153,7 +147,10 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
         
         <TwitterLogin
             isVisible={isTwitterLoginVisible}
-            onClose={() => setIsTwitterLoginVisible(false)}
+            onClose={() =>{ 
+                setIsTwitterLoginVisible(false)
+                
+            }}
             setAccounts={setAccounts} 
             />
 

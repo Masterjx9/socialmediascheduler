@@ -1,13 +1,12 @@
 import {fetchContentFromBeforeCurrentTime} from './dbService';
-import {postTextToTwitter} from '../Apis/twitter';
+import {postTextToTwitter, postImageToTwitter, postVideoToTwitter} from '../Apis/twitter';
 import {postMediaToLinkedIn} from '../Apis/linkedin';
 import { postToThreads, 
           createContainer, 
-          uploadContentTo0x0, 
           publishMedia,
-          deleteContentFrom0x0,
           getInstagramUserInfo,
           uploadContentToTmpFiles,
+          postImageOrVideoToThreads
         } from '../Apis/meta';
 import {fetchProviderNamesByIds} from './dbService';
 import { fetchTwitterCredentials,
@@ -53,7 +52,7 @@ export const contentCheck = async () => {
   
       for (const providerId of userProviders) {
         const providerName = providerNameMap[providerId];
-  
+        console.log('providerName:', providerName);
         switch (providerName) {
           case 'twitter':
             console.log('Posting to Twitter...');
@@ -65,6 +64,7 @@ export const contentCheck = async () => {
             }
   
             try {
+              if (content_type === "post") {
               await postTextToTwitter(
                 // content_data,
                 description,
@@ -73,6 +73,32 @@ export const contentCheck = async () => {
                 twitterCreds.accessToken,
                 twitterCreds.accessTokenSecret
               );
+            } if (content_type === 'image') {
+              const fullPath = content_data;
+              console.log("fullPath:", fullPath);
+              const fileNameFromPath = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+              console.log("fileNameFromPath:", fileNameFromPath);
+              const extension = fileNameFromPath.substring(fileNameFromPath.lastIndexOf('.') + 1).toLowerCase();
+              console.log("extension:", extension);
+              const baseName = fileNameFromPath.substring(0, fileNameFromPath.lastIndexOf('.'));
+              console.log("baseName:", baseName);
+              const shortBase = baseName.length >= 5 ? baseName.slice(-5) : baseName;
+              console.log("shortBase:", shortBase);
+              const shortName = shortBase + '.' + extension;
+              console.log("shortName:", shortName);
+              const twitterPayload = {
+                image_path: fullPath,
+                description: description,
+              }
+              await postImageToTwitter(
+                twitterPayload,
+                twitterCreds.consumerKey,
+                twitterCreds.consumerSecret,
+                twitterCreds.accessToken,
+                twitterCreds.accessTokenSecret
+              );
+
+            }
               publishedStatus[providerId] = 'success';
             } catch (error) {
               console.error(`Failed to post to Twitter for ${providerId}:`, error);
@@ -91,8 +117,27 @@ export const contentCheck = async () => {
               break;
             }
             try {
+              if (content_type === "post") {
               await postMediaToLinkedIn(linkedInCreds.appToken, null,{"description": description}, null);
-              // await postMediaToLinkedIn(linkedInCreds.appToken, null,{"description": content_data}, null);
+              }
+              if (content_type === 'image' || content_type === 'video') {
+                const fullPath = content_data;
+                const fileNameFromPath = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+                const extension = fileNameFromPath.substring(fileNameFromPath.lastIndexOf('.') + 1).toLowerCase();
+
+                const mediaType = extension === 'mp4' || extension === 'mov' ? 'video' : 'image';
+
+                const mediaPayload = {
+                  description,
+                  [`${mediaType}_path`]: fullPath
+                };
+
+                await postMediaToLinkedIn(linkedInCreds.appToken, mediaType, mediaPayload, null);
+              } else {
+                await postMediaToLinkedIn(linkedInCreds.appToken, null, { description }, null);
+              }
+
+              
               publishedStatus[providerId] = 'success';
             }
             catch (error) {
@@ -110,12 +155,42 @@ export const contentCheck = async () => {
               break;
             }
             try {
+              if (content_type === "post") {
               // const publishData = await postToThreads(threadsCreds.accessToken, content_data);
               const publishData = await postToThreads(threadsCreds.accessToken, description);
               console.log('Threads publish data:', publishData);
               if (publishData.error) {
                 throw new Error(`Error publishing to Threads: ${publishData.error}`);
               }
+            }
+             if (content_type === "image" || content_type === "video") {
+              console.log("content_data:", content_data);
+              const fullPath = content_data;
+              console.log("fullPath:", fullPath);
+              const fileNameFromPath = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+              console.log("fileNameFromPath:", fileNameFromPath);
+              const extension = fileNameFromPath.substring(fileNameFromPath.lastIndexOf('.') + 1).toLowerCase();
+              console.log("extension:", extension);
+              const baseName = fileNameFromPath.substring(0, fileNameFromPath.lastIndexOf('.'));
+              console.log("baseName:", baseName);
+              const shortBase = baseName.length >= 5 ? baseName.slice(-5) : baseName;
+              console.log("shortBase:", shortBase);
+              const shortName = shortBase + '.' + extension;
+              console.log("shortName:", shortName);
+              const uploadResponse = await uploadContentToTmpFiles(fullPath, shortName);
+              console.log("uploadResponse:", uploadResponse);
+              const publishData = await postImageOrVideoToThreads(
+                threadsCreds.accessToken,
+                extension === 'mp4' || extension === 'mov' ? 'VIDEO' : 'IMAGE',
+                uploadResponse.real_url,
+                description
+              );
+              console.log('Threads publish data:', publishData);
+              if (publishData.error) {
+                throw new Error(`Error publishing to Threads: ${publishData.error}`);
+              }
+
+             }
               publishedStatus[providerId] = 'success';
             }
             catch (error) {
@@ -140,8 +215,26 @@ export const contentCheck = async () => {
                 const info = await getInstagramUserInfo(instaCreds.accessToken)
                 console.log("info:", info);
               // const uploadResponse = await uploadContentTo0x0(content_data, "test.jpeg");
-              const uploadResponse = await uploadContentToTmpFiles(content_data, "test.jpeg")
-              
+              console.log("content_data:", content_data);
+              const fullPath = content_data;
+              console.log("fullPath:", fullPath);
+              const fileNameFromPath = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+              console.log("fileNameFromPath:", fileNameFromPath);
+              const extension = fileNameFromPath.substring(fileNameFromPath.lastIndexOf('.') + 1).toLowerCase();
+              console.log("extension:", extension);
+
+              const baseName = fileNameFromPath.substring(0, fileNameFromPath.lastIndexOf('.'));
+              console.log("baseName:", baseName);
+              const shortBase = baseName.length >= 5 ? baseName.slice(-5) : baseName;
+              console.log("shortBase:", shortBase);
+
+              const shortName = shortBase + '.' + extension;
+              console.log("shortName:", shortName);
+
+              console.log("shortName:", shortName);
+              console.log("fullPath:", fullPath);
+              const uploadResponse = await uploadContentToTmpFiles(fullPath, shortName);
+
               console.log("uploadResponse:", uploadResponse);
               if (content_type === "image") {
                 const container = await createContainer(instaCreds.accessToken, uploadResponse.real_url, instaCreds.subId, description, "IMAGE")

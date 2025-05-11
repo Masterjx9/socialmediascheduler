@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { TextInput, View, Text, TouchableOpacity, Modal, FlatList } from 'react-native';
 import styles from '../../styles/AppStyles';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
@@ -6,6 +7,10 @@ import { takePicture } from '../../lib/Helpers/cameraHelper';
 import { handleFileImport } from '../../lib/Helpers/fileHelper';
 import { copyToScheduledContent } from '../../lib/Helpers/fileHelper';
 import { validateImageSize } from '../../lib/Helpers/imageHelper';
+import type { SocialMediaAccount } from '../../types/SociaMedia';
+
+import { fetchSocialMediaAccounts } from '../../lib/Services/dbService';
+import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
 
 interface FooterNavBarProps {
     setIsAccountsVisible: React.Dispatch<React.SetStateAction<boolean>>;
@@ -23,7 +28,29 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
   setContentMode,
   setSelectedFile,
   setImageResizeNeeded
-}) => (
+}) => {
+    const [accounts, setAccounts]   = useState<SocialMediaAccount[]>([]);
+  const [isPostEnabled, setIsPostEnabled] = useState(false);
+
+  /* fetch accounts ONCE, exactly as you wrote it */
+  useEffect(() => {
+    const useEffectAsync = async () => {
+      const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+      fetchSocialMediaAccounts(db, setAccounts);               // ← untouched
+      console.log('FOOTER!!!! Social Media Accounts:', accounts);
+    };
+    useEffectAsync();
+  }, []);                                                      // ← no loop
+
+  /* whenever accounts state changes, update the button state */
+  useEffect(() => {
+    const required = ['threads', 'twitter', 'linkedin'];
+    setIsPostEnabled(
+      accounts.some(a => required.includes(a.provider_name?.toLowerCase()))
+    );
+  }, [accounts]);
+
+  return (
 <View style={styles.footerNavBar}>
     <TouchableOpacity
     style={styles.navButton}
@@ -55,27 +82,31 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
 
 
         setSelectedFile(importedFileUri);
+        setContentMode('image');
+        setIsPostVisible(true)
       }
       
-      setContentMode('image');
-      setIsPostVisible(true)
         }}
     >
     <FontAwesomeIcon icon={faFileImport} size={24} />
     <Text>Import</Text>
     </TouchableOpacity>
 
+
     <TouchableOpacity
-    style={[styles.navButton]}
+    style={[styles.navButton, !isPostEnabled && { opacity: 0.4 }]}
+    disabled={!isPostEnabled}
     onPress={async () => {
+      setImageResizeNeeded(false);
       setContentMode('post');
       setIsPostVisible(true);
     }}
-    
-    >
+  >
     <FontAwesomeIcon icon={faPen} size={24} />
     <Text>Post/Tweet</Text>
-    </TouchableOpacity>
+  </TouchableOpacity>
+
+
 
     <TouchableOpacity
     style={[styles.navButton]}
@@ -97,6 +128,7 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
     <Text>Settings</Text>
     </TouchableOpacity>
 </View>
-);
+  )
+}
 
 export default FooterNavBar;

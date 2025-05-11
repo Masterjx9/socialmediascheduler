@@ -12,11 +12,11 @@ interface PostModalProps {
   selectedDate: string;
   contentMode: string;
   imageResizeNeeded: boolean;
+  imageResizeOptions: 'portrait' | 'landscape' | 'square';
   setImageResizeOptions: React.Dispatch<React.SetStateAction<'portrait' | 'landscape' | 'square'>>;
-  
 }
 
-const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item, selectedDate, contentMode, imageResizeNeeded, setImageResizeOptions }) => {
+const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item, selectedDate, contentMode, imageResizeNeeded, setImageResizeOptions, imageResizeOptions }) => {
   const [contentDescription, setContent] = useState('');
   const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
   
@@ -156,26 +156,49 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
         <Text style={styles.title}>Create a Post</Text>
 
         {imageResizeNeeded && (
-  <View style={{ marginBottom: 20 }}>
-    <Text style={{ color: 'white', fontSize: 16, marginBottom: 10 }}>Resize Options:</Text>
-    <TouchableOpacity onPress={async () => {
-      setImageResizeOptions('portrait');
-    }}>
-      <Text style={{ color: 'lightblue', fontSize: 16 }}>Resize to 1080x1350 (4:5 portrait)</Text>
-    </TouchableOpacity>
+<View style={{ marginBottom: 20 }}>
+  <Text style={{ color: 'white', fontSize: 16, marginBottom: 10 }}>Resize Options:</Text>
 
-    <TouchableOpacity onPress={async () => {
-      setImageResizeOptions('square');
-    }}>
-      <Text style={{ color: 'lightblue', fontSize: 16, marginTop: 10 }}>Resize to 1080x1080 (1:1 square)</Text>
-    </TouchableOpacity>
+  <TouchableOpacity onPress={() => setImageResizeOptions('portrait')}>
+    <Text
+      style={{
+        fontSize: 16,
+        marginTop: 0,
+        color: imageResizeOptions === 'portrait' ? 'cyan' : 'lightblue',
+        fontWeight: imageResizeOptions === 'portrait' ? 'bold' : 'normal',
+      }}
+    >
+      Resize to 1080x1350 (4:5 portrait)
+    </Text>
+  </TouchableOpacity>
 
-    <TouchableOpacity onPress={async () => {
-      setImageResizeOptions('landscape');
-    }}>
-      <Text style={{ color: 'lightblue', fontSize: 16, marginTop: 10 }}>Resize to 1080x566 (1.91:1 landscape)</Text>
-    </TouchableOpacity>
-  </View>
+  <TouchableOpacity onPress={() => setImageResizeOptions('square')}>
+    <Text
+      style={{
+        fontSize: 16,
+        marginTop: 10,
+        color: imageResizeOptions === 'square' ? 'cyan' : 'lightblue',
+        fontWeight: imageResizeOptions === 'square' ? 'bold' : 'normal',
+      }}
+    >
+      Resize to 1080x1080 (1:1 square)
+    </Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity onPress={() => setImageResizeOptions('landscape')}>
+    <Text
+      style={{
+        fontSize: 16,
+        marginTop: 10,
+        color: imageResizeOptions === 'landscape' ? 'cyan' : 'lightblue',
+        fontWeight: imageResizeOptions === 'landscape' ? 'bold' : 'normal',
+      }}
+    >
+      Resize to 1080x566 (1.91:1 landscape)
+    </Text>
+  </TouchableOpacity>
+</View>
+
 )}
 
 

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { setupNotificationService } from './lib/Services/backgroundService.ts';
 
 
-import { View } from 'react-native';
+import { View, Text, Alert } from 'react-native';
 import styles from './styles/AppStyles';
 import RNFS from 'react-native-fs';
 import SQLite, { Transaction } from 'react-native-sqlite-storage';
@@ -11,6 +11,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import ModalsContainer from './components/App/Modals.tsx';
 import CalendarModal from './components/App/Calendar.tsx';
 import LoginModal from './components/Modals/LoginModal';
+import AccountsModal from './components/Modals/AccountsModal';
 import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
 
 
@@ -80,7 +81,6 @@ const App = () => {
               // insertFakeData(db);
               // fetchDbData(db, setDbData);
 
-              // use checkIfAccountsExist which will return a true or false to know if we setIsCalendarVisible
               let accountcheck = checkIfAccountsExist();
               accountcheck.then((result) => {
                 if (result) {
@@ -114,6 +114,7 @@ const App = () => {
                     console.log('Tables created successfully');
                     // insertFakeData(db);
                     listDirectoryContents(RNFS.DocumentDirectoryPath);
+                    setIsLoginVisible(true);
 
                   });
                 },
@@ -187,13 +188,33 @@ const App = () => {
         <>
 
           {/* login modal */}
-          <LoginModal
+          {/* <LoginModal
             isLoginVisible={isLoginVisible}
             setIsLoginVisible={setIsLoginVisible}
             setIsCalendarVisible={setIsCalendarVisible}
             isTwitterLoginVisible={isTwitterLoginVisible}
             setIsTwitterLoginVisible={setIsTwitterLoginVisible}
+          /> */}
+        <AccountsModal
+            isVisible={isLoginVisible}
+            onClose={() => {
+               let accountcheck = checkIfAccountsExist();
+              accountcheck.then((result) => {
+                if (!result) {
+                  Alert.alert('No accounts found', 'Please login to at least one account to use the app.');
+                } else {
+                  setIsLoginVisible(false);
+                }
+            });
+            }}
+            setIsAccountsVisible={setIsAccountsVisible}
+            setIsLoginVisible={setIsLoginVisible}
+            setIsCalendarVisible={setIsCalendarVisible}
+            isTwitterLoginVisible={isTwitterLoginVisible}
+            setIsTwitterLoginVisible={setIsTwitterLoginVisible}
           />
+
+
         </>
       )}
     </View>

@@ -4,6 +4,7 @@ import OAuth from 'oauth-1.0a';
 import '../../shim.js';
 import crypto from 'react-native-crypto'
 import RNFS from 'react-native-fs';
+import { Buffer } from 'buffer';  
 
 export async function getTwitterAccessToken(
     code: string,
@@ -131,7 +132,6 @@ fetch(request_data.url, {
 }
 
 
-//conver postImageToTwitter to typescript
 export async function postImageToTwitter(
     twitterPayload: any,
     twitterConsumerKey: string,
@@ -150,37 +150,45 @@ export async function postImageToTwitter(
         }
     });
 
-    // Step 1: Upload the image to Twitter
-    const fileStream = await RNFS.readFile(twitterPayload["image_path"]);
-    const files = { media: fileStream };
+console.log('reading image file');
+const base64Data = await RNFS.readFile(twitterPayload.image_path, 'base64');  
 
-    const uploadRequest = {
-        url: "https://upload.twitter.com/1.1/media/upload.json",
-        method: "POST",
-        data: files,
-    };
+const files = { media_data: base64Data };     
+// console.log("files", files);
 
-    const uploadAuthHeader = oauth.toHeader(oauth.authorize(uploadRequest, {
-        key: twitterAccessToken,
-        secret: twitterAccessTokenSecret,
-    }));
+const uploadRequest = {
+  url:   'https://upload.twitter.com/1.1/media/upload.json',
+  method:'POST',
+  data:  files                                  
+};
 
-    let response = await fetch(uploadRequest.url, {
-        method: uploadRequest.method,
-        headers: {
-            ...uploadAuthHeader,
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams(files).toString(),
-    });
+const uploadAuthHeader = oauth.toHeader(
+  oauth.authorize(uploadRequest, {
+    key:    twitterAccessToken,
+    secret: twitterAccessTokenSecret
+  })
+);
 
-    if (!response.ok) {
-        console.error("Failed to upload media:", await response.text());
-        return;
-    }
+// keep let so you can reuse the variable later
 
-    const mediaId = (await response.json()).media_id_string;
 
+let response = await fetch(uploadRequest.url, {
+  method: uploadRequest.method,
+  headers: {
+    ...uploadAuthHeader,
+    'Content-Type': 'application/x-www-form-urlencoded'
+  },
+  body: new URLSearchParams(files).toString()    // form-encode the base64 data
+});
+
+if (!response.ok) {
+  console.error('Failed to upload media:', await response.text());
+  return;
+}
+
+const mediaId = (await response.json()).media_id_string;
+
+console.log('mediaId', mediaId);
     // Step 2: Post a tweet with the uploaded media ID
     const tweetData = {
         text: twitterPayload["description"],
@@ -191,8 +199,7 @@ export async function postImageToTwitter(
 
     const tweetRequest = {
         url: "https://api.twitter.com/2/tweets",
-        method: "POST",
-        data: tweetData,
+        method: "POST"
     };
 
     const tweetAuthHeader = oauth.toHeader(oauth.authorize(tweetRequest, {
@@ -208,7 +215,7 @@ export async function postImageToTwitter(
         },
         body: JSON.stringify(tweetData),
     });
-
+    console.log("response", response);
     if (response.ok) {
         console.log("Tweet successful!");
         const jsonResponse = await response.json();

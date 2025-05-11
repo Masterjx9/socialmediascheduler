@@ -61,7 +61,6 @@ interface ModalsContainerProps {
           <AccountsModal 
             isVisible={isAccountsVisible} 
             onClose={() => setIsAccountsVisible(false)} 
-            GoogleSignin={GoogleSignin} 
             setIsLoginVisible={setIsLoginVisible} 
             setIsAccountsVisible={setIsAccountsVisible} 
             setIsCalendarVisible={setIsCalendarVisible} 
@@ -123,7 +122,7 @@ interface ModalsContainerProps {
           item={selectedItem}
           contentMode={contentMode} 
           imageResizeNeeded={imageResizeNeeded}
-
+          imageResizeOptions={imageResizeOptions}
           setImageResizeOptions={setImageResizeOptions}
         />
         
