@@ -86,6 +86,7 @@ export const createTables = (tx: Transaction) => {
     tx.executeSql(`
       CREATE TABLE IF NOT EXISTS twitter_accounts (
         ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        sub_id TEXT,
         twitter_consumer_key TEXT,
         twitter_access_token TEXT,
         twitter_access_token_secret TEXT,
@@ -583,7 +584,8 @@ export const insertProviderIdIntoDb = (providerName: string, providerUserId: str
     consumerSecret: string, 
     accessToken: string, 
     accessTokenSecret: string,
-    accountName: string) => {
+    accountName: string,
+    subId: string) => {
     return new Promise<void>((resolve, reject) => {
       const db = SQLite.openDatabase(
         { name: 'database_default.sqlite3', location: 'default' },
@@ -592,8 +594,8 @@ export const insertProviderIdIntoDb = (providerName: string, providerUserId: str
 
                 // Insert Twitter account into the twitter_accounts table
                 tx.executeSql(
-                  `INSERT INTO twitter_accounts (twitter_consumer_key, twitter_consumer_secret, twitter_access_token, twitter_access_token_secret, account_name) VALUES (?, ?, ?, ?, ?)`,
-                  [consumerKey, consumerSecret, accessToken, accessTokenSecret, accountName],
+                  `INSERT INTO twitter_accounts (twitter_consumer_key, twitter_consumer_secret, twitter_access_token, twitter_access_token_secret, account_name, sub_id) VALUES (?, ?, ?, ?, ?, ?)`,
+                  [consumerKey, consumerSecret, accessToken, accessTokenSecret, accountName, subId],
                   () => {
                     console.log('Twitter account stored in the database');
                     resolve();
@@ -814,7 +816,7 @@ export const insertInstagramAccountIntoDb = (
         console.log('Deleting Threads account with ID:', accountId);
         tx.executeSql('DELETE FROM threads_accounts WHERE sub_id = ?', [accountId]);
       } else if (accountType.toLowerCase() === 'twitter') {
-        tx.executeSql('DELETE FROM twitter_accounts WHERE ID = ?', [accountId]);
+        tx.executeSql('DELETE FROM twitter_accounts WHERE sub_id = ?', [accountId]);
       }
       console.log("test test test test")  
   

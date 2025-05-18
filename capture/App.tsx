@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-
 import { setupNotificationService } from './lib/Services/backgroundService.ts';
 
 

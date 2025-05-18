@@ -241,7 +241,7 @@ export async function createContainer(
   if (mediaType === 'IMAGE') {
     payload.image_url = mediaUrl;
   } else if (mediaType === 'REELS' || mediaType === 'VIDEO') {
-    payload.media_type = mediaType;
+    payload.media_type = 'REELS';
     payload.video_url = mediaUrl;
     if (coverUrl) {
       payload.cover_url = coverUrl;
@@ -285,7 +285,23 @@ export async function publishMedia(
   console.log("metaAccessToken", metaAccessToken);
   console.log("metaId", metaId);
   console.log("creationId", creationId);
+  let status = 'IN_PROGRESS';
+while (status === 'IN_PROGRESS') {
+  const statusRes = await fetch(
+    `https://graph.instagram.com/v19.0/${creationId}?fields=status_code&access_token=${metaAccessToken}`
+  );
+  const statusJson = await statusRes.json();
+  console.log('statusJson', statusJson);
+  status = statusJson.status_code;
+  console.log('status', status);
+  if (status === 'FINISHED') break;
+  if (status === 'ERROR' || status === 'EXPIRED') {
+    console.error('Container processing failed:', status);
+    return statusJson;
+  }
 
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+}
   const url = `https://graph.instagram.com/v19.0/${metaId}/media_publish?creation_id=${creationId}`;
 
   const response = await fetch(url, {
@@ -359,7 +375,7 @@ export async function postImageOrVideoToThreads(
 
   const containerResponse = await fetch(containerUrl, { method: 'POST' });
   const containerData = await containerResponse.json();
-
+  console.log('containerData', containerData);
   if (containerData.error) {
     console.error('Error in creating media container:', containerData);
     return containerData;
@@ -370,11 +386,12 @@ export async function postImageOrVideoToThreads(
 
   for (let i = 0; i < 6; i++) {
     const statusRes = await fetch(
-      `https://graph.threads.net/v1.0/${creationId}?fields=status_code&access_token=${threadsUserAccessToken}`
+      `https://graph.threads.net/v1.0/${creationId}?fields=id,status,error_message&access_token=${threadsUserAccessToken}`
     );
     const statusJson = await statusRes.json();
-    status = statusJson.status_code;
-
+    console.log('statusJson', statusJson);
+    status = statusJson.status;
+    console.log('status', status);
     if (status === 'FINISHED') break;
     if (status === 'ERROR' || status === 'EXPIRED') {
       console.error('Container processing failed:', status);
@@ -383,8 +400,10 @@ export async function postImageOrVideoToThreads(
 
     await new Promise((resolve) => setTimeout(resolve, 5000));
   }
+  console.log('Meta has finished processing the media:', status);
 
   const publishUrl = `https://graph.threads.net/v1.0/me/threads_publish?creation_id=${creationId}&access_token=${threadsUserAccessToken}`;
+  console.log('publishUrl', publishUrl);
   const publishResponse = await fetch(publishUrl, { method: 'POST' });
   const publishData = await publishResponse.json();
 

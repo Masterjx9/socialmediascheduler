@@ -48,7 +48,10 @@ export async function  getTwitterUserInfo(
             return crypto.createHmac('sha1', key).update(base_string).digest('base64');
         }
     });
-
+    console.log("twitterConsumerKey", twitterConsumerKey);
+    console.log("twitterConsumerSecret", twitterConsumerSecret);
+    console.log("twitterAccessToken", twitterAccessToken);
+    console.log("twitterAccessTokenSecret", twitterAccessTokenSecret);
     const request_data = {
         url: "https://api.twitter.com/2/users/me",
         method: "GET"
@@ -115,20 +118,20 @@ const authHeader = oauth.toHeader(oauth.authorize(request_data, {
 }));
 console.log("authHeader", authHeader);
 
-fetch(request_data.url, {
+const res = await fetch(request_data.url, {
     method: request_data.method,
     headers: {
         ...authHeader,
         'Content-Type': 'application/json',
     },
   body: JSON.stringify({ text: twitterPayload }),
-}).then(response => response.json())
-  .then(data => {
-      console.log("Tweet successful:", data);
-  })
-  .catch(error => {
-      console.error("Failed to tweet:", error);
-  })
+})
+if (res.ok) {
+    console.log("Tweet successful!");
+    const jsonResponse = await res.json();
+    console.log(JSON.stringify(jsonResponse, null, 4));
+}
+return res;
 }
 
 
@@ -273,17 +276,17 @@ export async function postVideoToTwitter(
         },
         body: new URLSearchParams(initData).toString(),
     });
-
+    console.log("response for init", response);
     if (!response.ok) {
         console.error("Failed to initialize video upload:", await response.text());
         return;
     }
 
     const mediaId = (await response.json()).media_id_string;
-
+    console.log("mediaId", mediaId);
     // Step 2: APPEND command
     const data = await RNFS.readFile(twitterPayload["video_path"], 'base64');
-
+    // console.log("data", data);
     const appendData = {
         command: 'APPEND',
         media_id: mediaId,
@@ -310,6 +313,7 @@ export async function postVideoToTwitter(
         },
         body: new URLSearchParams(appendData).toString(),
     });
+    console.log("response for append", response);
     if (!response.ok) {
         console.error("Failed to upload video:", await response.text());
         return;
@@ -340,7 +344,7 @@ export async function postVideoToTwitter(
         },
         body: new URLSearchParams(finalizeData).toString(),
     });
-
+    console.log("response for finalize", response);
     if (!response.ok) {
         console.error("Failed to finalize video upload:", await response.text());
         return;
@@ -385,6 +389,7 @@ while (processingInfo && processingInfo.state !== 'succeeded') {
     }
     console.log("Video processing succeeded.");
     // Step 4: Post a tweet
+    
     const tweetData = {
         text: twitterPayload["description"],
         media: {
@@ -392,26 +397,25 @@ while (processingInfo && processingInfo.state !== 'succeeded') {
         },
     };
     console.log("tweetData", tweetData);
-    const tweetRequest = {
+    const request_data = {
         url: "https://api.twitter.com/2/tweets",
         method: "POST",
-        data: tweetData,
     };
 
-    const tweetAuthHeader = oauth.toHeader(oauth.authorize(tweetRequest, {
+    const tweetAuthHeader = oauth.toHeader(oauth.authorize(request_data, {
         key: twitterAccessToken,
         secret: twitterAccessTokenSecret,
     }));
 
-    response = await fetch(tweetRequest.url, {
-        method: tweetRequest.method,
+    response = await fetch(request_data.url, {
+        method: request_data.method,
         headers: {
             ...tweetAuthHeader,
             'Content-Type': 'application/json',
         },
         body: JSON.stringify(tweetData),
     });
-
+    console.log("response for tweet", response);
     if (response.ok) {
         console.log("Tweet successful!");
         const jsonResponse = await response.json();

@@ -1,6 +1,17 @@
 import DocumentPicker, { types } from 'react-native-document-picker';
 import { PermissionsAndroid, Platform, Alert, Linking } from 'react-native';
+import { NativeModules } from 'react-native';
+const { MediaMetadataRetrieverModule } = NativeModules;
 import RNFS from 'react-native-fs';
+
+
+export const detectAudioCodec = async (uri: string) => {
+  const codec = await MediaMetadataRetrieverModule.getAudioCodec(
+    uri.replace('file://', '')
+  );
+  console.log('Audio codec:', codec);   // ==> "audio/mp4a-latm", "audio/opus", etc.
+  return codec;
+};
 export const handleFileImport = async () => {
     try {
       const res = await DocumentPicker.pick({

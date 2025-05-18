@@ -4,7 +4,8 @@ import styles from '../../styles/AppStyles';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faCamera, faPen, faUserGroup, faFileImport, faGear } from '@fortawesome/free-solid-svg-icons';
 import { takePicture } from '../../lib/Helpers/cameraHelper';
-import { handleFileImport } from '../../lib/Helpers/fileHelper';
+import { handleFileImport,detectAudioCodec } from '../../lib/Helpers/fileHelper';
+// import { handleFileImport } from '../../lib/Helpers/fileHelper';
 import { copyToScheduledContent } from '../../lib/Helpers/fileHelper';
 import { validateImageSize } from '../../lib/Helpers/imageHelper';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
@@ -77,6 +78,13 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
         if (filesSelected[0].type === 'video/mp4') {
         setContentMode('video');
         const importedFileUri = await copyToScheduledContent(originalUri, fileName!);
+        // Check the audio codec of the video
+        console.log('imported file URI:', importedFileUri);
+        const audioCodec = await detectAudioCodec(importedFileUri);
+        console.log('Audio Codec:', audioCodec);
+        // We will make logic for if the audio is not supported by twitter or another platform.
+        // Then we will alert the user to the platform and to recommend a different codec
+        
         console.log('Copied file path:', importedFileUri);
         setSelectedFile(importedFileUri);
         }
@@ -104,10 +112,10 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
       
         console.log('Copied file path:', importedFileUri);
 
-
         setSelectedFile(importedFileUri);
         setContentMode('image');
         }
+
         setIsPostVisible(true)
       }
       

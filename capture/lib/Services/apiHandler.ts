@@ -1,6 +1,6 @@
 import {fetchContentFromBeforeCurrentTime} from './dbService';
 import { uploadVideoToYouTube } from '../Apis/youtube';
-import {postTextToTwitter, postImageToTwitter, postVideoToTwitter} from '../Apis/twitter';
+import {postTextToTwitter, postImageToTwitter, postVideoToTwitter, getTwitterUserInfo} from '../Apis/twitter';
 import {postMediaToLinkedIn} from '../Apis/linkedin';
 import { postToThreads, 
           createContainer, 
@@ -63,10 +63,14 @@ export const contentCheck = async () => {
               publishedStatus[providerId] = 'failed';
               break;
             }
-  
+            // test the information by getting the user info
+            const userInfo = await getTwitterUserInfo(twitterCreds.consumerKey, twitterCreds.consumerSecret,
+              twitterCreds.accessToken, twitterCreds.accessTokenSecret
+            );
+            console.log("userInfo:", userInfo);
             try {
               if (content_type === "post") {
-              await postTextToTwitter(
+              const postData = await postTextToTwitter(
                 // content_data,
                 description,
                 twitterCreds.consumerKey,
@@ -74,6 +78,9 @@ export const contentCheck = async () => {
                 twitterCreds.accessToken,
                 twitterCreds.accessTokenSecret
               );
+              if (postData.error) {
+                throw new Error(`Error posting to Twitter: ${postData.error}`);
+              }
             } if (content_type === 'image' || content_type === 'video') {
               const fullPath = content_data;
               console.log("fullPath:", fullPath);
@@ -258,15 +265,30 @@ export const contentCheck = async () => {
               const uploadResponse = await uploadContentToTmpFiles(fullPath, shortName);
 
               console.log("uploadResponse:", uploadResponse);
+              console.log("content_type:", content_type);
+              console.log("content_type:", content_type);
+              console.log("content_type:", content_type);
+              console.log("content_type:", content_type);
               if (content_type === "image") {
                 const container = await createContainer(instaCreds.accessToken, uploadResponse.real_url, instaCreds.subId, description, "IMAGE")
                 console.log("container:", container);
                 if (container.error) {
                   throw new Error(`Error creating container on Instagram: ${container.error}`);
-                }
+                } 
                 const publishData = await publishMedia(instaCreds.accessToken, instaCreds.subId, container.id);
                 console.log('Instagram publish data:', publishData);
-              }
+              } else if ( content_type === "video") {
+                  const videoContainer = await createContainer(instaCreds.accessToken, uploadResponse.real_url, instaCreds.subId, description, "VIDEO")
+                  console.log("videoContainer:", videoContainer);
+                  if (videoContainer.error) {
+                    throw new Error(`Error creating video container on Instagram: ${videoContainer.error}`);
+                  }
+                const publishData = await publishMedia(instaCreds.accessToken, instaCreds.subId, videoContainer.id);
+                console.log('Instagram publish data:', publishData);
+                } else {
+                  console.log("content_type:", content_type);
+                  console.log("why is this not catching video");
+                }
               publishedStatus[providerId] = 'success';
               // const conentCleanUpResponse = await deleteContentFrom0x0(uploadResponse);
               // console.log("conentCleanUpResponse:", conentCleanUpResponse);

@@ -50,7 +50,8 @@ const TwitterLogin: React.FC<TwitterLoginProps> = ({ isVisible, onClose, setAcco
             consumerApiSecret,
             accessToken,
             accessTokenSecret,
-            results.data.name
+            results.data.name,
+            results.data.id,
         );
         await insertProviderIdIntoDb('twitter', results.data.id); // Store the Twitter user ID in the user_providers table
         
