@@ -14,6 +14,21 @@ import { Alert } from 'react-native';
 import { fetchSocialMediaAccounts } from '../../lib/Services/dbService';
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
 
+
+
+export const showBlockingAlert = (
+  title: string,
+  message: string,
+  buttonText: string = 'OK'
+): Promise<void> => {
+  return new Promise(resolve => {
+    Alert.alert(title, message, [{ text: buttonText, onPress: () => resolve() }], {
+      cancelable: false,
+    });
+  });
+};
+
+
 interface FooterNavBarProps {
     setIsAccountsVisible: React.Dispatch<React.SetStateAction<boolean>>;
     setIsPostVisible: React.Dispatch<React.SetStateAction<boolean>>;
@@ -21,7 +36,12 @@ interface FooterNavBarProps {
     setContentMode: React.Dispatch<React.SetStateAction<"post" | "image" | "video">>;
     setSelectedFile: React.Dispatch<React.SetStateAction<string>>;
     setImageResizeNeeded: React.Dispatch<React.SetStateAction<boolean>>;
+    contentMode: string;
+    unsupportedAudioCodec: boolean;
+    setUnsupportedAudioCodec: React.Dispatch<React.SetStateAction<boolean>>;
   }
+
+
 
 const FooterNavBar: React.FC<FooterNavBarProps> = ({ 
   setIsAccountsVisible, 
@@ -29,7 +49,9 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
   setIsSettingsVisible,
   setContentMode,
   setSelectedFile,
-  setImageResizeNeeded
+  setImageResizeNeeded,
+  contentMode,
+  setUnsupportedAudioCodec
 }) => {
     const [accounts, setAccounts]   = useState<SocialMediaAccount[]>([]);
   const [isPostEnabled, setIsPostEnabled] = useState(false);
@@ -84,6 +106,28 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
         console.log('Audio Codec:', audioCodec);
         // We will make logic for if the audio is not supported by twitter or another platform.
         // Then we will alert the user to the platform and to recommend a different codec
+        if (audioCodec && audioCodec.toLowerCase().includes('3gpp')) {
+          const onlyUnsupported = accounts.every(acc => {
+            const name = acc.provider_name.toLowerCase();
+            return name === 'twitter' || name === 'instagram' || name === 'threads';
+          });
+
+          if (onlyUnsupported) {
+            await showBlockingAlert(
+              'Unsupported Audio Codec',
+              'All connected platforms (Twitter, Instagram, Threads) do not support the 3GPP audio codec. Please use AAC audio or connect different platforms.'
+            );
+            return;
+          }
+
+          setUnsupportedAudioCodec(true);
+          await showBlockingAlert(
+            'Unsupported Audio Codec',
+            'The selected video uses the 3GPP audio codec, which is not supported by some platforms (e.g., Twitter). Please use a video with AAC audio.'
+          );
+        }
+
+
         
         console.log('Copied file path:', importedFileUri);
         setSelectedFile(importedFileUri);
@@ -131,6 +175,7 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
     disabled={!isPostEnabled}
     onPress={async () => {
       setImageResizeNeeded(false);
+      console.log("content mode:", contentMode);
       setContentMode('post');
       setIsPostVisible(true);
     }}

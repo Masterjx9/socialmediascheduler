@@ -29,6 +29,8 @@ interface ModalsContainerProps {
     setSelectedFile: React.Dispatch<React.SetStateAction<string>>;
     imageResizeOptions: "portrait" | "landscape" | "square";
     setImageResizeOptions: React.Dispatch<React.SetStateAction<"portrait" | "landscape" | "square">>;
+    unsupportedAudioCodec: boolean;
+    setUnsupportedAudioCodec: React.Dispatch<React.SetStateAction<boolean>>;
   }
 
   const ModalsContainer: React.FC<ModalsContainerProps> = ({
@@ -54,6 +56,8 @@ interface ModalsContainerProps {
     setSelectedFile,
     imageResizeOptions,
     setImageResizeOptions,
+    unsupportedAudioCodec,
+    setUnsupportedAudioCodec,
   }) => {
     return (
       <>
@@ -126,6 +130,8 @@ interface ModalsContainerProps {
           imageResizeNeeded={imageResizeNeeded}
           imageResizeOptions={imageResizeOptions}
           setImageResizeOptions={setImageResizeOptions}
+          unsupportedAudioCodec={unsupportedAudioCodec}
+          setUnsupportedAudioCodec={setUnsupportedAudioCodec}
         />
         
         <SettingsModal

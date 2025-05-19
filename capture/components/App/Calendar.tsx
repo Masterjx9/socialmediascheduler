@@ -23,7 +23,9 @@ interface CalendarModalProps {
   setContentMode: React.Dispatch<React.SetStateAction<"post" | "image" | "video">>;
   setSelectedFile: React.Dispatch<React.SetStateAction<string>>;
   setImageResizeNeeded: React.Dispatch<React.SetStateAction<boolean>>;
-  
+  contentMode: string;
+  unsupportedAudioCodec: boolean;
+  setUnsupportedAudioCodec: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
     const renderItem = ({ item }: { item: any },
@@ -92,6 +94,9 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
     setContentMode,
   setSelectedFile,
   setImageResizeNeeded,
+  contentMode,
+  unsupportedAudioCodec,
+  setUnsupportedAudioCodec,
 }) => {
   return (
     <Modal
@@ -129,6 +134,9 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
         setIsSettingsVisible={setIsSettingsVisible}
         setContentMode={setContentMode} 
         setImageResizeNeeded={setImageResizeNeeded}
+        contentMode={contentMode}
+        unsupportedAudioCodec={unsupportedAudioCodec}
+        setUnsupportedAudioCodec={setUnsupportedAudioCodec}
       />
     </Modal>
   );

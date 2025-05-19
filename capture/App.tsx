@@ -9,7 +9,6 @@ import SQLite, { Transaction } from 'react-native-sqlite-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import ModalsContainer from './components/App/Modals.tsx';
 import CalendarModal from './components/App/Calendar.tsx';
-import LoginModal from './components/Modals/LoginModal';
 import AccountsModal from './components/Modals/AccountsModal';
 import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
 
@@ -29,6 +28,7 @@ const App = () => {
   const [isImportVisible, setIsImportVisible] = useState(false);
   const [isPostVisible, setIsPostVisible] = useState(false);
   const [contentMode, setContentMode] = useState<"post" | "image" | "video">('post'); // 'post', 'image', or 'video'
+  const [unsupportedAudioCodec, setUnsupportedAudioCodec] = useState(false);
   const [selectedFile, setSelectedFile] = useState('');
   const [imageResizeNeeded, setImageResizeNeeded] = useState(false);
   const [imageResizeOptions, setImageResizeOptions] = useState<"portrait" | "square" | "landscape">('portrait'); // 'portrait', 'square', 'landscape'
@@ -165,12 +165,15 @@ const App = () => {
             setSelectedFile={setSelectedFile}
             imageResizeOptions={imageResizeOptions}
             setImageResizeOptions={setImageResizeOptions}
+            unsupportedAudioCodec={unsupportedAudioCodec}
+            setUnsupportedAudioCodec={setUnsupportedAudioCodec}
             />
           <CalendarModal
             isCalendarVisible={isCalendarVisible}
             setIsCalendarVisible={setIsCalendarVisible}
             setContentMode={setContentMode}
             onDayPress={onDayPress}
+            contentMode={contentMode}
             selectedDate={selectedDate}
             setSelectedDate={setSelectedDate}
             setDbData={setDbData}
@@ -181,19 +184,14 @@ const App = () => {
             setSelectedItem={setSelectedItem}
             setSelectedFile={setSelectedFile}
             setImageResizeNeeded={setImageResizeNeeded}
+            unsupportedAudioCodec={unsupportedAudioCodec}
+            setUnsupportedAudioCodec={setUnsupportedAudioCodec}
           />
         </>
       ) : (
         <>
 
-          {/* login modal */}
-          {/* <LoginModal
-            isLoginVisible={isLoginVisible}
-            setIsLoginVisible={setIsLoginVisible}
-            setIsCalendarVisible={setIsCalendarVisible}
-            isTwitterLoginVisible={isTwitterLoginVisible}
-            setIsTwitterLoginVisible={setIsTwitterLoginVisible}
-          /> */}
+
         <AccountsModal
             isVisible={isLoginVisible}
             onClose={() => {

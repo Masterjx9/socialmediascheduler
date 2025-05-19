@@ -14,9 +14,11 @@ interface PostModalProps {
   imageResizeNeeded: boolean;
   imageResizeOptions: 'portrait' | 'landscape' | 'square';
   setImageResizeOptions: React.Dispatch<React.SetStateAction<'portrait' | 'landscape' | 'square'>>;
+  unsupportedAudioCodec: boolean;
+  setUnsupportedAudioCodec: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item, selectedDate, contentMode, imageResizeNeeded, setImageResizeOptions, imageResizeOptions }) => {
+const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item, selectedDate, contentMode, imageResizeNeeded, setImageResizeOptions, imageResizeOptions, unsupportedAudioCodec }) => {
   const [contentDescription, setContent] = useState('');
   const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
   
@@ -41,6 +43,31 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
   };
   
 
+  useEffect(() => {
+  if (isVisible) {
+    console.log('Modal opened — content mode:', contentMode);
+    if (contentMode === 'post') {
+        // remove Instagram, YouTube, and TikTok accounts from selectedAccounts
+        setSelectedAccounts((prev) => prev.filter((id) => {
+            const account = accounts.find(acc => acc.provider_user_id.toString() === id);
+            return account && account.provider_name.toLowerCase() !== 'instagram' && account.provider_name.toLowerCase() !== 'youtube' && account.provider_name.toLowerCase() !== 'tiktok';
+        }));
+      }
+    if (contentMode === 'video') {
+      // We will check if unsupportedAudioCodec is true
+      // if so we will remove twitter, instagram, and threads
+
+      if (unsupportedAudioCodec) {
+        setSelectedAccounts((prev) => prev.filter((id) => {
+          const account = accounts.find(acc => acc.provider_user_id.toString() === id);
+          return account && account.provider_name.toLowerCase() !== 'twitter' && account.provider_name.toLowerCase() !== 'instagram' && account.provider_name.toLowerCase() !== 'threads';
+        }));
+      }
+    }
+  }
+}, [isVisible, contentMode]);
+
+
 
   useEffect(() => {
     const useEffectAsync = async () => {
@@ -54,7 +81,10 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
           try {
             const parsed = JSON.parse(item.user_providers);
             if (Array.isArray(parsed)) {
+
               setSelectedAccounts(parsed.map(String));
+      
+
             } else {
               setSelectedAccounts([]);
             }
@@ -80,7 +110,7 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
     };
 
     useEffectAsync();
-  }, [item, selectedDate]);
+  }, [item, selectedDate, contentMode]);
 
   useEffect(() => {
     if (!item && accounts.length > 0) {
@@ -132,45 +162,39 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
 
 {showAccountList && (
   <View style={{ backgroundColor: '#fff', borderRadius: 5, padding: 10, marginBottom: 20 }}>
-    {
-  accounts
-    .filter(account => 
-      contentMode === 'post' ? 
-        account.provider_name.toLocaleLowerCase() !== 'instagram' &&
-        account.provider_name.toLocaleLowerCase() !== 'youtube' &&
-        account.provider_name.toLocaleLowerCase() !== 'tiktok'
-        : true
-    )
-    .map(account => {
-      const lowerName = account.provider_name.toLowerCase();
+  {
+    accounts
+        .filter(account => {
+          const lowerName = account.provider_name.toLowerCase();
 
-      const isExcluded = 
-        (contentMode === 'post' &&
-          ['instagram', 'youtube', 'tiktok'].includes(lowerName)) ||
-        (contentMode === 'image' &&
-          ['youtube'].includes(lowerName));
+          if (contentMode === 'post') {
+            return lowerName !== 'instagram' &&
+                  lowerName !== 'youtube' &&
+                  lowerName !== 'tiktok';
+          }
 
-      console.log('Account:', lowerName, 'Excluded:', isExcluded);
+          if (contentMode === 'video' && unsupportedAudioCodec) {
+            return lowerName !== 'twitter' &&
+                  lowerName !== 'instagram' &&
+                  lowerName !== 'threads';
+          }
 
-      if (isExcluded && selectedAccounts.includes(account.provider_user_id.toString())) {
-        toggleAccountSelection(account.provider_user_id.toString());
-      }
-
-      if (isExcluded) return null;
-
-      return (
-      <TouchableOpacity
-        key={account.provider_user_id}
-        style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 5 }}
-        onPress={() => toggleAccountSelection(account.provider_user_id.toString())}
-      >
-        <View style={{
-          width: 20, height: 20, marginRight: 10, borderRadius: 3,
-          borderWidth: 1, borderColor: '#000', backgroundColor: selectedAccounts.includes(account.provider_user_id.toString()) ? '#1DA1F2' : '#fff'
-        }} />
-        <Text>{account.provider_name}</Text>
-      </TouchableOpacity>
-    )})}
+          return true;
+        })
+        .map(account => (
+        <TouchableOpacity
+          key={account.provider_user_id}
+          style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 5 }}
+          onPress={() => toggleAccountSelection(account.provider_user_id.toString())}
+        >
+          <View style={{
+            width: 20, height: 20, marginRight: 10, borderRadius: 3,
+            borderWidth: 1, borderColor: '#000', backgroundColor: selectedAccounts.includes(account.provider_user_id.toString()) ? '#1DA1F2' : '#fff'
+          }} />
+          <Text>{account.provider_name}</Text>
+        </TouchableOpacity>
+      ))
+  }
   
   </View>
 )}
