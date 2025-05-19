@@ -104,7 +104,7 @@ export async function getGoogleAccessToken({
   videoPath: string,
   title: string,
   description: string,
-  categoryId = '22',                       // default = “People & Blogs”
+  categoryId = '22',          
   privacyStatus: 'private' | 'public' | 'unlisted' = 'private',
 ) {
   /* STEP 1 – start a resumable-upload session */
@@ -119,7 +119,8 @@ export async function getGoogleAccessToken({
         'X-Upload-Content-Type': 'video/mp4',
       },
       body: JSON.stringify({
-        snippet: { title, description, categoryId },
+        // snippet: { title, description, categoryId },
+        snippet: { title, description },
         status:  { privacyStatus },
       }),
     },

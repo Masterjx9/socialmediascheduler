@@ -32,7 +32,7 @@ export const contentCheck = async () => {
   // If the credentials are valid, we post to the social media account using the content.content_data.
 
   for (const content of contentData) {
-    const {content_type, content_id, content_data, description} = content;
+    const {content_type, content_id, content_data, description, title, privacy} = content;
   
     const userProviders = JSON.parse(
       content.user_providers || '[]',
@@ -327,8 +327,10 @@ export const contentCheck = async () => {
                 const videoResult = await uploadVideoToYouTube(
                   youtubeCreds.accessToken,
                   fullPath,
-                  description || fileNameFromPath,   // title fallback
-                  description || ''                  // description
+                  title || fileNameFromPath,   // title fallback
+                  description || '',
+                  undefined,
+                  privacy || 'private'
                 );
                 console.log('YouTube upload result:', videoResult);
 

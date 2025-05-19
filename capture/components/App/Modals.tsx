@@ -31,6 +31,10 @@ interface ModalsContainerProps {
     setImageResizeOptions: React.Dispatch<React.SetStateAction<"portrait" | "landscape" | "square">>;
     unsupportedAudioCodec: boolean;
     setUnsupportedAudioCodec: React.Dispatch<React.SetStateAction<boolean>>;
+    youtubeTitle: string;
+    setYoutubeTitle: React.Dispatch<React.SetStateAction<string>>;
+    youtubePrivacy: 'public' | 'private' | 'unlisted';
+    setYoutubePrivacy: React.Dispatch<React.SetStateAction<'public' | 'private' | 'unlisted'>>;
   }
 
   const ModalsContainer: React.FC<ModalsContainerProps> = ({
@@ -58,6 +62,10 @@ interface ModalsContainerProps {
     setImageResizeOptions,
     unsupportedAudioCodec,
     setUnsupportedAudioCodec,
+    youtubeTitle,
+    setYoutubeTitle,
+    youtubePrivacy,
+    setYoutubePrivacy,
   }) => {
     return (
       <>
@@ -121,7 +129,7 @@ interface ModalsContainerProps {
                 }
               }
               console.log('Final file to be posted:', finalFile);
-              await handlePost(contentMode, finalFile, contentDescription, unixTimestamp, setDbData, setIsPostVisible, setSelectedItem, content_id, user_providers)
+              await handlePost(contentMode, finalFile, contentDescription, unixTimestamp, setDbData, setIsPostVisible, setSelectedItem, content_id, user_providers, youtubeTitle, youtubePrivacy);
             }
           }
           selectedDate={selectedDate}
@@ -132,6 +140,10 @@ interface ModalsContainerProps {
           setImageResizeOptions={setImageResizeOptions}
           unsupportedAudioCodec={unsupportedAudioCodec}
           setUnsupportedAudioCodec={setUnsupportedAudioCodec}
+          youtubeTitle={youtubeTitle}
+          setYoutubeTitle={setYoutubeTitle}
+          youtubePrivacy={youtubePrivacy}
+          setYoutubePrivacy={setYoutubePrivacy}
         />
         
         <SettingsModal

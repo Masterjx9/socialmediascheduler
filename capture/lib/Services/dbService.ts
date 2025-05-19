@@ -53,6 +53,8 @@ export const createTables = (tx: Transaction) => {
         description TEXT,
         user_providers TEXT,
         tags TEXT,
+        title TEXT,
+        privacy TEXT,
         published TEXT NOT NULL DEFAULT '{}'
       );
     `);

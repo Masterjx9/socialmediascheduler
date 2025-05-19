@@ -36,6 +36,8 @@ const App = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [dbData, setDbData] = useState<any[]>([]);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [youtubeTitle, setYoutubeTitle] = useState('');
+  const [youtubePrivacy, setYoutubePrivacy] = useState<'public' | 'private' | 'unlisted'>('public');
 
   
   // In the useEffect:
@@ -167,6 +169,10 @@ const App = () => {
             setImageResizeOptions={setImageResizeOptions}
             unsupportedAudioCodec={unsupportedAudioCodec}
             setUnsupportedAudioCodec={setUnsupportedAudioCodec}
+            youtubeTitle={youtubeTitle}
+            setYoutubeTitle={setYoutubeTitle}
+            youtubePrivacy={youtubePrivacy}
+            setYoutubePrivacy={setYoutubePrivacy}
             />
           <CalendarModal
             isCalendarVisible={isCalendarVisible}
@@ -186,6 +192,10 @@ const App = () => {
             setImageResizeNeeded={setImageResizeNeeded}
             unsupportedAudioCodec={unsupportedAudioCodec}
             setUnsupportedAudioCodec={setUnsupportedAudioCodec}
+            youtubeTitle={youtubeTitle}
+            setYoutubeTitle={setYoutubeTitle}
+            youtubePrivacy={youtubePrivacy}
+            setYoutubePrivacy={setYoutubePrivacy}
           />
         </>
       ) : (

@@ -26,6 +26,10 @@ interface CalendarModalProps {
   contentMode: string;
   unsupportedAudioCodec: boolean;
   setUnsupportedAudioCodec: React.Dispatch<React.SetStateAction<boolean>>;
+  youtubeTitle: string;
+  setYoutubeTitle: React.Dispatch<React.SetStateAction<string>>;
+  youtubePrivacy: 'public' | 'private' | 'unlisted';
+  setYoutubePrivacy: React.Dispatch<React.SetStateAction<'public' | 'private' | 'unlisted'>>;
 }
 
     const renderItem = ({ item }: { item: any },
@@ -97,6 +101,10 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
   contentMode,
   unsupportedAudioCodec,
   setUnsupportedAudioCodec,
+  youtubeTitle,
+  setYoutubeTitle,
+  youtubePrivacy,
+  setYoutubePrivacy,
 }) => {
   return (
     <Modal

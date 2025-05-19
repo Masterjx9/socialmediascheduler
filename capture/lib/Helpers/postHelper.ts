@@ -11,6 +11,8 @@ export const handlePost = async (
     setSelectedItem: React.Dispatch<React.SetStateAction<any>>,
     content_id?: number,
     user_providers?: string[],
+    youtubeTitle?: string,
+    youtubePrivacy?: string,
 ) => {
     console.log('Content type:', content_type);
     console.log('Content data:', content_data);
@@ -39,8 +41,8 @@ export const handlePost = async (
         );
       } else {
           tx.executeSql(
-            `INSERT INTO content (content_type, content_data, description, user_providers, post_date, published) VALUES (?, ?, ?, ?, ?, ?)`,
-            [content_type, content_data, contentDescription, JSON.stringify(user_providers), unixTimestamp, {}],
+            `INSERT INTO content (content_type, content_data, description, user_providers, post_date, title, privacy, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [content_type, content_data, contentDescription, JSON.stringify(user_providers), unixTimestamp, youtubeTitle, youtubePrivacy, {}],
             (_, result) => {
               console.log('Post saved to the database');
               console.log('Post ID:', result.insertId);

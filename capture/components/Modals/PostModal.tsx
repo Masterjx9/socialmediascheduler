@@ -16,9 +16,27 @@ interface PostModalProps {
   setImageResizeOptions: React.Dispatch<React.SetStateAction<'portrait' | 'landscape' | 'square'>>;
   unsupportedAudioCodec: boolean;
   setUnsupportedAudioCodec: React.Dispatch<React.SetStateAction<boolean>>;
+  youtubeTitle: string;
+  setYoutubeTitle: React.Dispatch<React.SetStateAction<string>>;
+  youtubePrivacy: 'public' | 'private' | 'unlisted';
+  setYoutubePrivacy: React.Dispatch<React.SetStateAction<'public' | 'private' | 'unlisted'>>;
 }
 
-const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item, selectedDate, contentMode, imageResizeNeeded, setImageResizeOptions, imageResizeOptions, unsupportedAudioCodec }) => {
+const PostModal: React.FC<PostModalProps> = ({ isVisible, 
+                                                onClose, 
+                                                onPost, 
+                                                item, 
+                                                selectedDate, 
+                                                contentMode, 
+                                                imageResizeNeeded, 
+                                                setImageResizeOptions, 
+                                                imageResizeOptions, 
+                                                unsupportedAudioCodec, 
+                                                youtubeTitle, 
+                                                setYoutubeTitle,
+                                                youtubePrivacy,
+                                                setYoutubePrivacy,
+                                               }) => {
   const [contentDescription, setContent] = useState('');
   const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
   
@@ -27,6 +45,8 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
   const [isTimePickerVisible, setIsTimePickerVisible] = useState(false); 
   const [showAccountList, setShowAccountList] = useState(false);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
+// const [youtubeTitle, setYoutubeTitle] = useState('');
+// const [youtubePrivacy, setYoutubePrivacy] = useState<'public' | 'private' | 'unlisted'>('public');
 
   const toggleAccountSelection = (id: string) => {
     setSelectedAccounts((prev) => {
@@ -126,7 +146,7 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
 
       // Convert to Unix time
       const unixTimestamp = Math.floor(fullDateTime.getTime() / 1000);
-
+      console.log(item);
       onPost(contentDescription, unixTimestamp, item?.content_id, selectedAccounts); 
       setContent('');
       setSelectedTime(null);
@@ -203,6 +223,70 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
       <View style={styles.modalContainer}>
         <Text style={styles.title}>Create a Post</Text>
 
+        {/* if one of the accounts selected is youtube then show title and privacy */}
+
+{selectedAccounts.some(id => {
+  const account = accounts.find(acc => acc.provider_user_id.toString() === id);
+  return account && account.provider_name.toLowerCase() === 'youtube';
+}
+) && (
+
+  
+  <View style={{ marginBottom: 20 }}>
+
+     {/* Title for youtube */}
+    <TextInput
+      style={styles.textInput}
+      placeholder="YouTube Title"
+      value={youtubeTitle}
+      onChangeText={setYoutubeTitle}
+    />
+
+    {/* Privacy options for youtube */}
+    <Text style={{ color: 'white', fontSize: 16, marginBottom: 10 }}>YouTube Privacy:</Text>
+    <TouchableOpacity onPress={() => setYoutubePrivacy('private')}>
+      <Text
+        style={{
+          fontSize: 16,
+          marginTop: 0,
+          color: youtubePrivacy === 'private' ? 'cyan' : 'lightblue',
+          fontWeight: youtubePrivacy === 'private' ? 'bold' : 'normal',
+        }}
+      >
+        Private
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity onPress={() => setYoutubePrivacy('unlisted')}>
+      <Text
+        style={{
+          fontSize: 16,
+          marginTop: 10,
+          color: youtubePrivacy === 'unlisted' ? 'cyan' : 'lightblue',
+          fontWeight: youtubePrivacy === 'unlisted' ? 'bold' : 'normal',
+        }}
+      >
+        Unlisted
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity onPress={() => setYoutubePrivacy('public')}>
+      <Text
+        style={{
+          fontSize: 16,
+          marginTop: 10,
+          color: youtubePrivacy === 'public' ? 'cyan' : 'lightblue',
+          fontWeight: youtubePrivacy === 'public' ? 'bold' : 'normal',
+        }}
+      >
+        Public
+      </Text>
+    </TouchableOpacity>
+
+
+   
+  </View>
+)}
+
+
         {imageResizeNeeded && contentMode === 'image' && (
 <View style={{ marginBottom: 20 }}>
   <Text style={{ color: 'white', fontSize: 16, marginBottom: 10 }}>Resize Options:</Text>
@@ -248,6 +332,11 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible, onClose, onPost, item,
 </View>
 
 )}
+
+
+
+
+
 
 
         <TextInput
