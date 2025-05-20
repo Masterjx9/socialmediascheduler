@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { setupNotificationService } from './lib/Services/backgroundService.ts';
+import type { SocialMediaAccount } from './types/SociaMedia';
 
 
 import { View, Text, Alert } from 'react-native';
@@ -38,6 +39,7 @@ const App = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [youtubeTitle, setYoutubeTitle] = useState('');
   const [youtubePrivacy, setYoutubePrivacy] = useState<'public' | 'private' | 'unlisted'>('public');
+  const [accounts, setAccounts]   = useState<SocialMediaAccount[]>([]);
 
   
   // In the useEffect:
@@ -173,6 +175,8 @@ const App = () => {
             setYoutubeTitle={setYoutubeTitle}
             youtubePrivacy={youtubePrivacy}
             setYoutubePrivacy={setYoutubePrivacy}
+            accounts={accounts}
+            setAccounts={setAccounts}
             />
           <CalendarModal
             isCalendarVisible={isCalendarVisible}
@@ -196,6 +200,8 @@ const App = () => {
             setYoutubeTitle={setYoutubeTitle}
             youtubePrivacy={youtubePrivacy}
             setYoutubePrivacy={setYoutubePrivacy}
+            accounts={accounts}
+            setAccounts={setAccounts}
           />
         </>
       ) : (
@@ -219,6 +225,8 @@ const App = () => {
             setIsCalendarVisible={setIsCalendarVisible}
             isTwitterLoginVisible={isTwitterLoginVisible}
             setIsTwitterLoginVisible={setIsTwitterLoginVisible}
+            accounts={accounts}
+            setAccounts={setAccounts}
           />
 
 

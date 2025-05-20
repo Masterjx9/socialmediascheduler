@@ -7,6 +7,7 @@ import { fetchDbData } from '../../lib/Services/dbService';
 import { Calendar } from 'react-native-calendars';
 import FooterNavBar from './FooterNavBar';
 import styles from '../../styles/AppStyles';
+import type { SocialMediaAccount } from '../../types/SociaMedia';
 
 interface CalendarModalProps {
   isCalendarVisible: boolean;
@@ -30,6 +31,8 @@ interface CalendarModalProps {
   setYoutubeTitle: React.Dispatch<React.SetStateAction<string>>;
   youtubePrivacy: 'public' | 'private' | 'unlisted';
   setYoutubePrivacy: React.Dispatch<React.SetStateAction<'public' | 'private' | 'unlisted'>>;
+  accounts: SocialMediaAccount[];
+  setAccounts: React.Dispatch<React.SetStateAction<SocialMediaAccount[]>>;
 }
 
     const renderItem = ({ item }: { item: any },
@@ -105,6 +108,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
   setYoutubeTitle,
   youtubePrivacy,
   setYoutubePrivacy,
+  accounts,
+  setAccounts,
 }) => {
   return (
     <Modal
@@ -145,6 +150,8 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
         contentMode={contentMode}
         unsupportedAudioCodec={unsupportedAudioCodec}
         setUnsupportedAudioCodec={setUnsupportedAudioCodec}
+        accounts={accounts}
+        setAccounts={setAccounts}
       />
     </Modal>
   );

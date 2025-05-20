@@ -16,6 +16,8 @@ interface AccountsModalProps {
     setIsCalendarVisible: (visible: boolean) => void;
     isTwitterLoginVisible: boolean;
     setIsTwitterLoginVisible: React.Dispatch<React.SetStateAction<boolean>>;
+    accounts: SocialMediaAccount[];
+    setAccounts: React.Dispatch<React.SetStateAction<SocialMediaAccount[]>>;
 }
 
 const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible, 
@@ -24,11 +26,11 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
                                                         setIsAccountsVisible,
                                                         setIsCalendarVisible,
                                                         isTwitterLoginVisible,
-                                                        setIsTwitterLoginVisible
-                                        
-                                                    
+                                                        setIsTwitterLoginVisible,
+                                                        accounts,
+                                                        setAccounts,
                                                     }) => {
-    const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
+    // const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
     const [isNewAccountVisible, setIsNewAccountVisible] = useState(false);
 
 

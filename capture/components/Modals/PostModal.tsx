@@ -20,6 +20,8 @@ interface PostModalProps {
   setYoutubeTitle: React.Dispatch<React.SetStateAction<string>>;
   youtubePrivacy: 'public' | 'private' | 'unlisted';
   setYoutubePrivacy: React.Dispatch<React.SetStateAction<'public' | 'private' | 'unlisted'>>;
+  accounts: SocialMediaAccount[];
+  setAccounts: React.Dispatch<React.SetStateAction<SocialMediaAccount[]>>;
 }
 
 const PostModal: React.FC<PostModalProps> = ({ isVisible, 
@@ -36,9 +38,11 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
                                                 setYoutubeTitle,
                                                 youtubePrivacy,
                                                 setYoutubePrivacy,
+                                                accounts,
+                                                setAccounts,
                                                }) => {
   const [contentDescription, setContent] = useState('');
-  const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
+  // const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
   
   const [selectedTime, setSelectedTime] = useState<Date | null>(null); 
   const [localSelectedDate, setLocalSelectedDate] = useState(selectedDate);
@@ -65,27 +69,34 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
 
   useEffect(() => {
   if (isVisible) {
-    console.log('Modal opened — content mode:', contentMode);
-    if (contentMode === 'post') {
-        // remove Instagram, YouTube, and TikTok accounts from selectedAccounts
-        setSelectedAccounts((prev) => prev.filter((id) => {
-            const account = accounts.find(acc => acc.provider_user_id.toString() === id);
-            return account && account.provider_name.toLowerCase() !== 'instagram' && account.provider_name.toLowerCase() !== 'youtube' && account.provider_name.toLowerCase() !== 'tiktok';
-        }));
-      }
-    if (contentMode === 'video') {
-      // We will check if unsupportedAudioCodec is true
-      // if so we will remove twitter, instagram, and threads
+   if (accounts.length === 0 || item) return;
 
-      if (unsupportedAudioCodec) {
-        setSelectedAccounts((prev) => prev.filter((id) => {
-          const account = accounts.find(acc => acc.provider_user_id.toString() === id);
-          return account && account.provider_name.toLowerCase() !== 'twitter' && account.provider_name.toLowerCase() !== 'instagram' && account.provider_name.toLowerCase() !== 'threads';
-        }));
-      }
-    }
+  let ids = accounts.map(acc => acc.provider_user_id.toString());
+
+  if (contentMode === 'post') {
+    ids = ids.filter(id => {
+      const a = accounts.find(x => x.provider_user_id.toString() === id);
+      return a && !['instagram', 'youtube', 'tiktok'].includes(a.provider_name.toLowerCase());
+    });
   }
-}, [isVisible, contentMode]);
+
+  if (contentMode === 'image') {
+    ids = ids.filter(id => {
+      const a = accounts.find(x => x.provider_user_id.toString() === id);
+      return a && a.provider_name.toLowerCase() !== 'youtube';
+    });
+  }
+
+  if (contentMode === 'video' && unsupportedAudioCodec) {
+    ids = ids.filter(id => {
+      const a = accounts.find(x => x.provider_user_id.toString() === id);
+      return a && !['twitter', 'instagram', 'threads'].includes(a.provider_name.toLowerCase());
+    });
+  }
+
+  setSelectedAccounts(ids);
+  }
+}, [isVisible, contentMode, unsupportedAudioCodec, accounts]);
 
 
 
@@ -130,14 +141,9 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
     };
 
     useEffectAsync();
-  }, [item, selectedDate, contentMode]);
+  }, [item, selectedDate, contentMode, isVisible]);
 
-  useEffect(() => {
-    if (!item && accounts.length > 0) {
-      setSelectedAccounts(accounts.map(acc => acc.provider_user_id.toString()));
-    }
-  }, [accounts, item]);
-
+ 
   const handlePost = () => {
     if (contentDescription.trim() && selectedTime && selectedDate && selectedAccounts.length > 0) {
       // Combine selectedDate and selectedTime to create full timestamp
@@ -191,6 +197,9 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
             return lowerName !== 'instagram' &&
                   lowerName !== 'youtube' &&
                   lowerName !== 'tiktok';
+          }
+          if (contentMode === 'image') {
+            return lowerName !== 'youtube';
           }
 
           if (contentMode === 'video' && unsupportedAudioCodec) {

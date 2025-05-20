@@ -5,6 +5,7 @@ import { logOutALL } from '../../lib/Services/authService';
 import { handlePost } from '../../lib/Helpers/postHelper';
 import ImageResizer from '@bam.tech/react-native-image-resizer';
 import React from 'react';
+import type { SocialMediaAccount } from '../../types/SociaMedia';
 
 interface ModalsContainerProps {
     GoogleSignin: any;
@@ -35,6 +36,8 @@ interface ModalsContainerProps {
     setYoutubeTitle: React.Dispatch<React.SetStateAction<string>>;
     youtubePrivacy: 'public' | 'private' | 'unlisted';
     setYoutubePrivacy: React.Dispatch<React.SetStateAction<'public' | 'private' | 'unlisted'>>;
+    accounts: SocialMediaAccount[];
+    setAccounts: React.Dispatch<React.SetStateAction<SocialMediaAccount[]>>;
   }
 
   const ModalsContainer: React.FC<ModalsContainerProps> = ({
@@ -66,6 +69,8 @@ interface ModalsContainerProps {
     setYoutubeTitle,
     youtubePrivacy,
     setYoutubePrivacy,
+    accounts,
+    setAccounts,
   }) => {
     return (
       <>
@@ -78,7 +83,8 @@ interface ModalsContainerProps {
             setIsCalendarVisible={setIsCalendarVisible} 
             isTwitterLoginVisible={isTwitterLoginVisible}
             setIsTwitterLoginVisible={setIsTwitterLoginVisible}
-
+            accounts={accounts}
+            setAccounts={setAccounts}
           />
 
         <PostModal
@@ -144,6 +150,8 @@ interface ModalsContainerProps {
           setYoutubeTitle={setYoutubeTitle}
           youtubePrivacy={youtubePrivacy}
           setYoutubePrivacy={setYoutubePrivacy}
+          accounts={accounts}
+          setAccounts={setAccounts}
         />
         
         <SettingsModal

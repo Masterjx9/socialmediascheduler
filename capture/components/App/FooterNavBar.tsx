@@ -39,6 +39,8 @@ interface FooterNavBarProps {
     contentMode: string;
     unsupportedAudioCodec: boolean;
     setUnsupportedAudioCodec: React.Dispatch<React.SetStateAction<boolean>>;
+    accounts: SocialMediaAccount[];
+    setAccounts: React.Dispatch<React.SetStateAction<SocialMediaAccount[]>>;
   }
 
 
@@ -51,9 +53,11 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
   setSelectedFile,
   setImageResizeNeeded,
   contentMode,
-  setUnsupportedAudioCodec
+  setUnsupportedAudioCodec,
+  accounts,
+  setAccounts
 }) => {
-    const [accounts, setAccounts]   = useState<SocialMediaAccount[]>([]);
+    // const [accounts, setAccounts]   = useState<SocialMediaAccount[]>([]);
   const [isPostEnabled, setIsPostEnabled] = useState(false);
 
   /* fetch accounts ONCE, exactly as you wrote it */
@@ -145,6 +149,8 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
             );
 
             return;
+          } else {
+            console.log("TEST accounts:", accounts);
           }
         // Check if the file is an image and needs resizing for instagram requirements
         console.log('Original file URI:', originalUri);
