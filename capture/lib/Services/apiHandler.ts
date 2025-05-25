@@ -1,5 +1,12 @@
-import {fetchContentFromBeforeCurrentTime} from './dbService';
-import { uploadVideoToYouTube } from '../Apis/youtube';
+import {fetchContentFromBeforeCurrentTime,
+  insertThreadsAccountIntoDb,
+  insertInstagramAccountIntoDb,
+  insertYoutubeAccountIntoDb,
+  insertLinkedInAccountIntoDb
+} from './dbService';
+import { uploadVideoToYouTube,
+          getGoogleAccessToken,
+ } from '../Apis/youtube';
 import {postTextToTwitter, postImageToTwitter, postVideoToTwitter, getTwitterUserInfo} from '../Apis/twitter';
 import {postMediaToLinkedIn} from '../Apis/linkedin';
 import { postToThreads, 
@@ -7,7 +14,9 @@ import { postToThreads,
           publishMedia,
           getInstagramUserInfo,
           uploadContentToTmpFiles,
-          postImageOrVideoToThreads
+          postImageOrVideoToThreads,
+          getInstagramAccessToken,
+          getThreadsAccessToken
         } from '../Apis/meta';
 import {fetchProviderNamesByIds} from './dbService';
 import { fetchTwitterCredentials,
@@ -183,6 +192,27 @@ export const contentCheck = async () => {
               publishedStatus[providerId] = 'failed';
               break;
             }
+            console.log("threadsCreds:", threadsCreds);
+            // attempt to update the refresh token before posting
+            const threadsRT = await getThreadsAccessToken({
+              grant_type: "th_refresh_token",
+              access_token: threadsCreds.accessToken,
+            })
+            if (threadsRT.error) {
+              console.warn(`Error updating Threads access token for providerId: ${providerId}`);
+              publishedStatus[providerId] = 'failed';
+              break;
+            }
+
+            await insertThreadsAccountIntoDb(
+              "update",
+              threadsCreds.subId,
+              threadsRT.access_token,
+              threadsRT.expires_in,
+              new Date().toISOString(),
+              threadsCreds.accountName
+            )
+              
             try {
               if (content_type === "post") {
               // const publishData = await postToThreads(threadsCreds.accessToken, content_data);
@@ -239,6 +269,25 @@ export const contentCheck = async () => {
                 break;
               }
               console.log("instaCreds:", instaCreds);
+              // attempt to update the refresh token before posting
+              const instaRT = await getInstagramAccessToken({
+                grant_type: "ig_refresh_token",
+                access_token: instaCreds.accessToken,
+              })
+              if (instaRT.error) {
+                console.warn(`Error updating Instagram access token for providerId: ${providerId}`);
+                publishedStatus[providerId] = 'failed';
+                break;
+              }
+
+              await insertInstagramAccountIntoDb(
+                "update",
+                instaCreds.subId,
+                instaRT.access_token,
+                instaRT.expires_in,
+                new Date().toISOString(),
+                instaCreds.accountName
+              )
               try {
                 // test to see if instagram endpoint works
                 const info = await getInstagramUserInfo(instaCreds.accessToken)
@@ -307,6 +356,26 @@ export const contentCheck = async () => {
               publishedStatus[providerId] = 'failed';
               break;
             }  
+            console.log("youtubeCreds:", youtubeCreds);
+            // attempt to update the refresh token before posting
+            const youtubeRT = await getGoogleAccessToken({
+              grant_type: "refresh_token",
+              access_token: youtubeCreds.accessToken,
+            })
+            if (youtubeRT.error) {
+              console.warn(`Error updating YouTube access token for providerId: ${providerId}`);
+              publishedStatus[providerId] = 'failed';
+              break;
+            }
+
+            await insertYoutubeAccountIntoDb(
+              "update",
+              youtubeCreds.subId,
+              youtubeRT.access_token,
+              youtubeRT.expires_in,
+              new Date().toISOString(),
+              youtubeCreds.accountName
+            )
             try {
               if (content_type === "post" || content_type === "image") {
                 console.log("This should never ever happen ever");

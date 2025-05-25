@@ -24,8 +24,8 @@ const googleRedirectUri = 'https://masterjx9.github.io/socialmediascheduler/link
 export const googleClientSecret = GOOGLE_WEB_CLIENT_SECRET;
 
 export async function openGoogleLogin() {
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${googleRedirectUri}&response_type=code&scope=https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly
- https://www.googleapis.com/auth/youtube&access_type=offline`;
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${googleRedirectUri}&response_type=code&access_type=offline&prompt=consent&scope=https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly
+ https://www.googleapis.com/auth/youtube`;
     console.log("Google Auth URL: ", authUrl);
     Linking.openURL(authUrl);
 }

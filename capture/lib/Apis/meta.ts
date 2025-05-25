@@ -69,7 +69,7 @@ export async function getInstagramAccessToken({
   code,
   access_token,
 }: {
-  grant_type: 'authorization_code' | 'ig_refresh_token';
+  grant_type: 'authorization_code' | 'ig_refresh_token' | 'ig_exchange_token';
   code?: string;
   access_token?: string;
 }): Promise<any> {
@@ -102,6 +102,11 @@ export async function getInstagramAccessToken({
     const refreshUrl = `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${access_token}`;
     const refreshRes = await fetch(refreshUrl);
     return refreshRes.json();
+  }
+  if (grant_type === 'ig_exchange_token') {
+    const exchangeUrl = `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${instagramClientSecret}&access_token=${access_token}`;
+    const exchangeRes = await fetch(exchangeUrl);
+    return exchangeRes.json();
   }
 
   throw new Error('Invalid grant_type');

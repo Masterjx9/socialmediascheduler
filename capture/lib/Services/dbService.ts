@@ -100,8 +100,8 @@ export const createTables = (tx: Transaction) => {
       CREATE TABLE IF NOT EXISTS linkedin_accounts (
         app_token TEXT,
         app_refresh_token TEXT,
-        app_token_expires_in INTEGER,
-        app_token_refresh_expires_in INTEGER,
+        app_token_expires_in TEXT,
+        app_token_refresh_expires_in TEXT,
         account_name TEXT,
         timestamp DATETIME,
         sub_id TEXT
@@ -359,11 +359,19 @@ export const handleNewSignUp = async ({
             Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
             return;
           }
+          // now we will immediately get a refresh token as the getGoogleAccessToken accepts refresh_token as a param for grant_type
+          const googleRT = await getGoogleAccessToken({
+            grant_type: 'refresh_token',
+            access_token: googleAC.refresh_token
+          });
+
+          console.log('Google Refresh Token:', googleRT);
           await insertProviderIdIntoDb(provider, accountInfo.items[0].id);
           await insertYoutubeAccountIntoDb(
+            'insert',
             accountInfo.items[0].id,
-            googleAC.access_token,
-            googleAC.expires_in,
+            googleRT.access_token,
+            googleRT.expires_in.toString(),
             new Date().toISOString(),
             accountInfo.items[0].snippet.title
           );
@@ -400,11 +408,25 @@ export const handleNewSignUp = async ({
             Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
             return;
           }
+          // now we will immediately get a refresh token as the getInstagramAccessToken accepts refresh_token as a param for grant_type
+          const instagramXT = await getInstagramAccessToken({
+            grant_type: 'ig_exchange_token',
+            access_token: instagramAC.access_token
+          });
+          console.log('Instagram Refresh Token:', instagramXT);
+
+          const instagramRT = await getInstagramAccessToken({
+            grant_type: 'ig_refresh_token',
+            access_token: instagramXT.access_token
+          });
+
+          console.log('Instagram Refresh Token:', instagramRT);
           await insertProviderIdIntoDb(provider, accountInfo.id);
           await insertInstagramAccountIntoDb(
+            'insert',
             accountInfo.id,
-            instagramAC.access_token,
-            "864000",
+            instagramRT.access_token,
+            instagramRT.expires_in.toString(),
             new Date().toISOString(),
             accountInfo.username
           );
@@ -446,8 +468,11 @@ export const handleNewSignUp = async ({
             Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
             return;
           }
+          // now we will immediately get a refresh token as the getLinkedInAccessToken accepts refresh_token as a param for grant_type
+          
           await insertProviderIdIntoDb(provider, accountInfo.sub);
           await insertLinkedInAccountIntoDb(
+            'insert',
             linkedAC.access_token,
             accountInfo.name,
             new Date().toISOString(),
@@ -496,9 +521,10 @@ export const handleNewSignUp = async ({
           }
           await insertProviderIdIntoDb(provider, accountInfo.id);
           await insertThreadsAccountIntoDb(
+            'insert',
             accountInfo.id,
             threadsAC.access_token,
-            threadsAC.expires_in,
+            threadsAC.expires_in.toString(),
             new Date().toISOString(),
             accountInfo.username
           );
@@ -620,6 +646,7 @@ export const insertProviderIdIntoDb = (providerName: string, providerUserId: str
   }
 
   export const insertLinkedInAccountIntoDb = (
+    mode: string,
     appToken: string,
     accountName: string,
     timestamp: string,
@@ -628,6 +655,7 @@ export const insertProviderIdIntoDb = (providerName: string, providerUserId: str
     appRefreshToken?: string,
     appTokenRefreshExpiresIn?: number
   ) => {
+    if (mode === 'insert') {
     return new Promise<void>((resolve, reject) => {
       const db = SQLite.openDatabase(
         { name: 'database_default.sqlite3', location: 'default' },
@@ -664,15 +692,52 @@ export const insertProviderIdIntoDb = (providerName: string, providerUserId: str
         }
       );
     });
+  } if (mode === 'update') {
+    return new Promise<void>((resolve, reject) => {
+      const db = SQLite.openDatabase(
+        { name: 'database_default.sqlite3', location: 'default' },
+        () => {
+          db.transaction((tx: Transaction) => {
+            tx.executeSql(
+              `UPDATE linkedin_accounts 
+                SET app_token = ?, app_refresh_token = ?, app_token_expires_in = ?, app_token_refresh_expires_in = ?, account_name = ?
+               WHERE sub_id = ?`,
+              [
+                appToken,
+                appRefreshToken ?? null,
+                appTokenExpiresIn,
+                appTokenRefreshExpiresIn ?? null,
+                accountName,
+                subId,
+              ],
+              () => {
+                console.log('LinkedIn account updated in the database');
+                resolve();
+              },
+              (error) => {
+                console.log('Error updating LinkedIn account in the database:', error);
+                reject(error);
+              }
+            );
+          });
+        },
+        (error) => {
+          console.log('Error opening database:', error);
+          reject(error);
+        });
+    })
+  }
   };
 
   export const insertThreadsAccountIntoDb = (
+    mode: string,
     subId: string,
     accessToken: string,
     accessTokenExpiresIn: string,
     timestamp: string,
     accountName: string
   ) => {
+    if (mode === 'insert') {
     return new Promise<void>((resolve, reject) => {
       const db = SQLite.openDatabase(
         { name: 'database_default.sqlite3', location: 'default' },
@@ -706,16 +771,52 @@ export const insertProviderIdIntoDb = (providerName: string, providerUserId: str
         }
       );
     });
-  };
+  } if (mode === 'update') {
+    return new Promise<void>((resolve, reject) => {
+      const db = SQLite.openDatabase(
+        { name: 'database_default.sqlite3', location: 'default' },
+        () => {
+          db.transaction((tx: Transaction) => {
+            tx.executeSql(
+              `UPDATE threads_accounts 
+                SET access_token = ?, access_token_expires_in = ?, timestamp = ?, account_name = ?
+               WHERE sub_id = ?`,
+              [
+                accessToken,
+                accessTokenExpiresIn,
+                timestamp,
+                accountName,
+                subId,
+              ],
+              () => {
+                console.log('Threads account updated in the database');
+                resolve();
+              },
+              (error) => {
+                console.log('Error updating Threads account in the database:', error);
+                reject(error);
+              }
+            );
+          });
+        },
+        (error) => {
+          console.log('Error opening database:', error);
+          reject(error);
+        }
+      );
+    });
+  }};
 
 
 export const insertYoutubeAccountIntoDb = (
+    mode: string,
     subId: string,
     accessToken: string,
     accessTokenExpiresIn: string,
     timestamp: string,
     accountName: string
   ) => {
+    if (mode === 'insert') {
     return new Promise<void>((resolve, reject) => {
       const db = SQLite.openDatabase(
         { name: 'database_default.sqlite3', location: 'default' },
@@ -749,15 +850,52 @@ export const insertYoutubeAccountIntoDb = (
         }
       );
     });
-  }
+  } if (mode === 'update') {
+    return new Promise<void>((resolve, reject) => {
+      const db = SQLite.openDatabase(
+        { name: 'database_default.sqlite3', location: 'default' },
+        () => {
+          db.transaction((tx: Transaction) => {
+            tx.executeSql(
+              `UPDATE youtube_accounts 
+                SET access_token = ?, access_token_expires_in = ?, timestamp = ?, account_name = ?
+               WHERE sub_id = ?`,
+              [
+                accessToken,
+                accessTokenExpiresIn,
+                timestamp,
+                accountName,
+                subId,
+              ],
+              () => {
+                console.log('Youtube account updated in the database');
+                resolve();
+              },
+              (error) => {
+                console.log('Error updating Youtube account in the database:', error);
+                reject(error);
+              }
+            );
+          });
+        },
+        (error) => {
+          console.log('Error opening database:', error);
+          reject(error);
+        }
+      );
+    });
+  }};
+
 
 export const insertInstagramAccountIntoDb = (
+    mode: string,
     subId: string,
     accessToken: string,
     accessTokenExpiresIn: string,
     timestamp: string,
     accountName: string
   ) => {
+    if (mode === 'insert') {
     return new Promise<void>((resolve, reject) => {
       const db = SQLite.openDatabase(
         { name: 'database_default.sqlite3', location: 'default' },
@@ -791,7 +929,42 @@ export const insertInstagramAccountIntoDb = (
         }
       );
     });
-  };
+  } if (mode === 'update') {
+    return new Promise<void>((resolve, reject) => {
+      const db = SQLite.openDatabase(
+        { name: 'database_default.sqlite3', location: 'default' },
+        () => {
+          db.transaction((tx: Transaction) => {
+            tx.executeSql(
+              `UPDATE instagram_accounts 
+                SET access_token = ?, access_token_expires_in = ?, timestamp = ?, account_name = ?
+               WHERE sub_id = ?`,
+              [
+                accessToken,
+                accessTokenExpiresIn,
+                timestamp,
+                accountName,
+                subId,
+              ],
+              () => {
+                console.log('Instagram account updated in the database');
+                resolve();
+              },
+              (error) => {
+                console.log('Error updating Instagram account in the database:', error);
+                reject(error);
+              }
+            );
+          });
+        },
+        (error) => {
+          console.log('Error opening database:', error);
+          reject(error);
+        }
+      );
+    });
+  }};
+
 
   export const removeAccount = async (
     accountType: string,
@@ -913,8 +1086,8 @@ export const fetchTwitterCredentials = async (providerUserId: string): Promise<{
 export const fetchLinkedInCredentials = async (providerUserId: string): Promise<{
   appToken: string;
   appRefreshToken?: string;
-  appTokenExpiresIn: number;
-  appTokenRefreshExpiresIn?: number;
+  appTokenExpiresIn: string;
+  appTokenRefreshExpiresIn?: string;
   accountName: string;
   timestamp: string;
 } | null> => {
