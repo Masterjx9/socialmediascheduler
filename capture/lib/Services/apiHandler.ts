@@ -25,9 +25,13 @@ import { fetchTwitterCredentials,
         fetchInstagramCredentials,
         fetchYoutubeCredentials
  } from './dbService';
+import notifee from '@notifee/react-native';
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
+
+let isContentCheckRunning = false;
 export const contentCheck = async () => {
   console.log('contentCheck called');
+  isContentCheckRunning = true;
   // fetch data from database
   let contentData = await fetchContentFromBeforeCurrentTime();
   // example data:
@@ -59,7 +63,15 @@ export const contentCheck = async () => {
       } catch {
         publishedStatus = {};
       }
-  
+      
+      notifee.displayNotification({
+        title: 'Background Fetch',
+        body: 'Posting content to social media accounts.',
+        android: {
+          channelId: 'default',
+          
+        },
+      });
       for (const providerId of userProviders) {
         const providerName = providerNameMap[providerId];
         console.log('providerName:', providerName);
@@ -434,10 +446,12 @@ export const contentCheck = async () => {
             [JSON.stringify(publishedStatus), content_id],
             () => {
               console.log(`Updated published status for content_id ${content_id}`);
+              isContentCheckRunning = false;
               resolve();
             },
             (err) => {
               console.error('Error updating published status:', err);
+              isContentCheckRunning = false;
               reject(err);
             }
           );

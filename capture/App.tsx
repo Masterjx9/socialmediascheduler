@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { setupNotificationService } from './lib/Services/backgroundService.ts';
+import { 
+  // setupNotificationService, 
+  startForegroundService 
+} from './lib/Services/backgroundService.ts';
 import type { SocialMediaAccount } from './types/SociaMedia';
 
-
-import { View, Text, Alert } from 'react-native';
+import { View, Text, Alert, AppState } from 'react-native';
 import styles from './styles/AppStyles';
 import RNFS from 'react-native-fs';
 import SQLite, { Transaction } from 'react-native-sqlite-storage';
@@ -12,7 +14,7 @@ import ModalsContainer from './components/App/Modals.tsx';
 import CalendarModal from './components/App/Calendar.tsx';
 import AccountsModal from './components/Modals/AccountsModal';
 import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
-
+import BackgroundFetch from 'react-native-background-fetch';
 
 import { createTables, 
           fetchDbData,
@@ -20,6 +22,24 @@ import { createTables,
          } from './lib/Services/dbService';
 import { checkIfAccountsExist } from './lib/Services/dbService.ts';
 import { onDayPress } from './lib/Helpers/dateHelper.ts';
+
+
+BackgroundFetch.configure(
+  {
+    minimumFetchInterval: 15,     
+    stopOnTerminate: false,       
+    startOnBoot: true,            
+    enableHeadless: true,         
+  },
+  async taskId => {
+    // await doWork(taskId);
+    console.log('Background fetch task:', taskId);
+  },
+  async taskId => {
+    // await doWork(taskId);         // timeout / fallback
+  },
+);
+
 const App = () => {
   const [inputText, setInputText] = useState('');
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
@@ -137,7 +157,10 @@ const App = () => {
 
       // End of useEffect
 
-      setupNotificationService();
+      // setupNotificationService();
+      if (AppState.currentState === 'active' || AppState.currentState === 'background') {
+    startForegroundService();
+  }
     }, [isCalendarVisible]);
 
 
