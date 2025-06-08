@@ -31,6 +31,7 @@ import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sql
 let isContentCheckRunning = false;
 export const contentCheck = async () => {
   console.log('contentCheck called');
+  console.log('isContentCheckRunning:', isContentCheckRunning);
   isContentCheckRunning = true;
   // fetch data from database
   let contentData = await fetchContentFromBeforeCurrentTime();
@@ -224,9 +225,11 @@ export const contentCheck = async () => {
               new Date().toISOString(),
               threadsCreds.accountName
             )
-              
+              console.log("hello world")
             try {
+              console.log("content_type:", content_type);
               if (content_type === "post") {
+                console.log("we are now posting a text post to threads");
               const publishData = await postToThreads(threadsCreds.accessToken, description);
               console.log('Threads publish data:', publishData);
               if (publishData.error) {

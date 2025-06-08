@@ -1,5 +1,5 @@
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
-import type { SocialMediaAccount, HandleNewSignUpParams } from '../../types/SociaMedia';
+import type { SocialMediaAccount, HandleNewSignUpParams, LinkedInExpiryInfo } from '../../types/SociaMedia';
 import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
 import RNFS from 'react-native-fs';
 import { Alert } from 'react-native';
@@ -477,7 +477,9 @@ export const handleNewSignUp = async ({
             accountInfo.name,
             new Date().toISOString(),
             accountInfo.sub,
-            linkedAC.expires_in,
+            linkedAC.expires_in, 
+            // for testing we make the expires_in 6 hours
+            // 21600, // 6 hours in seconds
             // linkedAC.refresh_token,
             // linkedAC.refresh_token_expires_in
           );
@@ -1264,3 +1266,55 @@ export const fetchYoutubeCredentials = async (providerUserId: string): Promise<{
     return null;
   }
 }
+
+
+
+
+
+export const linkedInAccessTokenExpirationChecker = async (): Promise<LinkedInExpiryInfo[]> => {
+  const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+
+  return new Promise<LinkedInExpiryInfo[]>((resolve, reject) => {
+    db.transaction((tx: Transaction) => {
+      tx.executeSql(
+        `
+          SELECT
+            lp.provider_user_id          AS id,
+            la.account_name              AS accountName,
+            la.app_token_expires_in      AS expiresInSec,
+            la.timestamp                 AS issuedIso
+          FROM user_providers lp
+          JOIN linkedin_accounts la
+            ON la.sub_id = lp.provider_user_id
+        `,
+        [],
+        (_: Transaction, res: ResultSet) => {
+          const nowMs     = Date.now();
+          const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
+
+          const list: LinkedInExpiryInfo[] = [];
+
+          for (let i = 0; i < res.rows.length; i++) {
+            const row = res.rows.item(i);
+
+            // `timestamp` is ISO-8601 the moment the token was acquired
+            const issuedMs     = new Date(row.issuedIso).getTime();
+            const expiresMs    = issuedMs + Number(row.expiresInSec) * 1000;
+
+            list.push({
+              id: row.id,
+              accountName: row.accountName,
+              expiresSoon: expiresMs <= nowMs + twoDaysMs,
+            });
+          }
+
+          resolve(list);
+        },
+        err => {
+          console.log('LinkedIn expiry check error:', err);
+          reject(err);
+        }
+      );
+    });
+  });
+};

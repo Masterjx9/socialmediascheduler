@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  // setupNotificationService, 
   startForegroundService 
 } from './lib/Services/backgroundService.ts';
 import type { SocialMediaAccount } from './types/SociaMedia';
@@ -13,7 +12,6 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import ModalsContainer from './components/App/Modals.tsx';
 import CalendarModal from './components/App/Calendar.tsx';
 import AccountsModal from './components/Modals/AccountsModal';
-import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
 import BackgroundFetch from 'react-native-background-fetch';
 
 import { createTables, 
