@@ -42,7 +42,11 @@ BackgroundFetch.configure(
 
 const App = () => {
   const [inputText, setInputText] = useState('');
-  const [isCalendarVisible, setIsCalendarVisible] = useState(false);
+  const [isCalendarVisible, _setIsCalendarVisible] = useState(false);
+    const setIsCalendarVisible = (val: boolean) => {
+    console.trace('setIsCalendarVisible called with:', val);
+    _setIsCalendarVisible(val);
+  };
   const [isLoginVisible, setIsLoginVisible] = useState(false);
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const [isAccountsVisible, setIsAccountsVisible] = useState(false);
@@ -65,34 +69,17 @@ const App = () => {
   // In the useEffect:
   useEffect(() => {
 
-    // Settings.initializeSDK();
-    // Settings.setAppID(FACEBOOK_APP_ID);
-    // Settings.setClientToken(FACEBOOK_CLIENT_TOKEN);  
 
-      // Set today's date when the calendar becomes visible
-      if (isCalendarVisible) {
-        const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
-        setSelectedDate(today);
-      }
 
-    // Google sign in configuration
-    console.log('Google Web Client ID:', GOOGLE_WEB_CLIENT_ID);
-    GoogleSignin.configure({
-      webClientId: GOOGLE_WEB_CLIENT_ID, // Client ID from Google Developer Console
-      offlineAccess: true, // if you want to access Google API on behalf of the user FROM YOUR SERVER
-      scopes: ['profile', 'email', 'openid'], // array of scopes
-    });
 
-      // checkSignInStatus(setCurrentUserId, setIsCalendarVisible, setIsLoginVisible);
 
-    // requestPermissions();
-    // const dbPath = '/data/data/com.socialmediaschedulerapp/databases/database_default.sqlite3';
+      if (isCalendarVisible === false) {
     const dbPath = '/data/data/com.socialmediaschedulerapp/databases/database_default.sqlite3';
-    console.log('Database path:', dbPath);
+    // console.log('Database path:', dbPath);
   
 
-    // console.log('Document directory path:', RNFS.DocumentDirectoryPath);
-    listDirectoryContents('/data/data/com.socialmediaschedulerapp/databases');
+    // Check if the database file exists
+    // listDirectoryContents('/data/data/com.socialmediaschedulerapp/databases');
   
     RNFS.exists(dbPath)
       .then((exists) => {
@@ -154,13 +141,18 @@ const App = () => {
       .catch((error) => {
         console.log('Error checking if database exists:', error);
       });
+    }
 
-      // End of useEffect
+          // Set today's date when the calendar becomes visible
+      if (isCalendarVisible) {
+        const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+        setSelectedDate(today);
+        // setupNotificationService();
+        if (AppState.currentState === 'active' || AppState.currentState === 'background') {
+          startForegroundService();
+        }
+      }
 
-      // setupNotificationService();
-      if (AppState.currentState === 'active' || AppState.currentState === 'background') {
-    startForegroundService();
-  }
     }, [isCalendarVisible]);
 
 
@@ -183,7 +175,7 @@ const App = () => {
             selectedDate={selectedDate}
             isSettingsVisible={isSettingsVisible}
             setIsSettingsVisible={setIsSettingsVisible}
-            setIsCalendarVisible={setIsCalendarVisible}
+            setIsCalendarVisible={_setIsCalendarVisible}
             setIsLoginVisible={setIsLoginVisible}
             setDbData={setDbData}
             selectedFile={selectedFile}
@@ -203,7 +195,7 @@ const App = () => {
             />
           <CalendarModal
             isCalendarVisible={isCalendarVisible}
-            setIsCalendarVisible={setIsCalendarVisible}
+            setIsCalendarVisible={_setIsCalendarVisible}
             setContentMode={setContentMode}
             onDayPress={onDayPress}
             contentMode={contentMode}

@@ -227,7 +227,6 @@ export const contentCheck = async () => {
               
             try {
               if (content_type === "post") {
-              // const publishData = await postToThreads(threadsCreds.accessToken, content_data);
               const publishData = await postToThreads(threadsCreds.accessToken, description);
               console.log('Threads publish data:', publishData);
               if (publishData.error) {

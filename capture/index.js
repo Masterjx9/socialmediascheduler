@@ -21,11 +21,11 @@ const HeadlessFetchTask = async event => {
 });
 
 
-  await notifee.displayNotification({
-    title: 'Scheduler running',
-    body: 'Background content check',
-    android: { channelId: 'default' },
-  });
+  // await notifee.displayNotification({
+  //   title: 'Scheduler running',
+  //   body: 'Background content check',
+  //   android: { channelId: 'default' },
+  // });
 
   await contentCheck();          
   BackgroundFetch.finish(event.taskId);
