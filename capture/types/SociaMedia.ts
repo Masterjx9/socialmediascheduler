@@ -18,3 +18,9 @@ export interface HandleNewSignUpParams {
     setIsLoginVisible: (visible: boolean) => void;
     setAccounts: React.Dispatch<React.SetStateAction<SocialMediaAccount[]>>; 
 }
+
+export const scheduleOptions = [
+  'Next available day',
+  'Every first of the month',
+  'Every 15th of the month',
+];

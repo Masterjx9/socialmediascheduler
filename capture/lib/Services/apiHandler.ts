@@ -32,9 +32,21 @@ let isContentCheckRunning = false;
 export const contentCheck = async () => {
   console.log('contentCheck called');
   console.log('isContentCheckRunning:', isContentCheckRunning);
+  if (isContentCheckRunning) {
+    console.log('contentCheck is already running. Exiting.');
+    return;
+  }
   isContentCheckRunning = true;
   // fetch data from database
+  console.log('test1');
   let contentData = await fetchContentFromBeforeCurrentTime();
+  console.log('contentData:', contentData);
+  if (contentData.length === 0) {
+    console.log('No content to post at this time.');
+    isContentCheckRunning = false;
+    return;
+  }
+  console.log('test2');
   // example data:
   // [{"content_data": "test on the 17ttest", "content_id": 1, "content_type": "post", "description": null, "post_date": 1743964260, "published": {}, "tags": null, "user_providers": "[\"12345674897456163\"]"}]
 
@@ -46,6 +58,8 @@ export const contentCheck = async () => {
   // If the credentials are valid, we post to the social media account using the content.content_data.
 
   for (const content of contentData) {
+    console.log('test3');
+
     const {content_type, content_id, content_data, description, title, privacy} = content;
   
     const userProviders = JSON.parse(
@@ -459,9 +473,14 @@ export const contentCheck = async () => {
           );
         });
       });
+              isContentCheckRunning = false;
+              isContentCheckRunning = false;
+              isContentCheckRunning = false;
+              isContentCheckRunning = false;
+
     }
   }
-  
+  isContentCheckRunning = false;
 };
 // Fetch user credentials from dbService
 // const userCreds = await fetchUserCredentials(user_id);

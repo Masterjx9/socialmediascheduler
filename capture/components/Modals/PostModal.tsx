@@ -3,7 +3,7 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } fro
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
-import { fetchSocialMediaAccounts } from '../../lib/Services/dbService';
+import { fetchSocialMediaAccounts, fetchAppSettingsFromDb, fetchNextAvailableScheduleDateFromDb } from '../../lib/Services/dbService';
 interface PostModalProps {
   isVisible: boolean;
   onClose: () => void;
@@ -46,9 +46,13 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
   
   const [selectedTime, setSelectedTime] = useState<Date | null>(null); 
   const [localSelectedDate, setLocalSelectedDate] = useState(selectedDate);
+  const [defaultScheduleOption, setDefaultScheduleOption] = useState<string | null>(null);
+  const [defaultScheduleTime, setDefaultScheduleTime] = useState<string | null>(null);
   const [isTimePickerVisible, setIsTimePickerVisible] = useState(false); 
   const [showAccountList, setShowAccountList] = useState(false);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
+  const [isDefaultSchedule, setIsDefaultSchedule] = useState(true);
+  
 // const [youtubeTitle, setYoutubeTitle] = useState('');
 // const [youtubePrivacy, setYoutubePrivacy] = useState<'public' | 'private' | 'unlisted'>('public');
 
@@ -69,6 +73,23 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
 
   useEffect(() => {
   if (isVisible) {
+    (async () => {
+      const defaultSchedule = await fetchAppSettingsFromDb('default_schedule_option');
+      setDefaultScheduleOption(defaultSchedule);
+      const defaultTime = await fetchAppSettingsFromDb('default_schedule_time');
+      setDefaultScheduleTime(defaultTime);
+      console.log('Fetched default schedule:', defaultSchedule);
+      console.log('Fetched default time:', defaultTime);
+      if (defaultTime) {
+        const [hours, minutes] = defaultTime.split(':');
+        const date = new Date();
+        date.setHours(parseInt(hours));
+        date.setMinutes(parseInt(minutes));
+        date.setSeconds(0);
+        date.setMilliseconds(0);
+        setSelectedTime(date);
+      }
+    })();
    if (accounts.length === 0 || item) return;
 
   let ids = accounts.map(acc => acc.provider_user_id.toString());
@@ -143,19 +164,43 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
     useEffectAsync();
   }, [item, selectedDate, contentMode, isVisible]);
 
- 
-  const handlePost = () => {
-    if (contentDescription.trim() && selectedTime && selectedDate && selectedAccounts.length > 0) {
-      // Combine selectedDate and selectedTime to create full timestamp
-      const [year, month, day] = selectedDate.split('-').map(Number);
-      const fullDateTime = new Date(year, month - 1, day, selectedTime.getHours(), selectedTime.getMinutes());
+  const handlePost = async () => {
+    if (contentDescription.trim() && selectedTime && (localSelectedDate || defaultScheduleOption) && selectedAccounts.length > 0) {
+      let year: number | undefined, month: number | undefined, day: number | undefined;
+      let fullDateTime: Date;
+      console.log("localSelectedDate: ", localSelectedDate)
+      console.log("localSelectedDate: ", localSelectedDate)
+      console.log("localSelectedDate: ", localSelectedDate)
+      if (isDefaultSchedule && defaultScheduleOption && defaultScheduleTime) {
+        const result = await fetchNextAvailableScheduleDateFromDb(defaultScheduleOption);
+        if (result)
+        {
+          [year, month, day] = result;
+        }
+      }
+      else if (localSelectedDate) {
+       
+        [year, month, day] = localSelectedDate.split('-').map(Number);
+        console.log("localSelectedDate: ", localSelectedDate)
+    }
 
-      // Convert to Unix time
-      const unixTimestamp = Math.floor(fullDateTime.getTime() / 1000);
-      console.log(item);
-      onPost(contentDescription, unixTimestamp, item?.content_id, selectedAccounts); 
-      setContent('');
-      setSelectedTime(null);
+    console.log("year: ", year)
+    console.log("year typeof: ", typeof year)
+    console.log("month: ", month)
+    console.log("month typeof: ", typeof month)
+    console.log("day: ", day)
+    console.log("day typeof: ", typeof day)
+
+      if (typeof year === 'number' && typeof month === 'number' && typeof day === 'number') {
+        fullDateTime = new Date(year, month - 1, day, selectedTime.getHours(), selectedTime.getMinutes());
+        // Convert to Unix time
+        const unixTimestamp = Math.floor(fullDateTime.getTime() / 1000);
+        console.log(item);
+        onPost(contentDescription, unixTimestamp, item?.content_id, selectedAccounts); 
+        setContent('');
+        setSelectedTime(null);
+      } 
+
     } else {
       Alert.alert('Incomplete Post', 'Please write something, pick a time, and select at least one account.');
     }
@@ -229,7 +274,59 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
 )}
 
 
+
       <View style={styles.modalContainer}>
+
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            padding: 15,
+            zIndex: 10,
+          }}>
+  <TouchableOpacity
+    onPress={() => {
+      console.log('Default Schedule Selected');
+        setIsDefaultSchedule(!isDefaultSchedule);
+    }}
+    style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#1DA1F2',
+      paddingHorizontal: 15,
+      paddingVertical: 8,
+      borderRadius: 5,
+    }}
+  >
+    {/* CHECKMARK BOX LEFT SIDE */}
+    <View style={{
+      width: 20,
+      height: 20,
+      marginRight: 10,
+      borderRadius: 3,
+      borderWidth: 1,
+      borderColor: '#fff',
+      backgroundColor: '#fff',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}>
+      {/* <Text style={{ color: '#1DA1F2', fontWeight: 'bold', fontSize: 14 }}>✓</Text> */}
+      <Text 
+      
+      style={{ color: '#1DA1F2', fontWeight: 'bold', fontSize: 14 }}>
+        {isDefaultSchedule ? '✓' : ''}
+      </Text>
+    </View>
+
+    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>
+      Default Schedule
+    </Text>
+  </TouchableOpacity>
+</View>
+
+
+
         <Text style={styles.title}>Create a Post</Text>
 
         {/* if one of the accounts selected is youtube then show title and privacy */}

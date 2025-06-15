@@ -2,23 +2,23 @@ import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sql
 import { DateData } from 'react-native-calendars';
 
 export const getUnixTimestampsForDay = (dateString: string) => {
-    // Parse the date string
-    const date = new Date(dateString);
-  
-    // Set the time to the beginning of the day (00:00:00)
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-  
-    // Set the time to the end of the day (23:59:59.999)
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
-  
-    // Convert to Unix timestamps (in seconds)
-    const startOfDayUnix = Math.floor(startOfDay.getTime() / 1000);
-    const endOfDayUnix = Math.floor(endOfDay.getTime() / 1000);
-  
-    return { startOfDayUnix, endOfDayUnix };
-  };
+  // Parse the date string as local time (YYYY-MM-DD is treated as local by Date constructor)
+  const date = new Date(dateString + 'T00:00:00');
+
+  // Set the time to the beginning of the day (00:00:00 local time)
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  // Set the time to the end of the day (23:59:59.999 local time)
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  // Convert to Unix timestamps (in seconds)
+  const startOfDayUnix = Math.floor(startOfDay.getTime() / 1000);
+  const endOfDayUnix = Math.floor(endOfDay.getTime() / 1000);
+
+  return { startOfDayUnix, endOfDayUnix };
+};
 
 export const onDayPress = async (day: DateData,
     setSelectedDate: React.Dispatch<React.SetStateAction<string>>,

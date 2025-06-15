@@ -1,52 +1,61 @@
-import React, { useState } from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
-import DocumentPicker from 'react-native-document-picker';
+import React, {useState, useEffect} from 'react';
+import {
+  Modal,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Platform,
+} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-
+import { fetchAppSettingsFromDb, insertAppSettingsIntoDb } from '../../lib/Services/dbService';
+import { scheduleOptions } from '../../types/SociaMedia';
 interface SettingsModalProps {
   isVisible: boolean;
   onClose: () => void;
-  onLogOut: () => void;
 }
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ isVisible, onClose, onLogOut }) => {
+
+
+const SettingsModal: React.FC<SettingsModalProps> = ({
+  isVisible,
+  onClose,
+}) => {
   const [time, setTime] = useState(new Date());
-  const [selectedContext, setSelectedContext] = useState('video');
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showScheduleOptions, setShowScheduleOptions] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
-  const handleSelectFolder = async () => {
-    try {
-      let result;
-
-      if (Platform.OS === 'ios') {
-        result = await DocumentPicker.pickDirectory();
-      } else {
-        result = await DocumentPicker.pickDirectory();
-      }
-
-      if (result) {
-        console.log('Selected folder:', result.uri);
-        Alert.alert('Folder Selected', `You selected: ${result.uri}`);
-      }
-    } catch (err) {
-      if (DocumentPicker.isCancel(err)) {
-        console.log('Canceled folder selection');
-      } else {
-        console.error('Unknown error: ', err);
-      }
+  useEffect(() => {
+  (async () => {
+    const defaultSchedule = await fetchAppSettingsFromDb('default_schedule_option');
+    const defaultTime = await fetchAppSettingsFromDb('default_schedule_time');
+    console.log('Fetched default schedule:', defaultSchedule);
+    console.log('Fetched default time:', defaultTime);
+    if (defaultSchedule) setSelectedOption(defaultSchedule);
+    if (defaultTime) {
+      const [hours, minutes] = defaultTime.split(':');
+      const date = new Date();
+      date.setHours(parseInt(hours));
+      date.setMinutes(parseInt(minutes));
+      setTime(date);
     }
-  };
+  })();
+}, []);
 
   const onChangeTime = (event: any, selectedTime?: Date) => {
     const currentTime = selectedTime || time;
     setShowTimePicker(Platform.OS === 'ios');
+
+    insertAppSettingsIntoDb('default_schedule_time', currentTime.toTimeString().slice(0, 5), 'update');
     setTime(currentTime);
   };
 
   const handleSelectScheduleOption = (option: string) => {
-    Alert.alert('Schedule Selected', `You selected: ${option}`);
-    setShowScheduleOptions(false); // Close the options modal
+    
+    insertAppSettingsIntoDb('default_schedule_option', option, 'update');
+    insertAppSettingsIntoDb('default_schedule_time', time.toTimeString().slice(0, 5), 'update');
   };
 
   return (
@@ -54,44 +63,62 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isVisible, onClose, onLog
       presentationStyle="fullScreen"
       visible={isVisible}
       animationType="slide"
-      onRequestClose={onClose}
-    >
+      onRequestClose={onClose}>
       <View style={styles.modalContainer}>
         <Text style={styles.title}>Settings</Text>
 
-        <TouchableOpacity style={styles.capture} onPress={handleSelectFolder}>
-          <Text style={styles.captureText}>Select Default Picture Folder</Text>
+        <TouchableOpacity
+          style={styles.capture}
+          onPress={() => {
+            setShowScheduleOptions(true);
+          }}>
+          <Text style={styles.captureText}>
+            Select Default Post/Tweet/Threads Schedule
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.capture} onPress={handleSelectFolder}>
-          <Text style={styles.captureText}>Select Default Video Folder</Text>
-        </TouchableOpacity>
+        <Modal
+          transparent={true}
+          visible={showScheduleOptions}
+          animationType="slide"
+          onRequestClose={() => setShowScheduleOptions(false)}>
+          <View style={styles.optionsModalContainer}>
+            <View style={styles.optionsContainer}>
+            
+            {scheduleOptions.map((option) => (
+            <TouchableOpacity
+              key={option}
+              style={styles.radioOption}
+              onPress={() => {
+                handleSelectScheduleOption(option);
+                setSelectedOption(option);
+              }}>
+              <View style={styles.radioCircle}>
+                {selectedOption === option && <View style={styles.radioDot} />}
+              </View>
+              <Text style={styles.optionText}>{option}</Text>
+            </TouchableOpacity>
+          ))}
 
-        <TouchableOpacity style={styles.capture} onPress={() => {
-  setSelectedContext('video');
-  setShowScheduleOptions(true);
-}}>
-  <Text style={styles.captureText}>Select Default Video Schedule</Text>
-</TouchableOpacity>
-
-<TouchableOpacity style={styles.capture} onPress={() => {
-  setSelectedContext('picture');
-  setShowScheduleOptions(true);
-}}>
-  <Text style={styles.captureText}>Select Default Picture Schedule</Text>
-</TouchableOpacity>
-
-<TouchableOpacity style={styles.capture} onPress={() => {
-  setSelectedContext('post');
-  setShowScheduleOptions(true);
-}}>
-  <Text style={styles.captureText}>Select Default Post/Tweet/Threads Schedule</Text>
-</TouchableOpacity>
-
-
-
-
-
+            
+              <TouchableOpacity
+                style={styles.capture}
+                onPress={() => setShowTimePicker(true)}>
+                <Text style={styles.captureText}>
+                  {`Select default Time: ${time.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}`}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.capture}
+                onPress={() => setShowScheduleOptions(false)}>
+                <Text style={styles.captureText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
         {showTimePicker && (
           <DateTimePicker
@@ -101,48 +128,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isVisible, onClose, onLog
             onChange={onChangeTime}
           />
         )}
-
-<Modal
-  transparent={true}
-  visible={showScheduleOptions}
-  animationType="slide"
-  onRequestClose={() => setShowScheduleOptions(false)}
->
-  <View style={styles.optionsModalContainer}>
-    <View style={styles.optionsContainer}>
-      <TouchableOpacity onPress={() => handleSelectScheduleOption(`Next available day (No ${selectedContext} scheduled)`)}>
-        <Text style={styles.optionText}>Next available day (No {selectedContext} scheduled)</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => handleSelectScheduleOption(`Next available day (No content scheduled)`)}>
-        <Text style={styles.optionText}>Next available day (No content scheduled)</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => handleSelectScheduleOption(`Every first of the month`)}>
-        <Text style={styles.optionText}>Every first of the month</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => handleSelectScheduleOption(`Every 15th of the month`)}>
-        <Text style={styles.optionText}>Every 15th of the month</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => handleSelectScheduleOption(`Pick days throughout the week`)}>
-        <Text style={styles.optionText}>Pick days throughout the week</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.capture} onPress={() => setShowTimePicker(true)}>
-        <Text style={styles.captureText}>
-          {`Select default Time: ${time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.capture} onPress={() => setShowScheduleOptions(false)}>
-        <Text style={styles.captureText}>Close</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</Modal>
-
-
-        <TouchableOpacity style={styles.capture} onPress={onLogOut}>
-          <Text style={styles.captureText}>Log Out</Text>
-        </TouchableOpacity>
-
       </View>
     </Modal>
   );
@@ -188,6 +173,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     padding: 10,
   },
+  radioOption: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingVertical: 10,
+},
+radioCircle: {
+  height: 20,
+  width: 20,
+  borderRadius: 10,
+  borderWidth: 2,
+  borderColor: '#444',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginRight: 10,
+},
+radioDot: {
+  height: 10,
+  width: 10,
+  borderRadius: 5,
+  backgroundColor: '#444',
+},
+
 });
 
 export default SettingsModal;

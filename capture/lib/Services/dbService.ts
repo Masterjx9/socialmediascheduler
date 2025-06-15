@@ -1,15 +1,14 @@
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
 import type { SocialMediaAccount, HandleNewSignUpParams, LinkedInExpiryInfo } from '../../types/SociaMedia';
-import { LoginManager, AccessToken, Settings } from 'react-native-fbsdk-next';
 import RNFS from 'react-native-fs';
 import { Alert } from 'react-native';
-import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
 import { getLinkedInAccessToken, openLinkedInLogin, getLinkedInUserInfo } from '../Apis/linkedin';
 import { getThreadsAccessToken, openThreadsLogin, getThreadsUserInfo,
   getInstagramUserInfo, getInstagramAccessToken, openInstagramLogin  } from '../Apis/meta';
 import { getGoogleAccessToken, openGoogleLogin, getYoutubeUserInfo } from '../Apis/youtube';
 import { Linking } from 'react-native';
 import { getUnixTimestampsForDay } from '../Helpers/dateHelper';
+import { scheduleOptions } from '../../types/SociaMedia';
 
 export const listDirectoryContents = async (path: string) => {
     try {
@@ -20,21 +19,6 @@ export const listDirectoryContents = async (path: string) => {
     }
   };
 
-export const insertFakeData = (db: SQLiteDatabase) => {
-    db.transaction((tx: Transaction) => {
-      const unixTime = Math.floor(Date.now() / 1000);
-      tx.executeSql(
-        `INSERT INTO content (user_id, content_type, content_data, post_date, published) VALUES (?, ?, ?, ?, ?)`,
-        [1, 'post', 'testphone', unixTime, {}],
-        () => {
-          console.log('Fake data inserted successfully');
-        },
-        (error) => {
-          console.log('Error inserting fake data:', error);
-        }
-      );
-    });
-  };
 
 
 export const createTables = (tx: Transaction) => {
@@ -115,6 +99,18 @@ export const createTables = (tx: Transaction) => {
         account_name TEXT,
         timestamp DATETIME
       );
+    `);
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        setting_key TEXT PRIMARY KEY,
+        setting_value TEXT
+      );
+    `);
+    tx.executeSql(`
+      INSERT OR IGNORE INTO app_settings (setting_key, setting_value)
+      VALUES 
+        ('default_schedule_option', 'Next available day'),
+        ('default_schedule_time', '09:00');
     `);
   };
 
@@ -264,13 +260,15 @@ export const checkIfAccountsExist = async (): Promise<boolean> => {
 }
 
 export const fetchContentFromBeforeCurrentTime = async () => {
+  console.log("fetchContentFromBeforeCurrentTime called");
     try {
         const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
         return new Promise<any[]>((resolve, reject) => {
             db.transaction(tx => {
                 const currentTime = Math.floor(Date.now() / 1000);
+
                 tx.executeSql(
-                  `SELECT * FROM content WHERE post_date < ? AND published NOT LIKE '%"final":"success"%'`,                
+                  `SELECT * FROM content WHERE post_date < ? AND published NOT LIKE '%"final":"success"%'`,
                     [currentTime],
                     (_, results) => {
                         const rows = results.rows;
@@ -280,7 +278,13 @@ export const fetchContentFromBeforeCurrentTime = async () => {
                         }
                         if (data.length > 0) {
                             console.log('Fetched content:', data);
+                            console.log("there is a weird error where if I do > or < all the content keeps coming back when it shouldnt")
+                            console.log('post_date:', data[0].post_date)
+                            console.log('current_time:', currentTime)
                             resolve(data);
+                        } else {
+                            console.log('No content found before current time.');
+                            resolve([]);
                         }
                     },
                     (error) => {
@@ -323,6 +327,142 @@ export const fetchUserIdFromDb = async (providerUserId: string): Promise<number 
         return null;
     }
 };
+
+export const fetchAppSettingsFromDb = async (settingKey: string): Promise<string | null> => {
+    try {
+        const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+        return new Promise<string | null>((resolve, reject) => {
+            db.transaction(tx => {
+                tx.executeSql(
+                    'SELECT setting_value FROM app_settings WHERE setting_key = ?',
+                    [settingKey],
+                    (_, results) => {
+                        if (results.rows.length > 0) {
+                            resolve(results.rows.item(0).setting_value);
+                        } else {
+                            resolve(null);
+                        }
+                    },
+                    (error) => {
+                        console.log('Error fetching app setting from database:', error);
+                        resolve(null);  // Resolve as null instead of rejecting
+                    }
+                );
+            });
+        });
+    } catch (error) {
+        console.error('Database operation failed:', error);
+        return null;
+    }
+};
+
+export const insertAppSettingsIntoDb = async (settingKey: string, settingValue: string, mode: string): Promise<void> => {
+    try {
+        const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+        return new Promise<void>((resolve, reject) => {
+            db.transaction(tx => {
+                const query = mode === 'insert' ?
+                    'INSERT INTO app_settings (setting_key, setting_value) VALUES (?, ?)' :
+                    'UPDATE app_settings SET setting_value = ? WHERE setting_key = ?';
+                const params = mode === 'insert' ? [settingKey, settingValue] : [settingValue, settingKey];
+                tx.executeSql(
+                    query,
+                    params,
+                    () => {
+                        resolve();
+                    },
+                    (error) => {
+                        console.log('Error inserting/updating app setting in database:', error);
+                        reject(error);
+                    }
+                );
+            });
+        });
+    } catch (error) {
+        console.error('Database operation failed:', error);
+    }
+}
+
+export const fetchNextAvailableScheduleDateFromDb = async (
+  scheduleOption: string,
+): Promise<[number, number, number] | null> => {
+  try {
+    const db = await SQLite.openDatabase({
+      name: 'database_default.sqlite3',
+      location: 'default',
+    });
+
+    return new Promise((resolve, reject) => {
+      db.transaction((tx: Transaction) => {
+        tx.executeSql(
+          `SELECT post_date FROM content WHERE published NOT LIKE '%"final":"success"%'`,
+          [],
+          (_, results) => {
+            const usedDates = new Set<string>();
+
+            for (let i = 0; i < results.rows.length; i++) {
+              const ts = results.rows.item(i).post_date;
+              const d = new Date(ts * 1000);
+              usedDates.add(`${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+            }
+
+            const nextDaily = (): [number, number, number] => {
+              const d = new Date();
+
+              while (true) {
+                const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+                if (!usedDates.has(key)) return [d.getFullYear(), d.getMonth() + 1, d.getDate()];
+                d.setDate(d.getDate() + 1);
+              }
+            };
+
+            const nextMonthly = (day: number): [number, number, number] => {
+              const today = new Date();
+              let y = today.getFullYear();
+              let m = today.getMonth() + 1;
+
+              // If today's date is equal to or past the target day, start from next month
+              if (today.getDate() >= day) {
+                m += 1;
+                if (m > 12) {
+                  m = 1;
+                  y += 1;
+                }
+              }
+
+              while (true) {
+                const candidate = new Date(y, m - 1, day);
+                const key = `${candidate.getFullYear()}-${candidate.getMonth() + 1}-${candidate.getDate()}`;
+                if (!usedDates.has(key)) return [candidate.getFullYear(), candidate.getMonth() + 1, candidate.getDate()];
+                m += 1;
+                if (m > 12) {
+                  m = 1;
+                  y += 1;
+                }
+              }
+            };
+
+            if (scheduleOption === 'Every first of the month') {
+              resolve(nextMonthly(1));
+            } else if (scheduleOption === 'Every 15th of the month') {
+              resolve(nextMonthly(15));
+            } else {
+              resolve(nextDaily());
+            }
+          },
+          (err) => {
+            console.log('Error fetching scheduled content:', err);
+            reject(err);
+          },
+        );
+      });
+    });
+  } catch (error) {
+    console.error('Database operation failed:', error);
+    return null;
+  }
+};
+
 
 
 export const handleNewSignUp = async ({ 
