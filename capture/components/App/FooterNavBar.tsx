@@ -3,7 +3,6 @@ import { TextInput, View, Text, TouchableOpacity, Modal, FlatList } from 'react-
 import styles from '../../styles/AppStyles';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faCamera, faPen, faUserGroup, faFileImport, faGear } from '@fortawesome/free-solid-svg-icons';
-import { takePicture, recordVideo } from '../../lib/Helpers/cameraHelper';
 import { handleFileImport,detectAudioCodec } from '../../lib/Helpers/fileHelper';
 // import { handleFileImport } from '../../lib/Helpers/fileHelper';
 import { copyToScheduledContent } from '../../lib/Helpers/fileHelper';
@@ -59,7 +58,6 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
 }) => {
     // const [accounts, setAccounts]   = useState<SocialMediaAccount[]>([]);
   const [isPostEnabled, setIsPostEnabled] = useState(false);
-  const [cameraChoiceVisible, setCameraChoiceVisible] = useState(false);
   /* fetch accounts ONCE, exactly as you wrote it */
   useEffect(() => {
     const useEffectAsync = async () => {
@@ -79,7 +77,7 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
   }, [accounts]);
 
   return (
-    <>
+  
     
 <View style={styles.footerNavBar}>
     <TouchableOpacity
@@ -194,14 +192,7 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
 
 
 
-    <TouchableOpacity
-    style={[styles.navButton]}
-    onPress={() => setCameraChoiceVisible(true)}
-    
-    >
-    <FontAwesomeIcon icon={faCamera} size={24} />
-    <Text>Camera</Text>
-    </TouchableOpacity>
+
 
     <TouchableOpacity
     style={styles.navButton}
@@ -214,62 +205,6 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-<Modal
-  visible={cameraChoiceVisible}
-  transparent
-  animationType="fade"
-  onRequestClose={() => setCameraChoiceVisible(false)}
->
-  <View style={{ flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'rgba(0,0,0,0.4)' }}>
-    <View style={{ backgroundColor:'#fff', borderRadius:8, padding:20, minWidth:180 }}>
-      <TouchableOpacity
-        style={{ paddingVertical:10, alignItems:'center' }}
-        onPress={async () => {
-          setCameraChoiceVisible(false);
-          setContentMode('image');
-          await takePicture();
-        }}
-      >
-        <Text>Photo</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={{ paddingVertical:10, alignItems:'center' }}
-        onPress={async () => {
-          setCameraChoiceVisible(false);
-          setContentMode('video');
-          await recordVideo();
-        }}
-      >
-        <Text>Video</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={{ paddingVertical:10, alignItems:'center' }}
-        onPress={() => setCameraChoiceVisible(false)}
-      >
-        <Text style={{ color:'grey' }}>Cancel</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</Modal>
-
-
-
-</>
   )
 }
 
