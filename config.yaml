@@ -1,9 +1,0 @@
-DefaultSettings:
-  database_path: database_default.sqlite3
-  mode: local
-  photo_path: C:/users/user/pictures
-  default_photo_time: "7:00:00 AM"
-  video_path: C:/users/user/videos
-  default_video_time: "7:00:00 AM"
-  timezone: "US/Pacific"
-current_user: '1'
