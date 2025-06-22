@@ -22,7 +22,7 @@ DerivedData
 *.ipa
 *.xcuserstate
 **/.xcode.env.local
-
+android/app/build.gradle
 notes.md
 # Android/IntelliJ
 #
