@@ -36,6 +36,30 @@ export const handleFileImport = async () => {
     }
   };
 
+  export const handleThumbnailImport = async () => {
+    try {
+      const res = await DocumentPicker.pick({
+        type: [types.images],
+      });
+
+      if (res && res.length > 0) {
+        res.forEach((file) => {
+          console.log('Selected file:', file);
+
+        });
+        // return all the files selected
+        return res.map((file) => ({ uri: file.uri, type: file.type, name: file.name }));
+
+      }
+    } catch (err) {
+      if (DocumentPicker.isCancel(err)) {
+        console.log('User canceled the picker');
+      } else {
+        console.error('Unknown error:', err);
+      }
+    }
+  };
+
   export async function copyToScheduledContent(contentUri: string, fileName: string): Promise<string> {
     const scheduledContentDir = `${RNFS.DocumentDirectoryPath}/scheduledContent`;
   

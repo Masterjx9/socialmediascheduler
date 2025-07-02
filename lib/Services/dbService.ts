@@ -39,6 +39,9 @@ export const createTables = (tx: Transaction) => {
         tags TEXT,
         title TEXT,
         privacy TEXT,
+        category TEXT,
+        selfDeclaredMadeForKids boolean DEFAULT false,
+        thumbnail TEXT,
         published TEXT NOT NULL DEFAULT '{}'
       );
     `);

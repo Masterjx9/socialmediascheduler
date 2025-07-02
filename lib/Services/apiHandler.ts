@@ -60,7 +60,18 @@ export const contentCheck = async () => {
   for (const content of contentData) {
     console.log('test3');
 
-    const {content_type, content_id, content_data, description, title, privacy} = content;
+    const {
+      content_type, 
+      content_id,
+      content_data, 
+      description, 
+      title, 
+      privacy,
+      tags,
+      category,
+      selfDeclaredMadeForKids,
+      thumbnail
+      } = content;
   
     const userProviders = JSON.parse(
       content.user_providers || '[]',
@@ -191,12 +202,17 @@ export const contentCheck = async () => {
                 const extension = fileNameFromPath.substring(fileNameFromPath.lastIndexOf('.') + 1).toLowerCase();
 
                 const mediaType = extension === 'mp4' || extension === 'mov' ? 'video' : 'image';
+                const thumbnailPath = thumbnail ? thumbnail : null;
 
                 const mediaPayload = {
                   description,
                   [`${mediaType}_path`]: fullPath
                 };
 
+                if (thumbnailPath) {
+                  mediaPayload['thumbnail_path'] = thumbnailPath;
+                }
+                
                 await postMediaToLinkedIn(linkedInCreds.appToken, mediaType, mediaPayload, null);
               } else {
                 await postMediaToLinkedIn(linkedInCreds.appToken, null, { description }, null);
@@ -355,7 +371,25 @@ export const contentCheck = async () => {
                 const publishData = await publishMedia(instaCreds.accessToken, instaCreds.subId, container.id);
                 console.log('Instagram publish data:', publishData);
               } else if ( content_type === "video") {
-                  const videoContainer = await createContainer(instaCreds.accessToken, uploadResponse.real_url, instaCreds.subId, description, "VIDEO")
+                let thumbnail_url = null;
+                if (thumbnail) {
+                  console.log("have to upload thumbnail to 0x0");
+                  const thumbnailUploadResponse = await uploadContentToTmpFiles(thumbnail, "temp_thumbnail.jpeg");
+                  console.log("thumbnailUploadResponse:", thumbnailUploadResponse);
+                  thumbnail_url = thumbnailUploadResponse.real_url;
+                }
+                if (thumbnail_url === null) {
+                    thumbnail_url = undefined;
+                  }
+                  const videoContainer = await createContainer(
+                    instaCreds.accessToken, 
+                    uploadResponse.real_url, 
+                    instaCreds.subId, 
+                    description,
+                    "VIDEO",
+                    tags,
+                    thumbnail_url,
+                  )
                   console.log("videoContainer:", videoContainer);
                   if (videoContainer.error) {
                     throw new Error(`Error creating video container on Instagram: ${videoContainer.error}`);
@@ -421,13 +455,18 @@ export const contentCheck = async () => {
                 console.log("fileNameFromPath:", fileNameFromPath);
                 console.log("extension:", extension);
 
+             
+
                 const videoResult = await uploadVideoToYouTube(
                   youtubeCreds.accessToken,
                   fullPath,
                   title || fileNameFromPath,   // title fallback
                   description || '',
-                  undefined,
-                  privacy || 'private'
+                  category || '22', // default to 'People & Blogs'
+                  privacy || 'private',
+                  selfDeclaredMadeForKids || false,
+                  thumbnail,
+                  tags
                 );
                 console.log('YouTube upload result:', videoResult);
 

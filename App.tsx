@@ -57,11 +57,14 @@ const App = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [dbData, setDbData] = useState<any[]>([]);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [isMadeForKids, setIsMadeForKids] = useState(false);
   const [youtubeTitle, setYoutubeTitle] = useState('');
   const [youtubePrivacy, setYoutubePrivacy] = useState<'public' | 'private' | 'unlisted'>('public');
   const [accounts, setAccounts]   = useState<SocialMediaAccount[]>([]);
+  const [youtubeCategory, setYoutubeCategory] = useState(22);
+  const [selectedThumbnail, setSelectedThumbnail] = useState<null | { uri: string; type: string; name: string }>(null);
+  const [youtubeTags, setYoutubeTags] = useState<string>('');
 
-  
   // In the useEffect:
   useEffect(() => {
 
@@ -183,10 +186,18 @@ const App = () => {
             setUnsupportedAudioCodec={setUnsupportedAudioCodec}
             youtubeTitle={youtubeTitle}
             setYoutubeTitle={setYoutubeTitle}
+            isMadeForKids={isMadeForKids}
+            setIsMadeForKids={setIsMadeForKids}
             youtubePrivacy={youtubePrivacy}
             setYoutubePrivacy={setYoutubePrivacy}
             accounts={accounts}
             setAccounts={setAccounts}
+            youtubeCategory={youtubeCategory}
+            setYoutubeCategory={setYoutubeCategory}
+            selectedThumbnail={selectedThumbnail}
+            setSelectedThumbnail={setSelectedThumbnail}
+            youtubeTags={youtubeTags}
+            setYoutubeTags={setYoutubeTags}
             />
           <CalendarModal
             isCalendarVisible={isCalendarVisible}

@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform  } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
 import { fetchSocialMediaAccounts, fetchAppSettingsFromDb, fetchNextAvailableScheduleDateFromDb } from '../../lib/Services/dbService';
+import { YOUTUBE_CATEGORIES } from '../../types/SociaMedia';
+import { handleThumbnailImport } from '../../lib/Helpers/fileHelper';
+
 interface PostModalProps {
   isVisible: boolean;
   onClose: () => void;
@@ -19,9 +22,17 @@ interface PostModalProps {
   youtubeTitle: string;
   setYoutubeTitle: React.Dispatch<React.SetStateAction<string>>;
   youtubePrivacy: 'public' | 'private' | 'unlisted';
+  isMadeForKids?: boolean;
   setYoutubePrivacy: React.Dispatch<React.SetStateAction<'public' | 'private' | 'unlisted'>>;
+  setIsMadeForKids: React.Dispatch<React.SetStateAction<boolean>>;
   accounts: SocialMediaAccount[];
   setAccounts: React.Dispatch<React.SetStateAction<SocialMediaAccount[]>>;
+  selectedThumbnail: { uri: string; type: string; name: string } | null;
+  setSelectedThumbnail: React.Dispatch<React.SetStateAction<{ uri: string; type: string; name: string } | null>>;
+  youtubeCategory?: string | number;
+  setYoutubeCategory?: React.Dispatch<React.SetStateAction<number>> 
+  youtubeTags?: string;
+  setYoutubeTags?: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const PostModal: React.FC<PostModalProps> = ({ isVisible, 
@@ -37,9 +48,17 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
                                                 youtubeTitle, 
                                                 setYoutubeTitle,
                                                 youtubePrivacy,
+                                                isMadeForKids,
                                                 setYoutubePrivacy,
+                                                setIsMadeForKids,
                                                 accounts,
                                                 setAccounts,
+                                                selectedThumbnail,
+                                                setSelectedThumbnail,
+                                                youtubeCategory,
+                                                setYoutubeCategory,
+                                                youtubeTags,
+                                                setYoutubeTags
                                                }) => {
   const [contentDescription, setContent] = useState('');
   // const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
@@ -52,6 +71,9 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
   const [showAccountList, setShowAccountList] = useState(false);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [isDefaultSchedule, setIsDefaultSchedule] = useState(true);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [useThumbnail, setUseThumbnail] = useState(false);
+  
   
 // const [youtubeTitle, setYoutubeTitle] = useState('');
 // const [youtubePrivacy, setYoutubePrivacy] = useState<'public' | 'private' | 'unlisted'>('public');
@@ -275,8 +297,10 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
 
 
 
-      <View style={styles.modalContainer}>
-
+  <KeyboardAvoidingView style={{ flex: 1 }}
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                          <ScrollView style={styles.modalContainer} keyboardShouldPersistTaps="handled"
+                          contentContainerStyle={{ paddingBottom: 80 }}>
         <View
           style={{
             position: 'absolute',
@@ -333,6 +357,61 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
 
 {selectedAccounts.some(id => {
   const account = accounts.find(acc => acc.provider_user_id.toString() === id);
+  return (
+    account &&
+    ['youtube', 'linkedin', 'instagram'].includes(account.provider_name.toLowerCase()) && contentMode === 'video'
+  );
+}) && (
+  <>
+    <Text style={{ color: 'white', fontSize: 16, marginTop: 20 }}>Thumbnail:</Text>
+    
+    {/* Toggle thumbnail on/off */}
+    <TouchableOpacity
+      onPress={() => {
+        setUseThumbnail(!useThumbnail);
+        if (!useThumbnail) setSelectedThumbnail(null); // Clear previous thumbnail if turning off
+      }}
+      style={{ marginVertical: 10 }}
+    >
+      <Text style={{ color: useThumbnail ? 'cyan' : 'lightblue', fontSize: 16, fontWeight: 'bold' }}>
+        Use Thumbnail: {useThumbnail ? 'ON' : 'OFF'}
+      </Text>
+    </TouchableOpacity>
+
+    {/* If thumbnail is enabled, allow importing */}
+    {useThumbnail && (
+      <TouchableOpacity
+        onPress={async () => {
+          const files = await handleThumbnailImport();
+          if (files && files.length > 0) {
+          const { uri, type, name } = files[0];
+          setSelectedThumbnail({
+            uri,
+            type: type ?? '', 
+            name: name ?? '', 
+          });
+        }
+
+        }}
+        style={{ paddingVertical: 10 }}
+      >
+        <Text style={{ color: 'lightblue', fontSize: 16 }}>Select Thumbnail Image</Text>
+      </TouchableOpacity>
+    )}
+
+    {/* Show selected file name */}
+    {useThumbnail && selectedThumbnail?.name && (
+      <Text style={{ color: 'gray', fontSize: 14, marginTop: 5 }}>
+        Selected: {selectedThumbnail.name}
+      </Text>
+    )}
+  </>
+)}
+
+
+
+{selectedAccounts.some(id => {
+  const account = accounts.find(acc => acc.provider_user_id.toString() === id);
   return account && account.provider_name.toLowerCase() === 'youtube';
 }
 ) && (
@@ -386,9 +465,78 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
         Public
       </Text>
     </TouchableOpacity>
+    {/* Made for kids option */}
+<TouchableOpacity onPress={() => {
+  setIsMadeForKids(!isMadeForKids)
+  console.log('Made for Kids:', isMadeForKids);
+  }}>
+  <Text
+    style={{
+      fontSize: 16,
+      marginTop: 10,
+      color: isMadeForKids ? 'cyan' : 'lightblue',
+      fontWeight: 'bold',
+    }}
+  >
+    Made for Kids: {isMadeForKids ? 'ON' : 'OFF'}
+  </Text>
+</TouchableOpacity>
 
 
-   
+{/* YouTube Category selection */}
+<Text style={{ color: 'white', fontSize: 16, marginTop: 20 }}>YouTube Category:</Text>
+<TouchableOpacity
+  onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+  style={{
+    padding: 10,
+    backgroundColor: '#333',
+    borderRadius: 5,
+    marginTop: 5,
+  }}
+>
+  <Text style={{ color: 'white' }}>
+    {YOUTUBE_CATEGORIES.find((c) => c.id === youtubeCategory)?.name || 'Select Category'}
+  </Text>
+</TouchableOpacity>
+{showCategoryPicker && (
+  <View style={{ marginTop: 10 }}>
+    {YOUTUBE_CATEGORIES.map((category) => (
+      <TouchableOpacity
+        key={category.id}
+        onPress={() => {
+          if (setYoutubeCategory) {
+            setYoutubeCategory(category.id);
+          } else {
+            console.warn('setYoutubeCategory function is not provided');
+          }
+          setShowCategoryPicker(false);
+        }}
+        style={{
+          paddingVertical: 8,
+        }}
+      >
+        <Text
+          style={{
+            color: category.id === youtubeCategory ? 'cyan' : 'lightblue',
+            fontWeight: category.id === youtubeCategory ? 'bold' : 'normal',
+            fontSize: 15,
+          }}
+        >
+          {category.name}
+        </Text>
+      </TouchableOpacity>
+    ))}
+  </View>
+)}
+
+{/* Youtube Tags section - A single line input */}
+<TextInput
+  style={styles.textInput}
+  placeholder="Enter YouTube Tags (comma separated)"
+  value={youtubeTags}
+  onChangeText={setYoutubeTags}
+/>
+
   </View>
 )}
 
@@ -473,18 +621,16 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
         {/* <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Text style={styles.closeButtonText}>Cancel</Text>
         </TouchableOpacity> */}
-      </View>
+      </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 20,
+    flexGrow: 1,
+    backgroundColor: 'rgba(15, 5, 5, 0.95)',
   },
   title: {
     fontSize: 24,

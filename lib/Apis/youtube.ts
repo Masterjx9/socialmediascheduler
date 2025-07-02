@@ -2,6 +2,7 @@ import { GOOGLE_WEB_CLIENT_ID, GOOGLE_WEB_CLIENT_SECRET } from "@env";
 import { Linking } from "react-native";
 import RNFS from 'react-native-fs';
 import { Buffer } from 'buffer';
+import type { YOUTUBE_CATEGORIES } from '../../types/SociaMedia'; 
 
 const fs = require("fs").promises;
 
@@ -106,9 +107,14 @@ export async function getGoogleAccessToken({
   description: string,
   categoryId = '22',          
   privacyStatus: 'private' | 'public' | 'unlisted' = 'private',
+  selfDeclaredMadeForKids: boolean = false,
+  thumbnail?: string,
+  tags?: string
 ) {
   /* STEP 1 – start a resumable-upload session */
   console.log("accessToken", accessToken);
+  console.log("Here are the tags: ", tags);
+  const tagsArray = tags ? tags.split(',').map(tag => tag.trim()) : [];
   const initRes = await fetch(
     'https://www.googleapis.com/upload/youtube/v3/videos?part=snippet,status&uploadType=resumable',
     {
@@ -119,9 +125,11 @@ export async function getGoogleAccessToken({
         'X-Upload-Content-Type': 'video/mp4',
       },
       body: JSON.stringify({
-        // snippet: { title, description, categoryId },
-        snippet: { title, description },
-        status:  { privacyStatus },
+        snippet: { title, description, categoryId, tags: tagsArray },
+        status:  { 
+          privacyStatus,
+          selfDeclaredMadeForKids
+         },
       }),
     },
   );
@@ -152,5 +160,40 @@ export async function getGoogleAccessToken({
     throw new Error(`YouTube upload failed → ${await uploadRes.text()}`);
   }
 
-  return uploadRes.json();       
+  // return uploadRes.json();       
+  if (thumbnail) {
+    // If a thumbnail is provided, set it after the video upload
+    const videoData = await uploadRes.json();
+    const videoId = videoData.id;
+    console.log("Setting thumbnail for video ID:", videoId);
+    const thumbnail_result = await setYoutubeThumbnail(accessToken, videoId, thumbnail);
+
+    if (!thumbnail_result || thumbnail_result.kind !== "youtube#thumbnailSetResponse") {
+    throw new Error(`YouTube thumbnail upload failed → ${JSON.stringify(thumbnail_result)}`);
+  }
+
+  }
+  return uploadRes.json();
+}
+
+export async function setYoutubeThumbnail(
+  accessToken: string,
+  videoId: string,
+  thumbnailPath: string,
+) {
+  const b64 = await RNFS.readFile(thumbnailPath, 'base64');
+  const binary = Buffer.from(b64, 'base64'); 
+  const response = await fetch(
+    `https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${videoId}`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'image/jpeg',
+        'Content-Length': `${binary.length}`,
+      },
+      body: binary,
+    },
+  );
+  return response.json();
 }

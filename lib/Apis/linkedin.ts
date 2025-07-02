@@ -81,6 +81,7 @@ async function initializeUpload(
   accessToken: string,
   mediaType: string,
   fileSize?: number,
+  wantThumbnail: boolean = false,
 ): Promise<any> {
   const personUrn = (await getLinkedInUserInfo(accessToken)).sub;
   const url = `https://api.linkedin.com/rest/${mediaType}s?action=initializeUpload`;
@@ -98,7 +99,7 @@ async function initializeUpload(
   if (mediaType === 'video') {
     postBody.initializeUploadRequest.fileSizeBytes = fileSize;
     postBody.initializeUploadRequest.uploadCaptions = false;
-    postBody.initializeUploadRequest.uploadThumbnail = false;
+    postBody.initializeUploadRequest.uploadThumbnail = wantThumbnail;
   }
   const response = await fetch(url, {
     method: 'POST',
@@ -205,9 +206,32 @@ export async function postMediaToLinkedIn(
     const fileSize = Number(fileStats.size);
 
 
-    const videoData = await initializeUpload(accessToken, mediaType, fileSize);
+    const videoData = await initializeUpload(accessToken, mediaType, fileSize, mediaUrl.thumbnail_path ? true : false);
     const uploadInstructions = videoData.uploadInstructions;
     const videoUrn = videoData[mediaType];
+
+    console.log('videoData', videoData);
+    console.log('mediaUrl', mediaUrl);
+    if (videoData.thumbnailUploadUrl && mediaUrl.thumbnail_path) {
+  const thumbnailData = await RNFS.readFile(mediaUrl.thumbnail_path, 'base64');
+  const thumbnailBuffer = Buffer.from(thumbnailData, 'base64');
+
+  const thumbnailUploadRes = await fetch(videoData.thumbnailUploadUrl, {
+      method: 'PUT',
+      headers: {
+        'media-type-family': 'STILLIMAGE',
+        'Content-Type': 'application/octet-stream',
+        'Content-Length': String(thumbnailBuffer.length),
+      },
+      body: thumbnailBuffer,
+    });
+
+    if (thumbnailUploadRes.status !== 201) {
+      throw new Error(`Thumbnail upload failed → ${await thumbnailUploadRes.text()}`);
+    }
+
+    console.log('✅ Thumbnail uploaded successfully');
+  }
 
     const uploadedPartIds = await uploadVideoParts(
       uploadInstructions,

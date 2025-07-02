@@ -33,9 +33,17 @@ interface ModalsContainerProps {
     youtubeTitle: string;
     setYoutubeTitle: React.Dispatch<React.SetStateAction<string>>;
     youtubePrivacy: 'public' | 'private' | 'unlisted';
+    isMadeForKids: boolean;
+    setIsMadeForKids: React.Dispatch<React.SetStateAction<boolean>>;
     setYoutubePrivacy: React.Dispatch<React.SetStateAction<'public' | 'private' | 'unlisted'>>;
     accounts: SocialMediaAccount[];
     setAccounts: React.Dispatch<React.SetStateAction<SocialMediaAccount[]>>;
+    youtubeCategory?: string | number;
+    setYoutubeCategory?: React.Dispatch<React.SetStateAction<number>>
+    selectedThumbnail: { uri: string; type: string; name: string } | null;
+    setSelectedThumbnail: React.Dispatch<React.SetStateAction<{ uri: string; type: string; name: string } | null>>;
+    youtubeTags: string;
+    setYoutubeTags: React.Dispatch<React.SetStateAction<string>>;
   }
 
   const ModalsContainer: React.FC<ModalsContainerProps> = ({
@@ -66,8 +74,16 @@ interface ModalsContainerProps {
     setYoutubeTitle,
     youtubePrivacy,
     setYoutubePrivacy,
+    isMadeForKids,
+    setIsMadeForKids,
     accounts,
     setAccounts,
+    youtubeCategory,
+    selectedThumbnail,
+    setSelectedThumbnail,
+    setYoutubeCategory,
+    youtubeTags,
+    setYoutubeTags
   }) => {
     return (
       <>
@@ -85,7 +101,14 @@ interface ModalsContainerProps {
           />
 
         <PostModal
-    
+        isMadeForKids={isMadeForKids}
+          setIsMadeForKids={setIsMadeForKids}
+          selectedThumbnail={selectedThumbnail}
+          setSelectedThumbnail={setSelectedThumbnail}
+          youtubeCategory={youtubeCategory}
+          setYoutubeCategory={setYoutubeCategory}
+          youtubeTags={youtubeTags}
+          setYoutubeTags={setYoutubeTags}
           isVisible={isPostVisible}
             onClose={() => {
             setIsPostVisible(false);
@@ -132,7 +155,23 @@ interface ModalsContainerProps {
                 }
               }
               console.log('Final file to be posted:', finalFile);
-              await handlePost(contentMode, finalFile, contentDescription, unixTimestamp, setDbData, setIsPostVisible, setSelectedItem, content_id, user_providers, youtubeTitle, youtubePrivacy);
+              await handlePost(
+                contentMode, 
+                finalFile, 
+                contentDescription, 
+                unixTimestamp, 
+                setDbData, 
+                setIsPostVisible, 
+                setSelectedItem, 
+                content_id, 
+                user_providers, 
+                youtubeTitle, 
+                youtubePrivacy,
+                isMadeForKids,
+                selectedThumbnail?.uri,
+                youtubeCategory,
+                youtubeTags
+              );
             }
           }
           selectedDate={selectedDate}
