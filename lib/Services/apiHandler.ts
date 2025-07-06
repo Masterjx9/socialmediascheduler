@@ -229,6 +229,7 @@ export const contentCheck = async () => {
           case 'Threads':
             // Fetch from threads_accounts, then post
             console.log('Posting to Threads...');
+
             const threadsCreds = await fetchThreadsCredentials(providerId);
             if (!threadsCreds) {
               console.warn(`No Threads credentials found for providerId: ${providerId}`);
@@ -256,7 +257,16 @@ export const contentCheck = async () => {
               threadsCreds.accountName
             )
               console.log("hello world")
+
+
             try {
+
+              // for (let i = 1; i <= 10; i++) {
+              //   console.log(i);
+              //   await new Promise(resolve => setTimeout(resolve, 1500)); // wait for 1.5 seconds
+              // }
+
+
               console.log("content_type:", content_type);
               if (content_type === "post") {
                 console.log("we are now posting a text post to threads");
@@ -410,7 +420,9 @@ export const contentCheck = async () => {
             }
               break;
           case 'YouTube':
-            // Fetch from youtube_accounts, then post
+
+            
+
             console.log('Posting to YouTube...');
             const youtubeCreds = await fetchYoutubeCredentials(providerId);
             if (!youtubeCreds) {
@@ -429,7 +441,7 @@ export const contentCheck = async () => {
               publishedStatus[providerId] = 'failed';
               break;
             }
-
+            
             await insertYoutubeAccountIntoDb(
               "update",
               youtubeCreds.subId,
@@ -439,6 +451,9 @@ export const contentCheck = async () => {
               youtubeCreds.accountName
             )
             try {
+              
+              // Fetch from youtube_accounts, then post
+              // throw new Error("Intentional failure for testing");
               if (content_type === "post" || content_type === "image") {
                 console.log("This should never ever happen ever");
                 // if anyone wants to make logic to safely failing this, please do
@@ -469,6 +484,11 @@ export const contentCheck = async () => {
                   tags
                 );
                 console.log('YouTube upload result:', videoResult);
+
+              //   for (let i = 1; i <= 10; i++) {
+              //   console.log(i);
+              //   await new Promise(resolve => setTimeout(resolve, 1500)); // wait for 1.5 seconds
+              // }
 
                 publishedStatus[providerId] = 'success';
               }

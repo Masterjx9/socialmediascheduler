@@ -1,9 +1,6 @@
-import { fetchUserIdFromDb, insertProviderIdIntoDb } from './dbService';
-import { loginWithTwitter } from '../Helpers/twitterHelper';
-import { openLinkedInLogin, getLinkedInAccessToken } from '../Apis/linkedin';
-import { openThreadsLogin, getThreadsAccessToken, openInstagramLogin } from '../Apis/meta';
-import { openGoogleLogin, getGoogleAccessToken } from '../Apis/youtube';
-import { useEffect } from 'react';
+import { openLinkedInLogin } from '../Apis/linkedin';
+import { openThreadsLogin, openInstagramLogin } from '../Apis/meta';
+import { openGoogleLogin } from '../Apis/youtube';
 
 
  

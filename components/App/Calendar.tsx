@@ -88,6 +88,11 @@ const renderItem = ({ item }: { item: any },
     <Text style={styles.postedItem}>Posted</Text>
 )}
 
+{item.published !== '{}' && !item.published?.includes('"final":"success"') && (
+  <Text style={styles.errorItem}>Error</Text>
+)}
+
+
 
     </View>
   </View>

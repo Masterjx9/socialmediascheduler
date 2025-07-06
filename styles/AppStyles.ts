@@ -124,6 +124,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#d4edda',
     alignItems: 'flex-start',
   },
+  errorItem: {
+    backgroundColor: '#f8d7da',
+    alignItems: 'flex-start',
+  },
   });
 
 export default styles;

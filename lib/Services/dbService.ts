@@ -302,7 +302,7 @@ export const fetchContentFromBeforeCurrentTime = async () => {
                 const currentTime = Math.floor(Date.now() / 1000);
 
                 tx.executeSql(
-                  `SELECT * FROM content WHERE post_date < ? AND published NOT LIKE '%"final":"success"%'`,
+                  `SELECT * FROM content WHERE post_date < ? AND published = '{}'`,
                     [currentTime],
                     (_, results) => {
                         const rows = results.rows;
@@ -534,20 +534,20 @@ export const handleNewSignUp = async ({
             return;
           }
           // now we will immediately get a refresh token as the getGoogleAccessToken accepts refresh_token as a param for grant_type
-          const googleRT = await getGoogleAccessToken({
-            grant_type: 'refresh_token',
-            access_token: googleAC.refresh_token
-          });
+          // const googleRT = await getGoogleAccessToken({
+          //   grant_type: 'refresh_token',
+          //   access_token: googleAC.refresh_token
+          // });
 
-          console.log('Google Refresh Token:', googleRT);
+          // console.log('Google Refresh Token:', googleRT);
           if (mode === 'insert'){
           await insertProviderIdIntoDb(provider, accountInfo.items[0].id);
           }
           await insertYoutubeAccountIntoDb(
             mode,
             accountInfo.items[0].id,
-            googleRT.access_token,
-            googleRT.expires_in.toString(),
+            googleAC.refresh_token,
+            googleAC.expires_in.toString(),
             new Date().toISOString(),
             accountInfo.items[0].snippet.title
           );
