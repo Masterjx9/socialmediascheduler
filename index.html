@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Social media scheduler app</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<p>This is a new <a href="https://reactnative.dev"><strong>React Native</strong></a> project, bootstrapped using <a href="https://github.com/react-native-community/cli"><code>@react-native-community/cli</code></a>.</p>
+<h1 id="getting-started">Getting Started</h1>
+<blockquote>
+<p><strong>Note</strong>: Make sure you have completed the <a href="https://reactnative.dev/docs/environment-setup">React Native - Environment Setup</a> instructions till &quot;Creating a new application&quot; step, before proceeding.</p>
+</blockquote>
+<h2 id="step-1-start-the-metro-server">Step 1: Start the Metro Server</h2>
+<p>First, you will need to start <strong>Metro</strong>, the JavaScript <em>bundler</em> that ships <em>with</em> React Native.</p>
+<p>To start Metro, run the following command from the <em>root</em> of your React Native project:</p>
+<pre class="hljs"><code><div><span class="hljs-comment"># using npm</span>
+npm start
+
+<span class="hljs-comment"># OR using Yarn</span>
+yarn start
+</div></code></pre>
+<h2 id="step-2-start-your-application">Step 2: Start your Application</h2>
+<p>Let Metro Bundler run in its <em>own</em> terminal. Open a <em>new</em> terminal from the <em>root</em> of your React Native project. Run the following command to start your <em>Android</em> or <em>iOS</em> app:</p>
+<h3 id="for-android">For Android</h3>
+<pre class="hljs"><code><div><span class="hljs-comment"># using npm</span>
+npm run android
+
+<span class="hljs-comment"># OR using Yarn</span>
+yarn android
+</div></code></pre>
+<h3 id="for-ios">For iOS</h3>
+<pre class="hljs"><code><div><span class="hljs-comment"># using npm</span>
+npm run ios
+
+<span class="hljs-comment"># OR using Yarn</span>
+yarn ios
+</div></code></pre>
+<p>If everything is set up <em>correctly</em>, you should see your new app running in your <em>Android Emulator</em> or <em>iOS Simulator</em> shortly provided you have set up your emulator/simulator correctly.</p>
+<p>This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.</p>
+<h2 id="step-3-modifying-your-app">Step 3: Modifying your App</h2>
+<p>Now that you have successfully run the app, let's modify it.</p>
+<ol>
+<li>
+<p>Open <code>App.tsx</code> in your text editor of choice and edit some lines.</p>
+</li>
+<li>
+<p>For <strong>Android</strong>: Press the <kbd>R</kbd> key twice or select <strong>&quot;Reload&quot;</strong> from the <strong>Developer Menu</strong> (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!</p>
+<p>For <strong>iOS</strong>: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!</p>
+</li>
+</ol>
+<h2 id="congratulations-tada">Congratulations! <img class="emoji" alt="tada" src="data:image/png;base64,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" /></h2>
+<p>You've successfully run and modified your React Native App. :partying_face:</p>
+<h3 id="now-what">Now what?</h3>
+<ul>
+<li>If you want to add this new React Native code to an existing application, check out the <a href="https://reactnative.dev/docs/integration-with-existing-apps">Integration guide</a>.</li>
+<li>If you're curious to learn more about React Native, check out the <a href="https://reactnative.dev/docs/getting-started">Introduction to React Native</a>.</li>
+</ul>
+<h1 id="troubleshooting">Troubleshooting</h1>
+<p>If you can't get this to work, see the <a href="https://reactnative.dev/docs/troubleshooting">Troubleshooting</a> page.</p>
+<h1 id="learn-more">Learn More</h1>
+<p>To learn more about React Native, take a look at the following resources:</p>
+<ul>
+<li><a href="https://reactnative.dev">React Native Website</a> - learn more about React Native.</li>
+<li><a href="https://reactnative.dev/docs/environment-setup">Getting Started</a> - an <strong>overview</strong> of React Native and how setup your environment.</li>
+<li><a href="https://reactnative.dev/docs/getting-started">Learn the Basics</a> - a <strong>guided tour</strong> of the React Native <strong>basics</strong>.</li>
+<li><a href="https://reactnative.dev/blog">Blog</a> - read the latest official React Native <strong>Blog</strong> posts.</li>
+<li><a href="https://github.com/facebook/react-native"><code>@facebook/react-native</code></a> - the Open Source; GitHub <strong>repository</strong> for React Native.</li>
+</ul>
+
+</body>
+</html>

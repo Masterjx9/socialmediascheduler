@@ -523,6 +523,63 @@ export const handleNewSignUp = async ({
   mode
  }: HandleNewSignUpParams) : Promise<string | void> => {
   try {
+    if (provider === 'TikTok') {
+      console.log('Youtube SignUp');
+     // We will do the same flow as LinkedIn for now
+      // Inside handleDeepLink:
+      const handleDeepLink = async (event: { url: string }) => {
+        const match = event.url.match(/code=([^&]+)/);
+        const code = match?.[1];
+        if (code) {
+          console.log('Got Youtube Code:', code);
+          subscription.remove(); 
+          const googleAC = await getGoogleAccessToken({
+            grant_type: 'authorization_code',
+            code: code,
+          });
+          console.log('Google Access Token:', googleAC);
+          // do whatever with `code`
+          const accountInfo = await getYoutubeUserInfo(googleAC.access_token);
+          console.log('Youtube Account Info:', accountInfo);
+          console.log('Channel name:', accountInfo.items[0].snippet.title);
+          const existingProviderId = await fetchProviderIdFromDb(accountInfo.id);
+          console.log('Existing Provider ID: ', existingProviderId);
+          if (existingProviderId && mode === 'insert') {
+            Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
+            return;
+          }
+          // now we will immediately get a refresh token as the getGoogleAccessToken accepts refresh_token as a param for grant_type
+          // const googleRT = await getGoogleAccessToken({
+          //   grant_type: 'refresh_token',
+          //   access_token: googleAC.refresh_token
+          // });
+
+          // console.log('Google Refresh Token:', googleRT);
+          if (mode === 'insert'){
+          await insertProviderIdIntoDb(provider, accountInfo.items[0].id);
+          }
+          await insertYoutubeAccountIntoDb(
+            mode,
+            accountInfo.items[0].id,
+            googleAC.refresh_token,
+            googleAC.expires_in.toString(),
+            new Date().toISOString(),
+            accountInfo.items[0].snippet.title
+          );
+          forceUpdateAccounts(setAccounts);
+          if (isCalendarVisible){
+          setIsCalendarVisible(true);
+          } else {
+          setIsCalendarVisible(false);
+          return "test";
+          }
+
+        }
+      };
+      const subscription = Linking.addEventListener('url', handleDeepLink);
+      openGoogleLogin();
+    }
+
     if (provider === 'YouTube') {
       console.log('Youtube SignUp');
      // We will do the same flow as LinkedIn for now
