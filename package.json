@@ -21,6 +21,8 @@
     "@types/oauth": "^0.9.6",
     "buffer": "^6.0.3",
     "events": "^3.3.0",
+    "jose": "^6.0.11",
+    "js-sha256": "^0.11.1",
     "oauth": "^0.10.0",
     "oauth-1.0a": "^2.2.6",
     "process": "^0.11.10",
@@ -41,6 +43,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
+    "@babel/plugin-transform-export-namespace-from": "^7.27.1",
     "@babel/preset-env": "^7.20.0",
     "@babel/runtime": "^7.20.0",
     "@react-native/babel-preset": "0.74.83",

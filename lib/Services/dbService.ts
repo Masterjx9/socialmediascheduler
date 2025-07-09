@@ -6,6 +6,8 @@ import { getLinkedInAccessToken, openLinkedInLogin, getLinkedInUserInfo } from '
 import { getThreadsAccessToken, openThreadsLogin, getThreadsUserInfo,
   getInstagramUserInfo, getInstagramAccessToken, openInstagramLogin  } from '../Apis/meta';
 import { getGoogleAccessToken, openGoogleLogin, getYoutubeUserInfo } from '../Apis/youtube';
+import { getBlueskyAccessToken, openBlueskyLogin, getBlueskyUserInfo } from '../Apis/bluesky';
+
 import { Linking } from 'react-native';
 import { getUnixTimestampsForDay } from '../Helpers/dateHelper';
 import { scheduleOptions } from '../../types/SociaMedia';
@@ -523,24 +525,24 @@ export const handleNewSignUp = async ({
   mode
  }: HandleNewSignUpParams) : Promise<string | void> => {
   try {
-    if (provider === 'TikTok') {
-      console.log('Youtube SignUp');
+    if (provider === 'BlueSky') {
+      console.log('Bluesky SignUp');
      // We will do the same flow as LinkedIn for now
       // Inside handleDeepLink:
       const handleDeepLink = async (event: { url: string }) => {
         const match = event.url.match(/code=([^&]+)/);
         const code = match?.[1];
         if (code) {
-          console.log('Got Youtube Code:', code);
-          subscription.remove(); 
-          const googleAC = await getGoogleAccessToken({
+          console.log('Got Bluesky Code:', code);
+          subscription.remove();
+          const blueskyAC = await getBlueskyAccessToken({
             grant_type: 'authorization_code',
             code: code,
           });
-          console.log('Google Access Token:', googleAC);
+          console.log('Bluesky Access Token:', blueskyAC);
           // do whatever with `code`
-          const accountInfo = await getYoutubeUserInfo(googleAC.access_token);
-          console.log('Youtube Account Info:', accountInfo);
+          const accountInfo = await getBlueskyUserInfo(blueskyAC.access_token);
+          console.log('Bluesky Account Info:', accountInfo);
           console.log('Channel name:', accountInfo.items[0].snippet.title);
           const existingProviderId = await fetchProviderIdFromDb(accountInfo.id);
           console.log('Existing Provider ID: ', existingProviderId);
@@ -548,21 +550,21 @@ export const handleNewSignUp = async ({
             Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
             return;
           }
-          // now we will immediately get a refresh token as the getGoogleAccessToken accepts refresh_token as a param for grant_type
+          // now we will immediately get a refresh token as the getBlueskyAccessToken accepts refresh_token as a param for grant_type
           // const googleRT = await getGoogleAccessToken({
           //   grant_type: 'refresh_token',
           //   access_token: googleAC.refresh_token
           // });
 
-          // console.log('Google Refresh Token:', googleRT);
+          // console.log('Bluesky Refresh Token:', blueskyRT);
           if (mode === 'insert'){
           await insertProviderIdIntoDb(provider, accountInfo.items[0].id);
           }
-          await insertYoutubeAccountIntoDb(
+          await insertBlueskyAccountIntoDb(
             mode,
             accountInfo.items[0].id,
-            googleAC.refresh_token,
-            googleAC.expires_in.toString(),
+            blueskyAC.refresh_token,
+            blueskyAC.expires_in.toString(),
             new Date().toISOString(),
             accountInfo.items[0].snippet.title
           );
@@ -577,7 +579,7 @@ export const handleNewSignUp = async ({
         }
       };
       const subscription = Linking.addEventListener('url', handleDeepLink);
-      openGoogleLogin();
+      openBlueskyLogin();
     }
 
     if (provider === 'YouTube') {
@@ -1146,6 +1148,167 @@ export const insertYoutubeAccountIntoDb = (
       );
     });
   }};
+
+
+
+export const insertTikTokAccountIntoDb = (
+    mode: string,
+    subId: string,
+    accessToken: string,
+    accessTokenExpiresIn: string,
+    timestamp: string,
+    accountName: string
+  ) => {
+    if (mode === 'insert') {
+    return new Promise<void>((resolve, reject) => {
+      const db = SQLite.openDatabase(
+        { name: 'database_default.sqlite3', location: 'default' },
+        () => {
+          db.transaction((tx: Transaction) => {
+            tx.executeSql(
+              `INSERT INTO tiktok_accounts
+                (sub_id, access_token, access_token_expires_in, timestamp, account_name)
+               VALUES (?, ?, ?, ?, ?)`,
+              [
+                subId,
+                accessToken,
+                accessTokenExpiresIn,
+                timestamp,
+                accountName,
+              ],
+              () => {
+                console.log('TikTok account stored in the database');
+                resolve();
+              },
+              (error) => {
+                console.log('Error storing TikTok account in the database:', error);
+                reject(error);
+              }
+            );
+          });
+        },
+        (error) => {
+          console.log('Error opening database:', error);
+          reject(error);
+        }
+      );
+    });
+  } if (mode === 'update') {
+    return new Promise<void>((resolve, reject) => {
+      const db = SQLite.openDatabase(
+        { name: 'database_default.sqlite3', location: 'default' },
+        () => {
+          db.transaction((tx: Transaction) => {
+            tx.executeSql(
+              `UPDATE tiktok_accounts
+                SET access_token = ?, access_token_expires_in = ?, timestamp = ?, account_name = ?
+               WHERE sub_id = ?`,
+              [
+                accessToken,
+                accessTokenExpiresIn,
+                timestamp,
+                accountName,
+                subId,
+              ],
+              () => {
+                console.log('TikTok account updated in the database');
+                resolve();
+              },
+              (error) => {
+                console.log('Error updating TikTok account in the database:', error);
+                reject(error);
+              }
+            );
+          });
+        },
+        (error) => {
+          console.log('Error opening database:', error);
+          reject(error);
+        }
+      );
+    });
+  }};
+
+
+export const insertBlueskyAccountIntoDb = (
+    mode: string,
+    subId: string,
+    accessToken: string,
+    accessTokenExpiresIn: string,
+    timestamp: string,
+    accountName: string
+  ) => {
+    if (mode === 'insert') {
+    return new Promise<void>((resolve, reject) => {
+      const db = SQLite.openDatabase(
+        { name: 'database_default.sqlite3', location: 'default' },
+        () => {
+          db.transaction((tx: Transaction) => {
+            tx.executeSql(
+              `INSERT INTO bluesky_accounts 
+                (sub_id, access_token, access_token_expires_in, timestamp, account_name)
+               VALUES (?, ?, ?, ?, ?)`,
+              [
+                subId,
+                accessToken,
+                accessTokenExpiresIn,
+                timestamp,
+                accountName,
+              ],
+              () => {
+                console.log('Bluesky account stored in the database');
+                resolve();
+              },
+              (error) => {
+                console.log('Error storing Bluesky account in the database:', error);
+                reject(error);
+              }
+            );
+          });
+        },
+        (error) => {
+          console.log('Error opening database:', error);
+          reject(error);
+        }
+      );
+    });
+  } if (mode === 'update') {
+    return new Promise<void>((resolve, reject) => {
+      const db = SQLite.openDatabase(
+        { name: 'database_default.sqlite3', location: 'default' },
+        () => {
+          db.transaction((tx: Transaction) => {
+            tx.executeSql(
+              `UPDATE bluesky_accounts
+                SET access_token = ?, access_token_expires_in = ?, timestamp = ?, account_name = ?
+               WHERE sub_id = ?`,
+              [
+                accessToken,
+                accessTokenExpiresIn,
+                timestamp,
+                accountName,
+                subId,
+              ],
+              () => {
+                console.log('Bluesky account updated in the database');
+                resolve();
+              },
+              (error) => {
+                console.log('Error updating Bluesky account in the database:', error);
+                reject(error);
+              }
+            );
+          });
+        },
+        (error) => {
+          console.log('Error opening database:', error);
+          reject(error);
+        }
+      );
+    });
+  }};
+
+
 
 
 export const insertInstagramAccountIntoDb = (
