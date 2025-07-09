@@ -73,6 +73,15 @@ export const createTables = (tx: Transaction) => {
       );
     `);
     tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS bluesky_accounts (
+        sub_id TEXT,
+        access_token TEXT,
+        access_token_expires_in TEXT,
+        account_name TEXT,
+        timestamp DATETIME
+      );
+    `);
+    tx.executeSql(`
       CREATE TABLE IF NOT EXISTS twitter_accounts (
         ID INTEGER PRIMARY KEY AUTOINCREMENT,
         sub_id TEXT,
@@ -157,6 +166,12 @@ export const createTables = (tx: Transaction) => {
             } else if (provider === 'Twitter') {
               const creds = await fetchTwitterCredentials(id);
               accountName = ''; // placeholder
+            } else if (provider === 'TikTok') {
+              const creds = await fetchTikTokCredentials(id);
+              accountName = creds?.accountName ?? '';
+            } else if (provider === 'BlueSky') {
+              const creds = await fetchBlueSkyCredentials(id);
+              accountName = creds?.accountName ?? '';
             }
           } catch (e) {
             console.log(`Error getting account name for ${provider} (${id}):`, e);
@@ -1497,8 +1512,95 @@ export const fetchYoutubeCredentials = async (providerUserId: string): Promise<{
 }
 
 
+export const fetchTikTokCredentials = async (providerUserId: string): Promise<{
+  subId: string;
+  accountName: string;
+  accessToken: string;
+  accessTokenExpiresIn: string;
+  timestamp: string;
+} | null> => {
+  try {
+    console.log('Fetching TikTok credentials for provider_user_id:', providerUserId);
+    const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+    return new Promise((resolve, reject) => {
+      db.transaction(tx => {
+        tx.executeSql(
+          `SELECT sub_id, account_name, access_token, access_token_expires_in, timestamp
+           FROM tiktok_accounts
+           WHERE tiktok_accounts.sub_id = ?`,
+          [providerUserId],
 
+          (_, results) => {
+            if (results.rows.length > 0) {
+              const row = results.rows.item(0);
+              resolve({
+                subId: row.sub_id,
+                accountName: row.account_name,
+                accessToken: row.access_token,
+                accessTokenExpiresIn: row.access_token_expires_in,
+                timestamp: row.timestamp,
+              });
+            } else {
+              resolve(null);
+            }
+          },
+          error => {
+            console.error('Error fetching TikTok credentials:', error);
+            reject(error);
+          }
+        );
+      });
+    });
+  } catch (error) {
+    console.error('DB open error:', error);
+    return null;
+  }
+}
 
+export const fetchBlueSkyCredentials = async (providerUserId: string): Promise<{
+  subId: string;
+  accountName: string;
+  accessToken: string;
+  accessTokenExpiresIn: string;
+  timestamp: string;
+} | null> => {
+  try {
+    console.log('Fetching BlueSky credentials for provider_user_id:', providerUserId);
+    const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
+    return new Promise((resolve, reject) => {
+      db.transaction(tx => {
+        tx.executeSql(
+          `SELECT sub_id, account_name, access_token, access_token_expires_in, timestamp
+           FROM bluesky_accounts
+           WHERE bluesky_accounts.sub_id = ?`,
+          [providerUserId],
+
+          (_, results) => {
+            if (results.rows.length > 0) {
+              const row = results.rows.item(0);
+              resolve({
+                subId: row.sub_id,
+                accountName: row.account_name,
+                accessToken: row.access_token,
+                accessTokenExpiresIn: row.access_token_expires_in,
+                timestamp: row.timestamp,
+              });
+            } else {
+              resolve(null);
+            }
+          },
+          error => {
+            console.error('Error fetching BlueSky credentials:', error);
+            reject(error);
+          }
+        );
+      });
+    });
+  } catch (error) {
+    console.error('DB open error:', error);
+    return null;
+  }
+}
 
 export const linkedInAccessTokenExpirationChecker = async (): Promise<LinkedInExpiryInfo[]> => {
   const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });

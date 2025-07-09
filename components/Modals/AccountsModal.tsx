@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faLinkedin, faTwitter, faThreads, faInstagram, faYoutube, faTiktok } from '@fortawesome/free-brands-svg-icons';
+import { faLinkedin, faTwitter, faThreads, faInstagram, faYoutube, faTiktok, faBluesky } from '@fortawesome/free-brands-svg-icons';
 import TwitterLogin from './logins/TwitterLogin';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
 import { handleNewSignUp, forceUpdateAccounts, removeAccount } from '../../lib/Services/dbService';
@@ -172,6 +172,15 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
                                                                                             setAccounts: setAccounts })}>
                 <FontAwesomeIcon icon={faTiktok} size={24} /><Text style={styles.loginText}>Login with TikTok</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'BlueSky',  
+                                                                                                isCalendarVisible: true,
+                                                                                                mode:'insert',
+                                                                                            setIsNewAccountVisible: setIsNewAccountVisible,
+                                                                                            setIsCalendarVisible: setIsCalendarVisible,
+                                                                                            setAccounts: setAccounts })}>
+                <FontAwesomeIcon icon={faBluesky} size={24} /><Text style={styles.loginText}>Login with BlueSky</Text>
+                </TouchableOpacity>
+        
 
             </View>
           </Modal>
