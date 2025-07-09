@@ -64,6 +64,9 @@ const App = () => {
   const [youtubeCategory, setYoutubeCategory] = useState(22);
   const [selectedThumbnail, setSelectedThumbnail] = useState<null | { uri: string; type: string; name: string }>(null);
   const [youtubeTags, setYoutubeTags] = useState<string>('');
+  const [calendarMode, setCalendarMode] = React.useState<'day' | 'month'>('day');
+  const [lastDayPressed, setLastDayPressed] = React.useState<any>(null);
+
 
   // In the useEffect:
   useEffect(() => {
@@ -198,6 +201,11 @@ const App = () => {
             setSelectedThumbnail={setSelectedThumbnail}
             youtubeTags={youtubeTags}
             setYoutubeTags={setYoutubeTags}
+            calendarMode={calendarMode}
+            setCalendarMode={setCalendarMode}
+            lastDayPressed={lastDayPressed}
+            setLastDayPressed={setLastDayPressed}
+            setSelectedDate={setSelectedDate}
             />
           <CalendarModal
             isCalendarVisible={isCalendarVisible}
@@ -218,6 +226,10 @@ const App = () => {
             setUnsupportedAudioCodec={setUnsupportedAudioCodec}
             accounts={accounts}
             setAccounts={setAccounts}
+            calendarMode={calendarMode}
+            setCalendarMode={setCalendarMode}
+            lastDayPressed={lastDayPressed}
+            setLastDayPressed={setLastDayPressed}
           />
         </>
       ) : (

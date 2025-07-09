@@ -61,7 +61,6 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
                                                 setYoutubeTags
                                                }) => {
   const [contentDescription, setContent] = useState('');
-  // const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
   
   const [selectedTime, setSelectedTime] = useState<Date | null>(null); 
   const [localSelectedDate, setLocalSelectedDate] = useState(selectedDate);
@@ -73,6 +72,7 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
   const [isDefaultSchedule, setIsDefaultSchedule] = useState(true);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [useThumbnail, setUseThumbnail] = useState(false);
+  const [showError, setShowError] = useState(false);
   
   
 // const [youtubeTitle, setYoutubeTitle] = useState('');
@@ -176,6 +176,10 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
         setSelectedTime(postDate);
         const dateString = postDate.toISOString().split('T')[0]; // YYYY-MM-DD
         setLocalSelectedDate(dateString);
+
+        if (item.published !== '{}' && !item.published?.includes('"final":"success"')) {
+          setShowError(true);
+        }
       } else {
         setContent('');
         setSelectedTime(null);
@@ -287,7 +291,7 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
             width: 20, height: 20, marginRight: 10, borderRadius: 3,
             borderWidth: 1, borderColor: '#000', backgroundColor: selectedAccounts.includes(account.provider_user_id.toString()) ? '#1DA1F2' : '#fff'
           }} />
-          <Text>{account.provider_name}</Text>
+          <Text>{account.provider_name} - {account.account_name}</Text>
         </TouchableOpacity>
       ))
   }
@@ -349,6 +353,11 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
   </TouchableOpacity>
 </View>
 
+{showError && (
+          <Text style={{ color: 'red', fontSize: 16, marginBottom: 20 }}>
+            {'Error: Post not published successfully.'}
+          </Text>
+        )}
 
 
         <Text style={styles.title}>Create a Post</Text>
@@ -591,8 +600,7 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
 
 
 
-
-
+        
         <TextInput
           style={styles.textInput}
           placeholder="What's happening?"
@@ -600,7 +608,6 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
           value={contentDescription}
           onChangeText={setContent}
         />
-
       <TouchableOpacity onPress={showTimePicker} style={styles.timeButton}>
           <Text style={styles.timeButtonText}>
             {selectedTime ? selectedTime.toLocaleTimeString() : 'Pick a time'}

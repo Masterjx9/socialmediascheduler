@@ -211,15 +211,15 @@ export const fetchDbData = (db: SQLiteDatabase, setDbData: React.Dispatch<React.
         console.log('Fetched data:', data);
       });
 
-      tx.executeSql(`SELECT * FROM content WHERE (published NOT LIKE '%"final":"success"%')`, [], (tx: Transaction, results: ResultSet) => {
-        const rows = results.rows;
-        let data: any[] = [];
-        for (let i = 0; i < rows.length; i++) {
-          data.push(rows.item(i));
-        }
-        console.log('Fetched data:', data);
-        setDbData(data);
-      });
+      // tx.executeSql(`SELECT * FROM content WHERE (published NOT LIKE '%"final":"success"%')`, [], (tx: Transaction, results: ResultSet) => {
+      //   const rows = results.rows;
+      //   let data: any[] = [];
+      //   for (let i = 0; i < rows.length; i++) {
+      //     data.push(rows.item(i));
+      //   }
+      //   console.log('Fetched data:', data);
+      //   setDbData(data);
+      // });
 
 
       tx.executeSql('SELECT * FROM user_providers', [], (tx: Transaction, results: ResultSet) => {

@@ -32,7 +32,7 @@ export const handlePost = async (
       db.transaction((tx: Transaction) => {
         if (content_id) {
         tx.executeSql(
-          `UPDATE content SET content_data = ?, description = ?, post_date = ?, user_providers = ? WHERE content_id = ?`,
+          `UPDATE content SET content_data = ?, description = ?, post_date = ?, user_providers = ?, published = ? WHERE content_id = ?`,
           [content_data, contentDescription, unixTimestamp, JSON.stringify(user_providers), content_id],
           (_, result) => {
             console.log('Post updated in the database');
@@ -57,7 +57,7 @@ export const handlePost = async (
               isMadeForKids,
               selectedThumbnail,
               tags,
-              {}],
+              '{}'],
             (_, result) => {
               console.log('Post saved to the database');
               console.log('Post ID:', result.insertId);

@@ -38,7 +38,6 @@ export const contentCheck = async () => {
   }
   isContentCheckRunning = true;
   // fetch data from database
-  console.log('test1');
   let contentData = await fetchContentFromBeforeCurrentTime();
   console.log('contentData:', contentData);
   if (contentData.length === 0) {
@@ -46,7 +45,6 @@ export const contentCheck = async () => {
     isContentCheckRunning = false;
     return;
   }
-  console.log('test2');
   // example data:
   // [{"content_data": "test on the 17ttest", "content_id": 1, "content_type": "post", "description": null, "post_date": 1743964260, "published": {}, "tags": null, "user_providers": "[\"12345674897456163\"]"}]
 
@@ -58,7 +56,6 @@ export const contentCheck = async () => {
   // If the credentials are valid, we post to the social media account using the content.content_data.
 
   for (const content of contentData) {
-    console.log('test3');
 
     const {
       content_type, 
@@ -230,81 +227,83 @@ export const contentCheck = async () => {
             // Fetch from threads_accounts, then post
             console.log('Posting to Threads...');
 
-            const threadsCreds = await fetchThreadsCredentials(providerId);
-            if (!threadsCreds) {
-              console.warn(`No Threads credentials found for providerId: ${providerId}`);
-              publishedStatus[providerId] = 'failed';
-              break;
-            }
-            console.log("threadsCreds:", threadsCreds);
-            // attempt to update the refresh token before posting
-            const threadsRT = await getThreadsAccessToken({
-              grant_type: "th_refresh_token",
-              access_token: threadsCreds.accessToken,
-            })
-            if (threadsRT.error) {
-              console.warn(`Error updating Threads access token for providerId: ${providerId}`);
-              publishedStatus[providerId] = 'failed';
-              break;
-            }
+            // const threadsCreds = await fetchThreadsCredentials(providerId);
+            // if (!threadsCreds) {
+            //   console.warn(`No Threads credentials found for providerId: ${providerId}`);
+            //   publishedStatus[providerId] = 'failed';
+            //   break;
+            // }
+            // console.log("threadsCreds:", threadsCreds);
+            // // attempt to update the refresh token before posting
+            // const threadsRT = await getThreadsAccessToken({
+            //   grant_type: "th_refresh_token",
+            //   access_token: threadsCreds.accessToken,
+            // })
+            // if (threadsRT.error) {
+            //   console.warn(`Error updating Threads access token for providerId: ${providerId}`);
+            //   publishedStatus[providerId] = 'failed';
+            //   break;
+            // }
 
-            await insertThreadsAccountIntoDb(
-              "update",
-              threadsCreds.subId,
-              threadsRT.access_token,
-              threadsRT.expires_in,
-              new Date().toISOString(),
-              threadsCreds.accountName
-            )
-              console.log("hello world")
+            // await insertThreadsAccountIntoDb(
+            //   "update",
+            //   threadsCreds.subId,
+            //   threadsRT.access_token,
+            //   threadsRT.expires_in,
+            //   new Date().toISOString(),
+            //   threadsCreds.accountName
+            // )
 
 
             try {
 
-              // for (let i = 1; i <= 10; i++) {
-              //   console.log(i);
-              //   await new Promise(resolve => setTimeout(resolve, 1500)); // wait for 1.5 seconds
-              // }
-
-
-              console.log("content_type:", content_type);
-              if (content_type === "post") {
-                console.log("we are now posting a text post to threads");
-              const publishData = await postToThreads(threadsCreds.accessToken, description);
-              console.log('Threads publish data:', publishData);
-              if (publishData.error) {
-                throw new Error(`Error publishing to Threads: ${publishData.error}`);
-              }
-            }
-             if (content_type === "image" || content_type === "video") {
-              console.log("content_data:", content_data);
-              const fullPath = content_data;
-              console.log("fullPath:", fullPath);
-              const fileNameFromPath = fullPath.substring(fullPath.lastIndexOf('/') + 1);
-              console.log("fileNameFromPath:", fileNameFromPath);
-              const extension = fileNameFromPath.substring(fileNameFromPath.lastIndexOf('.') + 1).toLowerCase();
-              console.log("extension:", extension);
-              const baseName = fileNameFromPath.substring(0, fileNameFromPath.lastIndexOf('.'));
-              console.log("baseName:", baseName);
-              const shortBase = baseName.length >= 5 ? baseName.slice(-5) : baseName;
-              console.log("shortBase:", shortBase);
-              const shortName = shortBase + '.' + extension;
-              console.log("shortName:", shortName);
-              const uploadResponse = await uploadContentToTmpFiles(fullPath, shortName);
-              console.log("uploadResponse:", uploadResponse);
-              const publishData = await postImageOrVideoToThreads(
-                threadsCreds.accessToken,
-                extension === 'mp4' || extension === 'mov' ? 'VIDEO' : 'IMAGE',
-                uploadResponse.real_url,
-                description
-              );
-              console.log('Threads publish data:', publishData);
-              if (publishData.error) {
-                throw new Error(`Error publishing to Threads: ${publishData.error}`);
+              for (let i = 1; i <= 10; i++) {
+                console.log(i);
+                await new Promise(resolve => setTimeout(resolve, 1500)); // wait for 1.5 seconds
               }
 
-             }
+
+            //   console.log("content_type:", content_type);
+            //   if (content_type === "post") {
+            //     console.log("we are now posting a text post to threads");
+            //   const publishData = await postToThreads(threadsCreds.accessToken, description);
+            //   console.log('Threads publish data:', publishData);
+            //   if (publishData.error) {
+            //     throw new Error(`Error publishing to Threads: ${publishData.error}`);
+            //   }
+            // }
+            //  if (content_type === "image" || content_type === "video") {
+            //   console.log("content_data:", content_data);
+            //   const fullPath = content_data;
+            //   console.log("fullPath:", fullPath);
+            //   const fileNameFromPath = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+            //   console.log("fileNameFromPath:", fileNameFromPath);
+            //   const extension = fileNameFromPath.substring(fileNameFromPath.lastIndexOf('.') + 1).toLowerCase();
+            //   console.log("extension:", extension);
+            //   const baseName = fileNameFromPath.substring(0, fileNameFromPath.lastIndexOf('.'));
+            //   console.log("baseName:", baseName);
+            //   const shortBase = baseName.length >= 5 ? baseName.slice(-5) : baseName;
+            //   console.log("shortBase:", shortBase);
+            //   const shortName = shortBase + '.' + extension;
+            //   console.log("shortName:", shortName);
+            //   const uploadResponse = await uploadContentToTmpFiles(fullPath, shortName);
+            //   console.log("uploadResponse:", uploadResponse);
+            //   const publishData = await postImageOrVideoToThreads(
+            //     threadsCreds.accessToken,
+            //     extension === 'mp4' || extension === 'mov' ? 'VIDEO' : 'IMAGE',
+            //     uploadResponse.real_url,
+            //     description
+            //   );
+            //   console.log('Threads publish data:', publishData);
+            //   if (publishData.error) {
+            //     throw new Error(`Error publishing to Threads: ${publishData.error}`);
+            //   }
+            //  }
+
+
               publishedStatus[providerId] = 'success';
+
+
             }
             catch (error) {
               console.error(`Failed to post to Threads for ${providerId}:`, error);

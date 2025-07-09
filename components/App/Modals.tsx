@@ -5,6 +5,7 @@ import { handlePost } from '../../lib/Helpers/postHelper';
 import ImageResizer from '@bam.tech/react-native-image-resizer';
 import React from 'react';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
+import { onDayPress } from '../../lib/Helpers/dateHelper';
 
 interface ModalsContainerProps {
     isAccountsVisible: boolean;
@@ -44,6 +45,11 @@ interface ModalsContainerProps {
     setSelectedThumbnail: React.Dispatch<React.SetStateAction<{ uri: string; type: string; name: string } | null>>;
     youtubeTags: string;
     setYoutubeTags: React.Dispatch<React.SetStateAction<string>>;
+    calendarMode: 'day' | 'month';
+    setCalendarMode: React.Dispatch<React.SetStateAction<'day' | 'month'>>;
+    lastDayPressed: any;
+    setLastDayPressed: React.Dispatch<React.SetStateAction<any>>;
+    setSelectedDate: React.Dispatch<React.SetStateAction<string>>;
   }
 
   const ModalsContainer: React.FC<ModalsContainerProps> = ({
@@ -83,7 +89,12 @@ interface ModalsContainerProps {
     setSelectedThumbnail,
     setYoutubeCategory,
     youtubeTags,
-    setYoutubeTags
+    setYoutubeTags,
+    calendarMode,
+    setCalendarMode,
+    lastDayPressed,
+    setLastDayPressed,
+    setSelectedDate
   }) => {
     return (
       <>
@@ -172,6 +183,8 @@ interface ModalsContainerProps {
                 youtubeCategory,
                 youtubeTags
               );
+              onDayPress(lastDayPressed, setSelectedDate, setDbData, calendarMode);
+              
             }
           }
           selectedDate={selectedDate}
