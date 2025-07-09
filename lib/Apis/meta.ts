@@ -15,7 +15,7 @@ export const instagramClientId = INSTAGRAM_CLIENT_ID;
 // Replace with your actual redirect URI
 // for now this is using the development redirect URI
 // from meetup. Any use of this redirect URI will be rate limited 
-const instagramRedirectUri = 'https://masterjx9.github.io/socialmediascheduler/linkedin-redirect/index.html';
+const instagramRedirectUri = 'https://masterjx9.github.io/socialmediascheduler/redirect.html';
 
 
 // This is the client secret for your Instagrams app
@@ -37,7 +37,7 @@ export const threadsClientId = THREADS_CLIENT_ID;
 // Replace with your actual redirect URI
 // for now this is using the development redirect URI
 // from meetup. Any use of this redirect URI will be rate limited 
-const threadsRedirectUri = 'https://masterjx9.github.io/socialmediascheduler/linkedin-redirect/index.html';
+const threadsRedirectUri = 'https://masterjx9.github.io/socialmediascheduler/redirect.html';
 
 
 // This is the client secret for your Threads app

@@ -16,7 +16,7 @@ export const googleClientId = GOOGLE_WEB_CLIENT_ID;
 // Replace with your actual redirect URI
 // for now this is using the development redirect URI
 // from meetup. Any use of this redirect URI will be rate limited 
-const googleRedirectUri = 'https://masterjx9.github.io/socialmediascheduler/linkedin-redirect/index.html';
+const googleRedirectUri = 'https://masterjx9.github.io/socialmediascheduler/redirect.html';
 
 // This is the client secret for your Google app
 // Replace with your actual client secret

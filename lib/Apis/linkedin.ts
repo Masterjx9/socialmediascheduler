@@ -12,7 +12,7 @@ export const clientId = LINKEDIN_CLIENT_ID;
 // Replace with your actual redirect URI
 // for now this is using the development redirect URI
 // from meetup. Any use of this redirect URI will be rate limited 
-const redirectUri = 'https://masterjx9.github.io/socialmediascheduler/linkedin-redirect/index.html';
+const redirectUri = 'https://masterjx9.github.io/socialmediascheduler/redirect.html';
 
 // This is the client secret for your LinkedIn app
 // Replace with your actual client secret
