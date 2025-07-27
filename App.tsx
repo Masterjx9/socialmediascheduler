@@ -59,7 +59,7 @@ const App = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [isMadeForKids, setIsMadeForKids] = useState(false);
   const [youtubeTitle, setYoutubeTitle] = useState('');
-  const [youtubePrivacy, setYoutubePrivacy] = useState<'public' | 'private' | 'unlisted'>('public');
+  const [contentPrivacy, setContentPrivacy] = useState<'public' | 'private' | 'unlisted'>('public');
   const [accounts, setAccounts]   = useState<SocialMediaAccount[]>([]);
   const [youtubeCategory, setYoutubeCategory] = useState(22);
   const [selectedThumbnail, setSelectedThumbnail] = useState<null | { uri: string; type: string; name: string }>(null);
@@ -191,8 +191,8 @@ const App = () => {
             setYoutubeTitle={setYoutubeTitle}
             isMadeForKids={isMadeForKids}
             setIsMadeForKids={setIsMadeForKids}
-            youtubePrivacy={youtubePrivacy}
-            setYoutubePrivacy={setYoutubePrivacy}
+            contentPrivacy={contentPrivacy}
+            setContentPrivacy={setContentPrivacy}
             accounts={accounts}
             setAccounts={setAccounts}
             youtubeCategory={youtubeCategory}

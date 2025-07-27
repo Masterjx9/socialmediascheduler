@@ -3,7 +3,7 @@ import { Linking } from 'react-native';
 import { Buffer } from 'buffer';
 import { sha256 as sha256Lib } from 'js-sha256';
 
-const BSKY_AUTH_SERVER = 'https://bsky.social';
+const BSKY_AUTH_SERVER = 'https://socialmediascheduler.pythonicit.com/oauth/client-metadata.json';
 
 let codeVerifier: string | undefined;
 

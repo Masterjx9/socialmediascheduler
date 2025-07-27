@@ -21,9 +21,9 @@ interface PostModalProps {
   setUnsupportedAudioCodec: React.Dispatch<React.SetStateAction<boolean>>;
   youtubeTitle: string;
   setYoutubeTitle: React.Dispatch<React.SetStateAction<string>>;
-  youtubePrivacy: 'public' | 'private' | 'unlisted';
+  contentPrivacy: 'public' | 'private' | 'unlisted';
   isMadeForKids?: boolean;
-  setYoutubePrivacy: React.Dispatch<React.SetStateAction<'public' | 'private' | 'unlisted'>>;
+  setContentPrivacy: React.Dispatch<React.SetStateAction<'public' | 'private' | 'unlisted'>>;
   setIsMadeForKids: React.Dispatch<React.SetStateAction<boolean>>;
   accounts: SocialMediaAccount[];
   setAccounts: React.Dispatch<React.SetStateAction<SocialMediaAccount[]>>;
@@ -47,9 +47,9 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
                                                 unsupportedAudioCodec, 
                                                 youtubeTitle, 
                                                 setYoutubeTitle,
-                                                youtubePrivacy,
+                                                contentPrivacy,
                                                 isMadeForKids,
-                                                setYoutubePrivacy,
+                                                setContentPrivacy,
                                                 setIsMadeForKids,
                                                 accounts,
                                                 setAccounts,
@@ -76,7 +76,7 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
   
   
 // const [youtubeTitle, setYoutubeTitle] = useState('');
-// const [youtubePrivacy, setYoutubePrivacy] = useState<'public' | 'private' | 'unlisted'>('public');
+// const [contentPrivacy, setContentPrivacy] = useState<'public' | 'private' | 'unlisted'>('public');
 
   const toggleAccountSelection = (id: string) => {
     setSelectedAccounts((prev) => {
@@ -368,7 +368,7 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
   const account = accounts.find(acc => acc.provider_user_id.toString() === id);
   return (
     account &&
-    ['youtube', 'linkedin', 'instagram'].includes(account.provider_name.toLowerCase()) && contentMode === 'video'
+    ['youtube', 'linkedin', 'instagram', 'tiktok'].includes(account.provider_name.toLowerCase()) && contentMode === 'video'
   );
 }) && (
   <>
@@ -419,61 +419,76 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
 
 
 
+
+
+
 {selectedAccounts.some(id => {
   const account = accounts.find(acc => acc.provider_user_id.toString() === id);
-  return account && account.provider_name.toLowerCase() === 'youtube';
-}
-) && (
+  return (
+    account &&
+    ['youtube', 'tiktok'].includes(account.provider_name.toLowerCase())
+  );
+}) && (
 
   
   <View style={{ marginBottom: 20 }}>
 
      {/* Title for youtube */}
     <TextInput
-      style={styles.textInput}
-      placeholder="YouTube Title"
+      style={styles.titleInput}
+      placeholder="Title"
       value={youtubeTitle}
       onChangeText={setYoutubeTitle}
     />
 
     {/* Privacy options for youtube */}
-    <Text style={{ color: 'white', fontSize: 16, marginBottom: 10 }}>YouTube Privacy:</Text>
-    <TouchableOpacity onPress={() => setYoutubePrivacy('private')}>
+    <Text style={{ color: 'white', fontSize: 16, marginBottom: 10 }}>Privacy Settings:</Text>
+    <TouchableOpacity onPress={() => setContentPrivacy('private')}>
       <Text
         style={{
           fontSize: 16,
           marginTop: 0,
-          color: youtubePrivacy === 'private' ? 'cyan' : 'lightblue',
-          fontWeight: youtubePrivacy === 'private' ? 'bold' : 'normal',
+          color: contentPrivacy === 'private' ? 'cyan' : 'lightblue',
+          fontWeight: contentPrivacy === 'private' ? 'bold' : 'normal',
         }}
       >
         Private
       </Text>
     </TouchableOpacity>
-    <TouchableOpacity onPress={() => setYoutubePrivacy('unlisted')}>
+    <TouchableOpacity onPress={() => setContentPrivacy('unlisted')}>
       <Text
         style={{
           fontSize: 16,
           marginTop: 10,
-          color: youtubePrivacy === 'unlisted' ? 'cyan' : 'lightblue',
-          fontWeight: youtubePrivacy === 'unlisted' ? 'bold' : 'normal',
+          color: contentPrivacy === 'unlisted' ? 'cyan' : 'lightblue',
+          fontWeight: contentPrivacy === 'unlisted' ? 'bold' : 'normal',
         }}
       >
         Unlisted
       </Text>
     </TouchableOpacity>
-    <TouchableOpacity onPress={() => setYoutubePrivacy('public')}>
+    <TouchableOpacity onPress={() => setContentPrivacy('public')}>
       <Text
         style={{
           fontSize: 16,
           marginTop: 10,
-          color: youtubePrivacy === 'public' ? 'cyan' : 'lightblue',
-          fontWeight: youtubePrivacy === 'public' ? 'bold' : 'normal',
+          color: contentPrivacy === 'public' ? 'cyan' : 'lightblue',
+          fontWeight: contentPrivacy === 'public' ? 'bold' : 'normal',
         }}
       >
         Public
       </Text>
     </TouchableOpacity>
+
+    </View>
+)}
+
+    {selectedAccounts.some(id => {
+  const account = accounts.find(acc => acc.provider_user_id.toString() === id);
+  return account && account.provider_name.toLowerCase() === 'youtube';
+}
+) && (
+  <View style={{ marginBottom: 20 }}>
     {/* Made for kids option */}
 <TouchableOpacity onPress={() => {
   setIsMadeForKids(!isMadeForKids)
@@ -643,6 +658,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: 'white',
     marginBottom: 20,
+  },
+  titleInput: {
+    width: '100%',
+    height: 40,
+    backgroundColor: '#fff',
+    borderRadius: 5,
   },
   textInput: {
     width: '100%',

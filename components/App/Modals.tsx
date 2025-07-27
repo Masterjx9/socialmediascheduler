@@ -33,10 +33,10 @@ interface ModalsContainerProps {
     setUnsupportedAudioCodec: React.Dispatch<React.SetStateAction<boolean>>;
     youtubeTitle: string;
     setYoutubeTitle: React.Dispatch<React.SetStateAction<string>>;
-    youtubePrivacy: 'public' | 'private' | 'unlisted';
+    contentPrivacy: 'public' | 'private' | 'unlisted';
     isMadeForKids: boolean;
     setIsMadeForKids: React.Dispatch<React.SetStateAction<boolean>>;
-    setYoutubePrivacy: React.Dispatch<React.SetStateAction<'public' | 'private' | 'unlisted'>>;
+    setContentPrivacy: React.Dispatch<React.SetStateAction<'public' | 'private' | 'unlisted'>>;
     accounts: SocialMediaAccount[];
     setAccounts: React.Dispatch<React.SetStateAction<SocialMediaAccount[]>>;
     youtubeCategory?: string | number;
@@ -78,8 +78,8 @@ interface ModalsContainerProps {
     setUnsupportedAudioCodec,
     youtubeTitle,
     setYoutubeTitle,
-    youtubePrivacy,
-    setYoutubePrivacy,
+    contentPrivacy,
+    setContentPrivacy,
     isMadeForKids,
     setIsMadeForKids,
     accounts,
@@ -177,7 +177,7 @@ interface ModalsContainerProps {
                 content_id, 
                 user_providers, 
                 youtubeTitle, 
-                youtubePrivacy,
+                contentPrivacy,
                 isMadeForKids,
                 selectedThumbnail?.uri,
                 youtubeCategory,
@@ -197,8 +197,8 @@ interface ModalsContainerProps {
           setUnsupportedAudioCodec={setUnsupportedAudioCodec}
           youtubeTitle={youtubeTitle}
           setYoutubeTitle={setYoutubeTitle}
-          youtubePrivacy={youtubePrivacy}
-          setYoutubePrivacy={setYoutubePrivacy}
+          contentPrivacy={contentPrivacy}
+          setContentPrivacy={setContentPrivacy}
           accounts={accounts}
           setAccounts={setAccounts}
         />

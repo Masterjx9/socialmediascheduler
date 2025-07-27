@@ -2,7 +2,8 @@ import {fetchContentFromBeforeCurrentTime,
   insertThreadsAccountIntoDb,
   insertInstagramAccountIntoDb,
   insertYoutubeAccountIntoDb,
-  insertLinkedInAccountIntoDb
+  insertLinkedInAccountIntoDb,
+  insertTikTokAccountIntoDb
 } from './dbService';
 import { uploadVideoToYouTube,
           getGoogleAccessToken,
@@ -18,12 +19,17 @@ import { postToThreads,
           getInstagramAccessToken,
           getThreadsAccessToken
         } from '../Apis/meta';
+import { getTikTokAccessToken,
+  postMediaToTikTok
+
+ } from '../Apis/tiktok';
 import {fetchProviderNamesByIds} from './dbService';
 import { fetchTwitterCredentials,
         fetchLinkedInCredentials,
         fetchThreadsCredentials,
         fetchInstagramCredentials,
-        fetchYoutubeCredentials
+        fetchYoutubeCredentials,
+        fetchTikTokCredentials
  } from './dbService';
 import notifee from '@notifee/react-native';
 import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
@@ -99,6 +105,91 @@ export const contentCheck = async () => {
         const providerName = providerNameMap[providerId];
         console.log('providerName:', providerName);
         switch (providerName) {
+          case 'TikTok':
+            console.log('Posting to TikTok...');
+            const tiktokCreds = await fetchTikTokCredentials(providerId);
+            if (!tiktokCreds) {
+              console.warn(`No TikTok credentials found for providerId: ${providerId}`);
+              publishedStatus[providerId] = 'failed';
+              break;
+            }
+            console.log("tiktokCreds:", tiktokCreds);
+            // attempt to update the refresh token before posting
+            const tiktokRT = await getTikTokAccessToken({
+              grant_type: "refresh_token",
+              refresh_token: tiktokCreds.refreshToken,
+            });
+            console.log("tiktokRT:", tiktokRT);
+            if (tiktokRT.error) {
+              console.warn(`Error updating TikTok access token for providerId: ${providerId}`);
+              publishedStatus[providerId] = 'failed';
+              break;  
+            }
+            console.log("about to insert TikTok account into db");
+            await insertTikTokAccountIntoDb(
+            "update",
+            tiktokCreds.subId,
+            tiktokRT.access_token,
+            tiktokRT.refresh_token,
+            String(tiktokRT.expires_in),
+            String(tiktokRT.refresh_expires_in),
+            new Date().toISOString(),
+            tiktokCreds.accountName
+          );
+            try {
+              console.log("attempting to post to TikTok");
+              console.log("the content_type is:", content_type);
+              if (content_type === "post") {
+                // TikTok does not support text posts, so we skip this
+                console.log("TikTok does not support text posts, skipping.");
+              }
+              if (content_type === "video" || content_type === "image") {
+                const fullPath = content_data;
+                const fileNameFromPath = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+                const extension = fileNameFromPath.substring(fileNameFromPath.lastIndexOf('.') + 1).toLowerCase();
+
+                console.log("fullPath:", fullPath);
+                console.log("fileNameFromPath:", fileNameFromPath);
+                console.log("extension:", extension);
+
+  
+                const privacy_levels = [
+                {
+                  name: 'public',
+                  tiktok_version: 'PUBLIC_TO_EVERYONE',
+                },
+                {
+                  name: 'private',
+                  tiktok_version: 'SELF_ONLY',
+                },
+                {
+                  name: 'unlisted',
+                  tiktok_version: 'MUTUAL_FOLLOW_FRIENDS',
+                },
+              ] as const;
+                const privacyLevel = privacy_levels.find(level => level.name === privacy)?.tiktok_version || 'PUBLIC_TO_EVERYONE';
+                const mediaPayload = {
+                  video_path: content_type === 'video' ? fullPath : undefined,
+                  photo_urls: content_type === 'image' ? [fullPath] : undefined,
+                  title: title,
+                  description: description,
+                  privacy_level: privacyLevel
+                };
+                await postMediaToTikTok(
+                  tiktokRT.access_token,
+                  content_type,
+                  mediaPayload
+                )
+                publishedStatus[providerId] = 'success';
+              }
+            } catch (error) {
+              console.error(`Failed to post to TikTok for ${providerId}:`, error);
+              publishedStatus[providerId] = 'failed';
+            }
+  
+            break;
+
+
           case 'twitter':
             console.log('Posting to Twitter...');
             const twitterCreds = await fetchTwitterCredentials(providerId);
@@ -227,78 +318,78 @@ export const contentCheck = async () => {
             // Fetch from threads_accounts, then post
             console.log('Posting to Threads...');
 
-            // const threadsCreds = await fetchThreadsCredentials(providerId);
-            // if (!threadsCreds) {
-            //   console.warn(`No Threads credentials found for providerId: ${providerId}`);
-            //   publishedStatus[providerId] = 'failed';
-            //   break;
-            // }
-            // console.log("threadsCreds:", threadsCreds);
-            // // attempt to update the refresh token before posting
-            // const threadsRT = await getThreadsAccessToken({
-            //   grant_type: "th_refresh_token",
-            //   access_token: threadsCreds.accessToken,
-            // })
-            // if (threadsRT.error) {
-            //   console.warn(`Error updating Threads access token for providerId: ${providerId}`);
-            //   publishedStatus[providerId] = 'failed';
-            //   break;
-            // }
+            const threadsCreds = await fetchThreadsCredentials(providerId);
+            if (!threadsCreds) {
+              console.warn(`No Threads credentials found for providerId: ${providerId}`);
+              publishedStatus[providerId] = 'failed';
+              break;
+            }
+            console.log("threadsCreds:", threadsCreds);
+            // attempt to update the refresh token before posting
+            const threadsRT = await getThreadsAccessToken({
+              grant_type: "th_refresh_token",
+              access_token: threadsCreds.accessToken,
+            })
+            if (threadsRT.error) {
+              console.warn(`Error updating Threads access token for providerId: ${providerId}`);
+              publishedStatus[providerId] = 'failed';
+              break;
+            }
 
-            // await insertThreadsAccountIntoDb(
-            //   "update",
-            //   threadsCreds.subId,
-            //   threadsRT.access_token,
-            //   threadsRT.expires_in,
-            //   new Date().toISOString(),
-            //   threadsCreds.accountName
-            // )
+            await insertThreadsAccountIntoDb(
+              "update",
+              threadsCreds.subId,
+              threadsRT.access_token,
+              threadsRT.expires_in,
+              new Date().toISOString(),
+              threadsCreds.accountName
+            )
 
 
             try {
 
-              for (let i = 1; i <= 10; i++) {
-                console.log(i);
-                await new Promise(resolve => setTimeout(resolve, 1500)); // wait for 1.5 seconds
+              // for (let i = 1; i <= 10; i++) {
+              //   console.log(i);
+              //   await new Promise(resolve => setTimeout(resolve, 1500)); // wait for 1.5 seconds
+              // }
+
+
+              console.log("content_type:", content_type);
+              if (content_type === "post") {
+                console.log("we are now posting a text post to threads");
+              const publishData = await postToThreads(threadsCreds.accessToken, description);
+              console.log('Threads publish data:', publishData);
+              if (publishData.error) {
+                throw new Error(`Error publishing to Threads: ${publishData.error}`);
               }
-
-
-            //   console.log("content_type:", content_type);
-            //   if (content_type === "post") {
-            //     console.log("we are now posting a text post to threads");
-            //   const publishData = await postToThreads(threadsCreds.accessToken, description);
-            //   console.log('Threads publish data:', publishData);
-            //   if (publishData.error) {
-            //     throw new Error(`Error publishing to Threads: ${publishData.error}`);
-            //   }
-            // }
-            //  if (content_type === "image" || content_type === "video") {
-            //   console.log("content_data:", content_data);
-            //   const fullPath = content_data;
-            //   console.log("fullPath:", fullPath);
-            //   const fileNameFromPath = fullPath.substring(fullPath.lastIndexOf('/') + 1);
-            //   console.log("fileNameFromPath:", fileNameFromPath);
-            //   const extension = fileNameFromPath.substring(fileNameFromPath.lastIndexOf('.') + 1).toLowerCase();
-            //   console.log("extension:", extension);
-            //   const baseName = fileNameFromPath.substring(0, fileNameFromPath.lastIndexOf('.'));
-            //   console.log("baseName:", baseName);
-            //   const shortBase = baseName.length >= 5 ? baseName.slice(-5) : baseName;
-            //   console.log("shortBase:", shortBase);
-            //   const shortName = shortBase + '.' + extension;
-            //   console.log("shortName:", shortName);
-            //   const uploadResponse = await uploadContentToTmpFiles(fullPath, shortName);
-            //   console.log("uploadResponse:", uploadResponse);
-            //   const publishData = await postImageOrVideoToThreads(
-            //     threadsCreds.accessToken,
-            //     extension === 'mp4' || extension === 'mov' ? 'VIDEO' : 'IMAGE',
-            //     uploadResponse.real_url,
-            //     description
-            //   );
-            //   console.log('Threads publish data:', publishData);
-            //   if (publishData.error) {
-            //     throw new Error(`Error publishing to Threads: ${publishData.error}`);
-            //   }
-            //  }
+            }
+             if (content_type === "image" || content_type === "video") {
+              console.log("content_data:", content_data);
+              const fullPath = content_data;
+              console.log("fullPath:", fullPath);
+              const fileNameFromPath = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+              console.log("fileNameFromPath:", fileNameFromPath);
+              const extension = fileNameFromPath.substring(fileNameFromPath.lastIndexOf('.') + 1).toLowerCase();
+              console.log("extension:", extension);
+              const baseName = fileNameFromPath.substring(0, fileNameFromPath.lastIndexOf('.'));
+              console.log("baseName:", baseName);
+              const shortBase = baseName.length >= 5 ? baseName.slice(-5) : baseName;
+              console.log("shortBase:", shortBase);
+              const shortName = shortBase + '.' + extension;
+              console.log("shortName:", shortName);
+              const uploadResponse = await uploadContentToTmpFiles(fullPath, shortName);
+              console.log("uploadResponse:", uploadResponse);
+              const publishData = await postImageOrVideoToThreads(
+                threadsCreds.accessToken,
+                extension === 'mp4' || extension === 'mov' ? 'VIDEO' : 'IMAGE',
+                uploadResponse.real_url,
+                description
+              );
+              console.log('Threads publish data:', publishData);
+              if (publishData.error) {
+                throw new Error(`Error publishing to Threads: ${publishData.error}`);
+              }
+             }
 
 
               publishedStatus[providerId] = 'success';

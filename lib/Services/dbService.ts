@@ -7,6 +7,7 @@ import { getThreadsAccessToken, openThreadsLogin, getThreadsUserInfo,
   getInstagramUserInfo, getInstagramAccessToken, openInstagramLogin  } from '../Apis/meta';
 import { getGoogleAccessToken, openGoogleLogin, getYoutubeUserInfo } from '../Apis/youtube';
 import { getBlueskyAccessToken, openBlueskyLogin, getBlueskyUserInfo } from '../Apis/bluesky';
+import { getTikTokAccessToken, openTikTokLogin, getTikTokUserInfo } from '../Apis/tiktok';
 
 import { Linking } from 'react-native';
 import { getUnixTimestampsForDay } from '../Helpers/dateHelper';
@@ -69,7 +70,9 @@ export const createTables = (tx: Transaction) => {
       CREATE TABLE IF NOT EXISTS tiktok_accounts (
         sub_id TEXT,
         access_token TEXT,
+        refresh_token TEXT,
         access_token_expires_in TEXT,
+        refresh_token_expires_in TEXT,
         account_name TEXT,
         timestamp DATETIME
       );
@@ -580,6 +583,61 @@ export const handleNewSignUp = async ({
       };
       const subscription = Linking.addEventListener('url', handleDeepLink);
       openBlueskyLogin();
+    }
+
+
+    if (provider === 'TikTok') {
+      console.log('TikTok SignUp');
+      // We will do the same flow as LinkedIn for now
+      // Inside handleDeepLink:
+      const handleDeepLink = async (event: { url: string }) => {
+        const match = event.url.match(/code=([^&]+)/);
+        const code = match?.[1];
+        if (code) {
+          console.log('Got TikTok Code:', code);
+          subscription.remove();
+          const tiktokAC = await getTikTokAccessToken({
+            grant_type: 'authorization_code',
+            code: code,
+          });
+          console.log('TikTok Access Token:', tiktokAC);
+          // do whatever with `code`
+          const accountInfo = await getTikTokUserInfo(tiktokAC.access_token);
+          console.log('TikTok Account Info:', accountInfo);
+          console.log('Display name:', accountInfo.data.user.display_name);
+          const existingProviderId = await fetchProviderIdFromDb(accountInfo.data.user.open_id);
+          console.log('Existing Provider ID: ', existingProviderId);
+          if (existingProviderId && mode === 'insert') {
+            Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
+            return;
+          }
+          // now we will immediately get a refresh token as the getTikTokAccessToken accepts refresh_token as a param for grant_type
+          
+          if (mode === 'insert'){
+          await insertProviderIdIntoDb(provider, accountInfo.data.user.open_id);
+          }
+          await insertTikTokAccountIntoDb(
+            mode,
+            accountInfo.data.user.open_id,
+            tiktokAC.access_token,
+            tiktokAC.refresh_token,
+            tiktokAC.expires_in.toString(),
+            tiktokAC.refresh_expires_in.toString(),
+            new Date().toISOString(),
+            accountInfo.data.user.display_name
+          );
+          forceUpdateAccounts(setAccounts);
+          if (isCalendarVisible){
+          setIsCalendarVisible(true);
+          } else {
+          setIsCalendarVisible(false);
+          return "test";
+          }
+
+        }
+      };
+      const subscription = Linking.addEventListener('url', handleDeepLink);
+      openTikTokLogin();
     }
 
     if (provider === 'YouTube') {
@@ -1155,7 +1213,9 @@ export const insertTikTokAccountIntoDb = (
     mode: string,
     subId: string,
     accessToken: string,
+    refreshToken: string,
     accessTokenExpiresIn: string,
+    refreshTokenExpiresIn: string,
     timestamp: string,
     accountName: string
   ) => {
@@ -1167,12 +1227,14 @@ export const insertTikTokAccountIntoDb = (
           db.transaction((tx: Transaction) => {
             tx.executeSql(
               `INSERT INTO tiktok_accounts
-                (sub_id, access_token, access_token_expires_in, timestamp, account_name)
-               VALUES (?, ?, ?, ?, ?)`,
+                (sub_id, access_token, access_token_expires_in, refresh_token, refresh_token_expires_in, timestamp, account_name)
+               VALUES (?, ?, ?, ?, ?, ?, ?)`,
               [
                 subId,
                 accessToken,
                 accessTokenExpiresIn,
+                refreshToken,
+                refreshTokenExpiresIn,
                 timestamp,
                 accountName,
               ],
@@ -1201,11 +1263,13 @@ export const insertTikTokAccountIntoDb = (
           db.transaction((tx: Transaction) => {
             tx.executeSql(
               `UPDATE tiktok_accounts
-                SET access_token = ?, access_token_expires_in = ?, timestamp = ?, account_name = ?
+                SET access_token = ?, access_token_expires_in = ?, refresh_token = ?, refresh_token_expires_in = ?, timestamp = ?, account_name = ?
                WHERE sub_id = ?`,
               [
                 accessToken,
                 accessTokenExpiresIn,
+                refreshToken,
+                refreshTokenExpiresIn,
                 timestamp,
                 accountName,
                 subId,
@@ -1735,6 +1799,8 @@ export const fetchYoutubeCredentials = async (providerUserId: string): Promise<{
 export const fetchTikTokCredentials = async (providerUserId: string): Promise<{
   subId: string;
   accountName: string;
+  refreshToken: string;
+  refreshTokenExpiresIn: string;
   accessToken: string;
   accessTokenExpiresIn: string;
   timestamp: string;
@@ -1745,7 +1811,7 @@ export const fetchTikTokCredentials = async (providerUserId: string): Promise<{
     return new Promise((resolve, reject) => {
       db.transaction(tx => {
         tx.executeSql(
-          `SELECT sub_id, account_name, access_token, access_token_expires_in, timestamp
+          `SELECT *
            FROM tiktok_accounts
            WHERE tiktok_accounts.sub_id = ?`,
           [providerUserId],
@@ -1757,7 +1823,9 @@ export const fetchTikTokCredentials = async (providerUserId: string): Promise<{
                 subId: row.sub_id,
                 accountName: row.account_name,
                 accessToken: row.access_token,
+                refreshToken: row.refresh_token,
                 accessTokenExpiresIn: row.access_token_expires_in,
+                refreshTokenExpiresIn: row.refresh_token_expires_in,
                 timestamp: row.timestamp,
               });
             } else {
