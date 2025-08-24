@@ -1,5 +1,5 @@
 {		
-"client_id": "https://socialmediascheduler.pythonicit.com/oauth/client-metadata.json",		
+"client_id": "https://socialmediascheduler.pythonicit.com/client-metadata.json",		
 "application_type": "web",		
 "dpop_bound_access_tokens": true,		
 "grant_types": ["authorization_code","refresh_token"],		
