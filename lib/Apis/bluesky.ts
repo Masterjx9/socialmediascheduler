@@ -20,7 +20,7 @@ const BSKY_AUTH_SERVER = 'https://bsky.social';
 
 /** Your client_id MUST be a URL that returns OAuth Client Metadata JSON */
 const BLUESKY_CLIENT_ID =
-  'https://socialmediascheduler.pythonicit.com/client-metadata.json';
+  'https://socialmediascheduler.pythonicit.com/client%E2%80%91metadata.json';
 
 /** Must be listed in your client metadata JSON */
 const BLUESKY_REDIRECT =
@@ -244,8 +244,10 @@ export async function openBlueskyLogin(scope = 'atproto') {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: parBody.toString(),
   });
+  console.log('PAR response:', parRes);
 
   const parJson = (await parRes.json()) as { request_uri?: string; error?: any };
+  console.log('PAR response:', parJson);
   if (!parRes.ok || !parJson.request_uri) {
     throw new Error('Bluesky PAR failed: ' + JSON.stringify(parJson));
   }
@@ -253,7 +255,7 @@ export async function openBlueskyLogin(scope = 'atproto') {
   const authUrl =
     `${meta.authorization_endpoint}?client_id=${encodeURIComponent(BLUESKY_CLIENT_ID)}` +
     `&request_uri=${encodeURIComponent(parJson.request_uri)}`;
-
+  console.log('Opening auth URL:', authUrl);
   Linking.openURL(authUrl);
 }
 

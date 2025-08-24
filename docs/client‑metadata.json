@@ -1,10 +1,10 @@
-{		
-"client_id": "https://socialmediascheduler.pythonicit.com/client-metadata.json",		
-"application_type": "web",		
-"dpop_bound_access_tokens": true,		
-"grant_types": ["authorization_code","refresh_token"],		
-"redirect_uris": ["https://masterjx9.github.io/socialmediascheduler/redirect.html"],		
-"response_types": ["code"],		
-"scope": "atproto",		
-"token_endpoint_auth_method": "none"		
+{
+  "client_id": "https://socialmediascheduler.pythonicit.com/client%E2%80%91metadata.json",
+  "application_type": "web",
+  "dpop_bound_access_tokens": true,
+  "grant_types": ["authorization_code","refresh_token"],
+  "redirect_uris": ["https://masterjx9.github.io/socialmediascheduler/redirect.html"],
+  "response_types": ["code"],
+  "scope": "atproto",
+  "token_endpoint_auth_method": "none"
 }
