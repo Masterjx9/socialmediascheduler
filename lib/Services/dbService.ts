@@ -532,11 +532,29 @@ export const handleNewSignUp = async ({
       console.log('Bluesky SignUp');
      // We will do the same flow as LinkedIn for now
       // Inside handleDeepLink:
+      let redeemedOnce = false;
       const handleDeepLink = async (event: { url: string }) => {
-        const match = event.url.match(/code=([^&]+)/);
-        const code = match?.[1];
+        // const match = event.url.match(/code=([^&]+)/);
+        // const code = match?.[1];
+        const event_url = event.url;
+        const m = event.url.match(/[?&]code=([^&]+)/);
+        const raw = m?.[1];
+        const code = raw ? decodeURIComponent(raw).trim() : undefined;
+        console.log('redeemedOnce:', redeemedOnce);
+        console.log('event_url', event_url);
+        console.log('m', m);
+        console.log('raw', raw);
+        console.log('code', code);
+
         if (code) {
           console.log('Got Bluesky Code:', code);
+          if (redeemedOnce) {
+            console.log('Got Bluesky Code again, ignoring duplicate event');
+            return;
+          }
+          redeemedOnce = true;
+          console.log("reemedOnce", redeemedOnce);
+
           subscription.remove();
           const blueskyAC = await getBlueskyAccessToken({
             grant_type: 'authorization_code',
@@ -547,7 +565,11 @@ export const handleNewSignUp = async ({
           const accountInfo = await getBlueskyUserInfo(blueskyAC.access_token);
           console.log('Bluesky Account Info:', accountInfo);
           console.log('Channel name:', accountInfo.items[0].snippet.title);
-          const existingProviderId = await fetchProviderIdFromDb(accountInfo.id);
+          
+          const providerId = accountInfo.did || accountInfo.id;
+          // const existingProviderId = await fetchProviderIdFromDb(accountInfo.id);
+          const existingProviderId = await fetchProviderIdFromDb(providerId);
+
           console.log('Existing Provider ID: ', existingProviderId);
           if (existingProviderId && mode === 'insert') {
             Alert.alert('Account Already Linked', 'This account is already linked to this user or another user on this device.');
@@ -561,15 +583,18 @@ export const handleNewSignUp = async ({
 
           // console.log('Bluesky Refresh Token:', blueskyRT);
           if (mode === 'insert'){
-          await insertProviderIdIntoDb(provider, accountInfo.items[0].id);
+          // await insertProviderIdIntoDb(provider, accountInfo.items[0].id);
+          await insertProviderIdIntoDb(provider, providerId);
           }
           await insertBlueskyAccountIntoDb(
             mode,
-            accountInfo.items[0].id,
+            // accountInfo.items[0].id,
+            providerId,
             blueskyAC.refresh_token,
             blueskyAC.expires_in.toString(),
             new Date().toISOString(),
-            accountInfo.items[0].snippet.title
+            // accountInfo.items[0].snippet.title
+            accountInfo.handle
           );
           forceUpdateAccounts(setAccounts);
           if (isCalendarVisible){
