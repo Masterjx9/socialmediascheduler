@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>LinkedIn Redirect</title>
+    <script>
+      const code = new URLSearchParams(window.location.search).get("code");
+      if (code) {
+        window.location = `socialmediascheduler://callback?code=${code}`;
+      } else {
+        document.body.innerText = "No code provided in redirect.";
+      }
+    </script>
+  </head>
+  <body>
+    Redirecting...
+  </body>
+</html>

@@ -1,79 +1,151 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Social Media Scheduler
 
-# Getting Started
+The Social Media Scheduler is an application that allows users to schedule and manage their social media posts across various platforms. It integrates with the following APIs:
 
->**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
+[![Watch the video](https://img.youtube.com/vi/7JUYpHTV0q4/maxresdefault.jpg)](https://www.youtube.com/watch?v=7JUYpHTV0q4)
 
-## Step 1: Start the Metro Server
 
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
+- Meta/Facebook API
+- YouTube API
+- TikTok API
+- Instagram API
+- Twitter API
 
-To start Metro, run the following command from the _root_ of your React Native project:
+## Diagram
+![Diagram](diagram.png)
+
+## Features
+
+- Schedule posts: Users can schedule posts to be published on their social media accounts at a specific date and time.
+- Platform integration: The application seamlessly integrates with Meta/Facebook, YouTube, TikTok, Instagram, and Twitter APIs to fetch user data and publish posts.
+- Database backend: The application uses SQLite as the database backend to store user information, scheduled posts, and API credentials securely.
+
+## Mobile Version (React Native) Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/Masterjx9/socialmediascheduler.git
+   cd Mobile_version
+   ```
+
+2. Install the required dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Run the application locally:
+
+   ```bash
+   npx react-native run-android --verbose
+   ```
+
+4. Build the application for production:
+
+   ```bash
+   ./gradlew assembleRelease -x lint 
+   ./gradlew bundleRelease -x lint 
+   ```
+The debug APK can be found in `Mobile_version/android/app/build/outputs/apk/debug/app-debug.apk`.
+The release APK can be found in `Mobile_version/android/app/build/outputs/apk/release/app-release.apk`.
+
+## Desktop Version (Python) Installation
+
+1. Clone the repository:
 
 ```bash
-# using npm
-npm start
+   git clone https://github.com/Masterjx9/socialmediascheduler.git
+   cd Repo_version
+   ```
 
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Start your Application
-
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
-
-### For Android
+2. Install the required dependencies:
 
 ```bash
-# using npm
-npm run android
+  pip install -r requirements.txt
+  ```
 
-# OR using Yarn
-yarn android
-```
+3. Setup Ngrok (WIP):
 
-### For iOS
+   - Ngrok is used for instagram API as it requires a public URL to be set up. This repo comes with ngrok for windows, mac, and linux.
+   - For now we recommend getting a free API key from ngrok and setting it up manually. Hopefully we will have a better solution in the future.
+   - You can get a free API key from here - https://dashboard.ngrok.com/signup
+   - Then go to the ngrok folder and run the following command to set up ngrok:
+    ```bash
+    .\ngrok config add-authtoken <YOUR_AUTH>
+    ```
+     or
+     ```bash
+     ngrok config add-authtoken <YOUR_AUTH>
+     ```
 
-```bash
-# using npm
-npm run ios
+4. Set up API credentials:
 
-# OR using Yarn
-yarn ios
-```
+    - Meta/Facebook/Instagram API: 
+      - You will need following:
+        - **App ID (Meta_ID)** - https://business.facebook.com/latest/settings/instagram_account - Will show you the App ID for your Instagram accounts
+        - **Access Token (Meta_Access_Token)** - https://developers.facebook.com/tools/explorer/ - Will show you the Access Token for your Instagram accounts
+        - Make sure to link your Instagram account to your Facebook page - https://www.facebook.com/business/help/connect-instagram-to-page
+    - Twitter API:
+      - https://developer.twitter.com/en/docs/authentication/oauth-1-0a/api-key-and-secret
+      - After creating your app in the developer portal, go to the keys link for the app which will look like this - https://developer.twitter.com/en/portal/projects/<projectid>/apps/<appid>/keys
+      - You will need following:
+        - **API Key (Twitter_Consumer_Key)**
+        - **API Secret Key (Twitter_Consumer_Secret)**
+        - **Access Token (Twitter_Access_Token)**
+        - **Access Token Secret (Twitter_Access_Token_Secret)**
+    - YouTube API: 
+      - You will need following:
+        - **API Key (YouTube_API_Key)** - https://console.developers.google.com/apis/credentials
+    - LinkedIn API:
+      - You will need following:
+        - **Client ID (LinkedIn_Client_ID)**
+        - **Client Secret (LinkedIn_Client_Secret)**
+        - **Redirect URL (LinkedIn_Redirect_URL)**
+      - You will need to create an app in the LinkedIn Developer portal - https://www.linkedin.com/developers/
 
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
+5. Configure the application:
 
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
+    - Create a `.env` file in the root directory of the project.
+    - Add the following environment variables to the `.env` file:
+        - Or use the sample.env to get started
 
-## Step 3: Modifying your App
+      ```plaintext
+      CONFIG_PATH = config.yaml
+      ```
 
-Now that you have successfully run the app, let's modify it.
+6. Run the management application:
+- From python:
 
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
+    ```bash
+    python manage.py
+    ```
+- From the executable:
+  - First create the executable using the following command:
+    ```bash
+    # Create the executable
+    pyinstaller --noconfirm --onedir --windowed --icon "logo.ico" --paths "/gui"
 
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
+    # Copy .env file
+    cp .env output/manage/.env
 
-## Congratulations! :tada:
+    # Copy config.yaml file
+    cp config.yaml output/manage/config.yaml
 
-You've successfully run and modified your React Native App. :partying_face:
+    # Copy database_default.sqlite3 file
+    cp database_default.sqlite3 output/manage/database_default.sqlite3
+    ```
+  - Then run the executable from the output folder
+## Usage
 
-### Now what?
+1. Sign in to your social media accounts within the application.
+2. Create a new post and specify the date and time for it to be published.
+3. The application will automatically publish the post on the scheduled date and time.
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
+## Contributing
 
-# Troubleshooting
+Contributions are welcome! If you have any ideas, suggestions, or bug reports, please open an issue or submit a pull request.
 
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+## License
 
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+This project is licensed under the [MIT License](LICENSE).
