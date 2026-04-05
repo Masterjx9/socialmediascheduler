@@ -100,6 +100,7 @@ type Store = {
   instagram_accounts: any[];
   youtube_accounts: any[];
   threads_accounts: any[];
+  facebook_accounts: any[];
   linkedin_accounts: any[];
   tiktok_accounts: any[];
   twitter_accounts: any[];
@@ -120,6 +121,7 @@ const TABLES = [
   'instagram_accounts',
   'youtube_accounts',
   'threads_accounts',
+  'facebook_accounts',
   'linkedin_accounts',
   'tiktok_accounts',
   'twitter_accounts',
@@ -133,6 +135,7 @@ const emptyStore = (): Store => ({
   instagram_accounts: [],
   youtube_accounts: [],
   threads_accounts: [],
+  facebook_accounts: [],
   linkedin_accounts: [],
   tiktok_accounts: [],
   twitter_accounts: [],
@@ -376,6 +379,7 @@ const sanitizeStore = (value: any): Store => {
     instagram_accounts: pick(src.instagram_accounts, clean.instagram_accounts),
     youtube_accounts: pick(src.youtube_accounts, clean.youtube_accounts),
     threads_accounts: pick(src.threads_accounts, clean.threads_accounts),
+    facebook_accounts: pick(src.facebook_accounts, clean.facebook_accounts),
     linkedin_accounts: pick(src.linkedin_accounts, clean.linkedin_accounts),
     tiktok_accounts: pick(src.tiktok_accounts, clean.tiktok_accounts),
     twitter_accounts: pick(src.twitter_accounts, clean.twitter_accounts),
@@ -725,6 +729,7 @@ const createMockDb = (): SQLiteDatabase => {
             select: string;
             deleteSql: string;
             key: string;
+            updateKeyIndex: number;
             makeInsertRow: (a: any[]) => any;
             makeUpdateRow: (a: any[], existing: any, keyValue: string) => any;
           }> = [
@@ -735,6 +740,7 @@ const createMockDb = (): SQLiteDatabase => {
               select: 'where instagram_accounts.sub_id = ?',
               deleteSql: 'delete from instagram_accounts where sub_id = ?',
               key: 'sub_id',
+              updateKeyIndex: 4,
               makeInsertRow: (a) => ({
                 sub_id: s(a[0]),
                 access_token: s(a[1]),
@@ -757,6 +763,7 @@ const createMockDb = (): SQLiteDatabase => {
               select: 'where youtube_accounts.sub_id = ?',
               deleteSql: 'delete from youtube_accounts where sub_id = ?',
               key: 'sub_id',
+              updateKeyIndex: 4,
               makeInsertRow: (a) => ({
                 sub_id: s(a[0]),
                 access_token: s(a[1]),
@@ -779,6 +786,7 @@ const createMockDb = (): SQLiteDatabase => {
               select: 'where threads_accounts.sub_id = ?',
               deleteSql: 'delete from threads_accounts where sub_id = ?',
               key: 'sub_id',
+              updateKeyIndex: 4,
               makeInsertRow: (a) => ({
                 sub_id: s(a[0]),
                 access_token: s(a[1]),
@@ -795,12 +803,38 @@ const createMockDb = (): SQLiteDatabase => {
               }),
             },
             {
+              table: 'facebook_accounts',
+              insert: 'insert into facebook_accounts',
+              update: 'update facebook_accounts',
+              select: 'where facebook_accounts.sub_id = ?',
+              deleteSql: 'delete from facebook_accounts where sub_id = ?',
+              key: 'sub_id',
+              updateKeyIndex: 5,
+              makeInsertRow: (a) => ({
+                sub_id: s(a[0]),
+                access_token: s(a[1]),
+                user_access_token: s(a[2]),
+                access_token_expires_in: s(a[3]),
+                timestamp: s(a[4]),
+                account_name: s(a[5]),
+              }),
+              makeUpdateRow: (a, existing, keyValue) => ({
+                sub_id: keyValue,
+                access_token: s(a[0] ?? existing?.access_token ?? ''),
+                user_access_token: s(a[1] ?? existing?.user_access_token ?? ''),
+                access_token_expires_in: s(a[2] ?? existing?.access_token_expires_in ?? ''),
+                timestamp: s(a[3] ?? existing?.timestamp ?? ''),
+                account_name: s(a[4] ?? existing?.account_name ?? ''),
+              }),
+            },
+            {
               table: 'linkedin_accounts',
               insert: 'insert into linkedin_accounts',
               update: 'update linkedin_accounts',
               select: 'where linkedin_accounts.sub_id = ?',
               deleteSql: 'delete from linkedin_accounts where sub_id = ?',
               key: 'sub_id',
+              updateKeyIndex: 5,
               makeInsertRow: (a) => ({
                 app_token: s(a[0]),
                 app_refresh_token: a[1] ?? null,
@@ -828,6 +862,7 @@ const createMockDb = (): SQLiteDatabase => {
               select: 'where tiktok_accounts.sub_id = ?',
               deleteSql: 'delete from tiktok_accounts where sub_id = ?',
               key: 'sub_id',
+              updateKeyIndex: 6,
               makeInsertRow: (a) => ({
                 sub_id: s(a[0]),
                 access_token: s(a[1]),
@@ -854,6 +889,7 @@ const createMockDb = (): SQLiteDatabase => {
               select: 'where bluesky_accounts.sub_id = ?',
               deleteSql: 'delete from bluesky_accounts where sub_id = ?',
               key: 'sub_id',
+              updateKeyIndex: 4,
               makeInsertRow: (a) => ({
                 sub_id: s(a[0]),
                 access_token: s(a[1]),
@@ -883,8 +919,7 @@ const createMockDb = (): SQLiteDatabase => {
             }
 
             if (sql.includes(handler.update)) {
-              const keyValue =
-                handler.table === 'linkedin_accounts' ? s(args[5] ?? args[6]) : s(args[4] ?? args[6]);
+              const keyValue = s(args[handler.updateKeyIndex]);
               const existing = rows.find((r) => s(r[handler.key]) === keyValue);
               const row = handler.makeUpdateRow(args, existing, keyValue);
               upsert(rows, handler.key as any, keyValue, row);

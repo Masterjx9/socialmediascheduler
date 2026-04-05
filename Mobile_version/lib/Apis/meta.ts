@@ -135,7 +135,7 @@ export async function getFacebookAccessToken({
 }
 
 export async function getFacebookPageAccounts(userAccessToken: string): Promise<any> {
-  const url = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token,perms,tasks&access_token=${encodeURIComponent(userAccessToken)}`;
+  const url = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token,tasks&access_token=${encodeURIComponent(userAccessToken)}`;
   const response = await fetch(url, {
     method: 'GET',
   });
