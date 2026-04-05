@@ -5,7 +5,7 @@ import { Alert, Platform } from 'react-native';
 import { getLinkedInAccessToken, openLinkedInLogin, getLinkedInUserInfo } from '../Apis/linkedin';
 import { getThreadsAccessToken, openThreadsLogin, getThreadsUserInfo,
   getInstagramUserInfo, getInstagramAccessToken, openInstagramLogin,
-  openFacebookLogin, getFacebookPageAccounts } from '../Apis/meta';
+  openFacebookLogin, getFacebookPageAccounts, getFacebookAccessToken } from '../Apis/meta';
 import { getGoogleAccessToken, openGoogleLogin, getYoutubeUserInfo } from '../Apis/youtube';
 import { getTikTokAccessToken, openTikTokLogin, getTikTokUserInfo } from '../Apis/tiktok';
 // import { getBlueskyAccessToken, openBlueskyLogin, getBlueskyUserInfo } from '../Apis/bluesky';
@@ -30,22 +30,6 @@ const extractOAuthState = (url: string): string | null => {
   return decodeURIComponent(match[1]).replace(/#_$/, '');
 };
 
-const extractOAuthAccessToken = (url: string): string | null => {
-  const match = url.match(/[?&#]access_token=([^&#]+)/);
-  if (!match?.[1]) {
-    return null;
-  }
-  return decodeURIComponent(match[1]).replace(/#_$/, '');
-};
-
-const extractOAuthExpiresIn = (url: string): string | null => {
-  const match = url.match(/[?&#]expires_in=([^&#]+)/);
-  if (!match?.[1]) {
-    return null;
-  }
-  return decodeURIComponent(match[1]).replace(/#_$/, '');
-};
-
 const buildOAuthState = (): string => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
 const showAuthAlert = (title: string, message: string) => {
@@ -63,7 +47,7 @@ let lastLinkedInOAuthCode: string | null = null;
 let threadsOAuthSubscription: { remove: () => void } | null = null;
 let lastThreadsOAuthCode: string | null = null;
 let facebookOAuthSubscription: { remove: () => void } | null = null;
-let lastFacebookOAuthAccessToken: string | null = null;
+let lastFacebookOAuthCode: string | null = null;
 
 export const listDirectoryContents = async (path: string) => {
     try {
@@ -923,10 +907,9 @@ export const handleNewSignUp = async ({
 
       const handleDeepLink = async (event: { url: string }) => {
         console.log('Facebook callback URL:', event.url);
-        const accessToken = extractOAuthAccessToken(event.url);
-        const expiresIn = extractOAuthExpiresIn(event.url);
+        const code = extractOAuthCode(event.url);
         const state = extractOAuthState(event.url);
-        if (!accessToken) {
+        if (!code) {
           return;
         }
 
@@ -935,8 +918,8 @@ export const handleNewSignUp = async ({
             console.log('Ignoring duplicate Facebook callback event.');
             return;
           }
-          if (accessToken === lastFacebookOAuthAccessToken) {
-            console.log('Ignoring replayed Facebook callback token.');
+          if (code === lastFacebookOAuthCode) {
+            console.log('Ignoring replayed Facebook callback code.');
             return;
           }
           if (state && state !== expectedState) {
@@ -948,11 +931,26 @@ export const handleNewSignUp = async ({
           }
 
           handled = true;
-          lastFacebookOAuthAccessToken = accessToken;
+          lastFacebookOAuthCode = code;
+          console.log('Got Facebook Code:', code);
           subscription.remove();
           facebookOAuthSubscription = null;
 
-          const pageAccounts = await getFacebookPageAccounts(accessToken);
+          const facebookAC = await getFacebookAccessToken({
+            grant_type: 'authorization_code',
+            code,
+          });
+          console.log('Facebook Access Token:', facebookAC);
+          if (!facebookAC?.access_token) {
+            const message =
+              facebookAC?.error?.message ??
+              facebookAC?.error_message ??
+              'Failed to exchange Facebook authorization code.';
+            showAuthAlert('Facebook login failed', message);
+            return;
+          }
+
+          const pageAccounts = await getFacebookPageAccounts(facebookAC.access_token);
           console.log('Facebook managed pages response:', pageAccounts);
 
           const pages = Array.isArray(pageAccounts?.data) ? pageAccounts.data : [];
@@ -987,10 +985,10 @@ export const handleNewSignUp = async ({
             mode,
             pageId,
             pageAccessToken,
-            String(expiresIn ?? '0'),
+            String(facebookAC?.expires_in ?? '0'),
             new Date().toISOString(),
             pageName,
-            accessToken,
+            facebookAC.access_token,
           );
 
           forceUpdateAccounts(setAccounts);

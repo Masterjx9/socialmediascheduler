@@ -18,6 +18,14 @@ const resolveEnv = (key: string, primary?: string): string => {
   return value;
 };
 
+const resolveOptionalEnv = (key: string): string => {
+  const fromProcess = ((globalThis as any)?.process?.env?.[key] as string | undefined)?.trim() ?? '';
+  if (!fromProcess || fromProcess.toLowerCase() === 'undefined' || fromProcess.toLowerCase() === 'null') {
+    return '';
+  }
+  return fromProcess;
+};
+
 
 // This is Instagram's client ID for your app
 // Replace with your actual client ID
@@ -61,6 +69,7 @@ const threadsRedirectUri = 'https://masterjx9.github.io/socialmediascheduler/red
 export const threadsClientSecret = resolveEnv('THREADS_CLIENT_SECRET', THREADS_CLIENT_SECRET);
 export const facebookAppId = resolveEnv('FACEBOOK_APP_ID', FACEBOOK_APP_ID);
 export const facebookClientToken = resolveEnv('FACEBOOK_CLIENT_TOKEN', FACEBOOK_CLIENT_TOKEN);
+export const facebookAppSecret = resolveOptionalEnv('FACEBOOK_APP_SECRET');
 const facebookRedirectUri = 'https://socialmediascheduler.pythonicit.com/redirect.html';
 const facebookPageScopes = [
   'business_management',
@@ -82,12 +91,47 @@ export async function openInstagramLogin(state?: string) {
 export async function openFacebookLogin(state?: string) {
   const appId = resolveEnv('FACEBOOK_APP_ID', facebookAppId);
   const stateParam = state ? `&state=${encodeURIComponent(state)}` : '';
-  const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(facebookRedirectUri)}&scope=${encodeURIComponent(facebookPageScopes)}&response_type=token${stateParam}`;
+  const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(facebookRedirectUri)}&scope=${encodeURIComponent(facebookPageScopes)}&response_type=code${stateParam}`;
   console.log('[Facebook OAuth] redirectUri:', facebookRedirectUri);
   console.log('[Facebook OAuth] appIdPresent:', Boolean(appId));
   console.log('[Facebook OAuth] clientTokenPresent:', Boolean(facebookClientToken));
   console.log('authUrl', authUrl);
   Linking.openURL(authUrl);
+}
+
+export async function getFacebookAccessToken({
+  grant_type,
+  code,
+}: {
+  grant_type: 'authorization_code';
+  code?: string;
+}): Promise<any> {
+  if (grant_type !== 'authorization_code' || !code) {
+    throw new Error('Invalid grant_type for Facebook access token exchange');
+  }
+
+  const appSecret = facebookAppSecret || facebookClientToken;
+  if (!appSecret) {
+    throw new Error('[ENV] Missing Facebook app secret/client token.');
+  }
+
+  const url = 'https://graph.facebook.com/v19.0/oauth/access_token';
+  const data = new URLSearchParams({
+    client_id: facebookAppId,
+    client_secret: appSecret,
+    redirect_uri: facebookRedirectUri,
+    code,
+  });
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: data.toString(),
+  });
+
+  return response.json();
 }
 
 export async function getFacebookPageAccounts(userAccessToken: string): Promise<any> {

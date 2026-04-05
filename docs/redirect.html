@@ -4,63 +4,15 @@
     <meta charset="UTF-8" />
     <title>Redirect</title>
     <script>
-      window.addEventListener("DOMContentLoaded", function () {
-        const queryParams = new URLSearchParams(window.location.search);
-        const hashValue = window.location.hash.startsWith("#")
-          ? window.location.hash.slice(1)
-          : "";
-        const hashParams = new URLSearchParams(hashValue);
-
-        const rawCode = queryParams.get("code");
-        const accessToken = queryParams.get("access_token") || hashParams.get("access_token");
-        const expiresIn = queryParams.get("expires_in") || hashParams.get("expires_in");
-        const state = queryParams.get("state") || hashParams.get("state");
-        const statusEl = document.getElementById("status");
-        const linkEl = document.getElementById("open-app-link");
-
-        if (!rawCode && !accessToken) {
-          statusEl.textContent = "No OAuth code or access token provided in redirect.";
-          return;
-        }
-
-        const deepLinkParams = [];
-
-        if (rawCode) {
-          const cleanCode = rawCode.replace(/#_$/, "");
-          deepLinkParams.push(`code=${encodeURIComponent(cleanCode)}`);
-        }
-
-        if (accessToken) {
-          const cleanToken = accessToken.replace(/#_$/, "");
-          deepLinkParams.push(`access_token=${encodeURIComponent(cleanToken)}`);
-        }
-
-        if (expiresIn) {
-          deepLinkParams.push(`expires_in=${encodeURIComponent(expiresIn)}`);
-        }
-
-        if (state) {
-          deepLinkParams.push(`state=${encodeURIComponent(state)}`);
-        }
-
-        const deepLink = `socialmediascheduler://callback?${deepLinkParams.join("&")}`;
-
-        linkEl.href = deepLink;
-        linkEl.style.display = "inline-block";
-        statusEl.textContent = "Returning to the app...";
-
-        // Try to open the app automatically first.
-        window.location.replace(deepLink);
-
-        // Manual fallback for cases where browsers block auto-launch.
-        setTimeout(function () {
-          statusEl.textContent = "If the app did not open, click Open App.";
-        }, 1500);
-      });
+      const code = new URLSearchParams(window.location.search).get("code");
+      if (code) {
+        window.location = `socialmediascheduler://callback?code=${code}`;
+      } else {
+        document.body.innerText = "No code provided in redirect.";
+      }
     </script>
   </head>
   <body>
-    <p id="status">Redirecting...</p>
-    <a id="open-app-link" href="#" style="display:none;">Open App</a>
+    Redirecting...
   </body>
 </html>
