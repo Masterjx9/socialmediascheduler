@@ -1,6 +1,6 @@
 import { TIKTOK_CLIENT_ID, TIKTOK_CLIENT_SECRET } from "@env";
 import { Linking } from "react-native";
-import RNFS from 'react-native-fs';
+import RNFS from '../Compat/RNFS';
 import { Buffer } from 'buffer';
 
 const fs = require("fs").promises;
@@ -375,3 +375,5 @@ export async function postMediaToTikTok(
 
   throw new Error('Invalid media parameters');
 }
+
+

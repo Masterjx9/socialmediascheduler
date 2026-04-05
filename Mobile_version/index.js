@@ -5,10 +5,11 @@
 import {AppRegistry} from 'react-native';
 import App from './App';
 import {name as appName} from './app.json';
-import notifee, { AndroidImportance, AndroidColor } from '@notifee/react-native';
+import notifee, { AndroidImportance, AndroidColor } from './lib/Compat/Notifee';
 import { contentCheck } from './lib/Services/apiHandler';
 
 import BackgroundFetch from 'react-native-background-fetch';
+import { Platform } from 'react-native';
 
 const HeadlessFetchTask = async event => {
     console.log('[HeadlessFetch]: ', event.taskId);
@@ -31,5 +32,7 @@ const HeadlessFetchTask = async event => {
   BackgroundFetch.finish(event.taskId);
 };
 
-BackgroundFetch.registerHeadlessTask(HeadlessFetchTask);
+if (Platform.OS !== 'windows' && BackgroundFetch && typeof BackgroundFetch.registerHeadlessTask === 'function') {
+  BackgroundFetch.registerHeadlessTask(HeadlessFetchTask);
+}
 AppRegistry.registerComponent(appName, () => App);

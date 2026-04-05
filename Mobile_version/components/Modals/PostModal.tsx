@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform  } from 'react-native';
+﻿import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ScrollView, KeyboardAvoidingView, Platform  } from 'react-native';
+import Modal from '../../lib/Compat/Modal';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
-import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
+import SQLite, { SQLiteDatabase, Transaction, ResultSet } from '../../lib/Compat/SQLite';
 import { fetchSocialMediaAccounts, fetchAppSettingsFromDb, fetchNextAvailableScheduleDateFromDb } from '../../lib/Services/dbService';
 import { YOUTUBE_CATEGORIES } from '../../types/SociaMedia';
 import { handleThumbnailImport } from '../../lib/Helpers/fileHelper';
@@ -251,399 +252,452 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
       presentationStyle="fullScreen"
       visible={isVisible}
       animationType="slide"
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity onPress={() => setShowAccountList(!showAccountList)} style={styles.timeButton}>
-  <Text style={styles.timeButtonText}>Select Accounts</Text>
-</TouchableOpacity>
+      onRequestClose={onClose}>
 
-{showAccountList && (
-  <View style={{ backgroundColor: '#fff', borderRadius: 5, padding: 10, marginBottom: 20 }}>
-  {
-    accounts
-        .filter(account => {
-          const lowerName = account.provider_name.toLowerCase();
 
-          if (contentMode === 'post') {
-            return lowerName !== 'instagram' &&
-                  lowerName !== 'youtube' &&
-                  lowerName !== 'tiktok';
-          }
-          if (contentMode === 'image') {
-            return lowerName !== 'youtube';
-          }
+      {showAccountList && (
+  <Modal
+    transparent={true}
+    animationType="slide"
+    visible={showAccountList}
+    onRequestClose={() => setShowAccountList(false)}>
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContent}>
+        <ScrollView>
+          {accounts
+            .filter(account => {
+              const lowerName = account.provider_name.toLowerCase();
 
-          if (contentMode === 'video' && unsupportedAudioCodec) {
-            return lowerName !== 'twitter' &&
+              if (contentMode === 'post') {
+                return (
                   lowerName !== 'instagram' &&
-                  lowerName !== 'threads';
-          }
+                  lowerName !== 'youtube' &&
+                  lowerName !== 'tiktok'
+                );
+              }
+              if (contentMode === 'image') {
+                return lowerName !== 'youtube';
+              }
+              if (contentMode === 'video' && unsupportedAudioCodec) {
+                return (
+                  lowerName !== 'twitter' &&
+                  lowerName !== 'instagram' &&
+                  lowerName !== 'threads'
+                );
+              }
+              return true;
+            })
+            .map(account => (
+              <TouchableOpacity
+                key={account.provider_user_id}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  marginVertical: 5,
+                }}
+                onPress={() =>
+                  toggleAccountSelection(account.provider_user_id.toString())
+                }>
+                <View
+                  style={{
+                    width: 20,
+                    height: 20,
+                    marginRight: 10,
+                    borderRadius: 3,
+                    borderWidth: 1,
+                    borderColor: '#000',
+                    backgroundColor: selectedAccounts.includes(
+                      account.provider_user_id.toString(),
+                    )
+                      ? 'rgba(0, 52, 112, 0.95)'
+                      : '#fff',
+                  }}
+                />
+                <Text>
+                  {account.provider_name} - {account.account_name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+        </ScrollView>
 
-          return true;
-        })
-        .map(account => (
         <TouchableOpacity
-          key={account.provider_user_id}
-          style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 5 }}
-          onPress={() => toggleAccountSelection(account.provider_user_id.toString())}
-        >
-          <View style={{
-            width: 20, height: 20, marginRight: 10, borderRadius: 3,
-            borderWidth: 1, borderColor: '#000', backgroundColor: selectedAccounts.includes(account.provider_user_id.toString()) ? '#1DA1F2' : '#fff'
-          }} />
-          <Text>{account.provider_name} - {account.account_name}</Text>
+          style={styles.closeButton}
+          onPress={() => setShowAccountList(false)}>
+          <Text style={{ color: '#fff' }}>Close</Text>
         </TouchableOpacity>
-      ))
-  }
-  
-  </View>
-)}
-
-
-
-  <KeyboardAvoidingView style={{ flex: 1 }}
-                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-                          <ScrollView style={styles.modalContainer} keyboardShouldPersistTaps="handled"
-                          contentContainerStyle={{ paddingBottom: 80 }}>
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            padding: 15,
-            zIndex: 10,
-          }}>
-  <TouchableOpacity
-    onPress={() => {
-      console.log('Default Schedule Selected');
-        setIsDefaultSchedule(!isDefaultSchedule);
-    }}
-    style={{
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: '#1DA1F2',
-      paddingHorizontal: 15,
-      paddingVertical: 8,
-      borderRadius: 5,
-    }}
-  >
-    {/* CHECKMARK BOX LEFT SIDE */}
-    <View style={{
-      width: 20,
-      height: 20,
-      marginRight: 10,
-      borderRadius: 3,
-      borderWidth: 1,
-      borderColor: '#fff',
-      backgroundColor: '#fff',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}>
-      {/* <Text style={{ color: '#1DA1F2', fontWeight: 'bold', fontSize: 14 }}>✓</Text> */}
-      <Text 
-      
-      style={{ color: '#1DA1F2', fontWeight: 'bold', fontSize: 14 }}>
-        {isDefaultSchedule ? '✓' : ''}
-      </Text>
+      </View>
     </View>
-
-    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>
-      Default Schedule
-    </Text>
-  </TouchableOpacity>
-</View>
-
-{showError && (
-          <Text style={{ color: 'red', fontSize: 16, marginBottom: 20 }}>
-            {'Error: Post not published successfully.'}
-          </Text>
-        )}
-
-
-        <Text style={styles.title}>Create a Post</Text>
-
-        {/* if one of the accounts selected is youtube then show title and privacy */}
-
-{selectedAccounts.some(id => {
-  const account = accounts.find(acc => acc.provider_user_id.toString() === id);
-  return (
-    account &&
-    ['youtube', 'linkedin', 'instagram', 'tiktok'].includes(account.provider_name.toLowerCase()) && contentMode === 'video'
-  );
-}) && (
-  <>
-    <Text style={{ color: 'white', fontSize: 16, marginTop: 20 }}>Thumbnail:</Text>
-    
-    {/* Toggle thumbnail on/off */}
-    <TouchableOpacity
-      onPress={() => {
-        setUseThumbnail(!useThumbnail);
-        if (!useThumbnail) setSelectedThumbnail(null); // Clear previous thumbnail if turning off
-      }}
-      style={{ marginVertical: 10 }}
-    >
-      <Text style={{ color: useThumbnail ? 'cyan' : 'lightblue', fontSize: 16, fontWeight: 'bold' }}>
-        Use Thumbnail: {useThumbnail ? 'ON' : 'OFF'}
-      </Text>
-    </TouchableOpacity>
-
-    {/* If thumbnail is enabled, allow importing */}
-    {useThumbnail && (
-      <TouchableOpacity
-        onPress={async () => {
-          const files = await handleThumbnailImport();
-          if (files && files.length > 0) {
-          const { uri, type, name } = files[0];
-          setSelectedThumbnail({
-            uri,
-            type: type ?? '', 
-            name: name ?? '', 
-          });
-        }
-
-        }}
-        style={{ paddingVertical: 10 }}
-      >
-        <Text style={{ color: 'lightblue', fontSize: 16 }}>Select Thumbnail Image</Text>
-      </TouchableOpacity>
-    )}
-
-    {/* Show selected file name */}
-    {useThumbnail && selectedThumbnail?.name && (
-      <Text style={{ color: 'gray', fontSize: 14, marginTop: 5 }}>
-        Selected: {selectedThumbnail.name}
-      </Text>
-    )}
-  </>
+  </Modal>
 )}
 
 
-
-
-
-
-{selectedAccounts.some(id => {
-  const account = accounts.find(acc => acc.provider_user_id.toString() === id);
-  return (
-    account &&
-    ['youtube', 'tiktok'].includes(account.provider_name.toLowerCase())
-  );
-}) && (
-
-  
-  <View style={{ marginBottom: 20 }}>
-
-     {/* Title for youtube */}
-    <TextInput
-      style={styles.titleInput}
-      placeholder="Title"
-      value={youtubeTitle}
-      onChangeText={setYoutubeTitle}
-    />
-
-    {/* Privacy options for youtube */}
-    <Text style={{ color: 'white', fontSize: 16, marginBottom: 10 }}>Privacy Settings:</Text>
-    <TouchableOpacity onPress={() => setContentPrivacy('private')}>
-      <Text
-        style={{
-          fontSize: 16,
-          marginTop: 0,
-          color: contentPrivacy === 'private' ? 'cyan' : 'lightblue',
-          fontWeight: contentPrivacy === 'private' ? 'bold' : 'normal',
-        }}
-      >
-        Private
-      </Text>
-    </TouchableOpacity>
-    <TouchableOpacity onPress={() => setContentPrivacy('unlisted')}>
-      <Text
-        style={{
-          fontSize: 16,
-          marginTop: 10,
-          color: contentPrivacy === 'unlisted' ? 'cyan' : 'lightblue',
-          fontWeight: contentPrivacy === 'unlisted' ? 'bold' : 'normal',
-        }}
-      >
-        Unlisted
-      </Text>
-    </TouchableOpacity>
-    <TouchableOpacity onPress={() => setContentPrivacy('public')}>
-      <Text
-        style={{
-          fontSize: 16,
-          marginTop: 10,
-          color: contentPrivacy === 'public' ? 'cyan' : 'lightblue',
-          fontWeight: contentPrivacy === 'public' ? 'bold' : 'normal',
-        }}
-      >
-        Public
-      </Text>
-    </TouchableOpacity>
-
-    </View>
-)}
-
-    {selectedAccounts.some(id => {
-  const account = accounts.find(acc => acc.provider_user_id.toString() === id);
-  return account && account.provider_name.toLowerCase() === 'youtube';
-}
-) && (
-  <View style={{ marginBottom: 20 }}>
-    {/* Made for kids option */}
-<TouchableOpacity onPress={() => {
-  setIsMadeForKids(!isMadeForKids)
-  console.log('Made for Kids:', isMadeForKids);
-  }}>
-  <Text
-    style={{
-      fontSize: 16,
-      marginTop: 10,
-      color: isMadeForKids ? 'cyan' : 'lightblue',
-      fontWeight: 'bold',
-    }}
-  >
-    Made for Kids: {isMadeForKids ? 'ON' : 'OFF'}
-  </Text>
-</TouchableOpacity>
-
-
-{/* YouTube Category selection */}
-<Text style={{ color: 'white', fontSize: 16, marginTop: 20 }}>YouTube Category:</Text>
-<TouchableOpacity
-  onPress={() => setShowCategoryPicker(!showCategoryPicker)}
-  style={{
-    padding: 10,
-    backgroundColor: '#333',
-    borderRadius: 5,
-    marginTop: 5,
-  }}
->
-  <Text style={{ color: 'white' }}>
-    {YOUTUBE_CATEGORIES.find((c) => c.id === youtubeCategory)?.name || 'Select Category'}
-  </Text>
-</TouchableOpacity>
-{showCategoryPicker && (
-  <View style={{ marginTop: 10 }}>
-    {YOUTUBE_CATEGORIES.map((category) => (
-      <TouchableOpacity
-        key={category.id}
-        onPress={() => {
-          if (setYoutubeCategory) {
-            setYoutubeCategory(category.id);
-          } else {
-            console.warn('setYoutubeCategory function is not provided');
-          }
-          setShowCategoryPicker(false);
-        }}
-        style={{
-          paddingVertical: 8,
-        }}
-      >
-        <Text
-          style={{
-            color: category.id === youtubeCategory ? 'cyan' : 'lightblue',
-            fontWeight: category.id === youtubeCategory ? 'bold' : 'normal',
-            fontSize: 15,
-          }}
-        >
-          {category.name}
-        </Text>
-      </TouchableOpacity>
-    ))}
-  </View>
-)}
-
-{/* Youtube Tags section - A single line input */}
-<TextInput
-  style={styles.textInput}
-  placeholder="Enter YouTube Tags (comma separated)"
-  value={youtubeTags}
-  onChangeText={setYoutubeTags}
-/>
-
-  </View>
-)}
-
-
-        {imageResizeNeeded && contentMode === 'image' && (
-<View style={{ marginBottom: 20 }}>
-  <Text style={{ color: 'white', fontSize: 16, marginBottom: 10 }}>Resize Options:</Text>
-
-  <TouchableOpacity onPress={() => setImageResizeOptions('portrait')}>
-    <Text
-      style={{
-        fontSize: 16,
-        marginTop: 0,
-        color: imageResizeOptions === 'portrait' ? 'cyan' : 'lightblue',
-        fontWeight: imageResizeOptions === 'portrait' ? 'bold' : 'normal',
-      }}
-    >
-      Resize to 1080x1350 (4:5 portrait)
-    </Text>
-  </TouchableOpacity>
-
-  <TouchableOpacity onPress={() => setImageResizeOptions('square')}>
-    <Text
-      style={{
-        fontSize: 16,
-        marginTop: 10,
-        color: imageResizeOptions === 'square' ? 'cyan' : 'lightblue',
-        fontWeight: imageResizeOptions === 'square' ? 'bold' : 'normal',
-      }}
-    >
-      Resize to 1080x1080 (1:1 square)
-    </Text>
-  </TouchableOpacity>
-
-  <TouchableOpacity onPress={() => setImageResizeOptions('landscape')}>
-    <Text
-      style={{
-        fontSize: 16,
-        marginTop: 10,
-        color: imageResizeOptions === 'landscape' ? 'cyan' : 'lightblue',
-        fontWeight: imageResizeOptions === 'landscape' ? 'bold' : 'normal',
-      }}
-    >
-      Resize to 1080x566 (1.91:1 landscape)
-    </Text>
-  </TouchableOpacity>
-</View>
-
-)}
-
-
-
-
+      <KeyboardAvoidingView
+        style={{flex: 1}}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          style={styles.modalContainer}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{paddingBottom: 80}}>
+          <Text style={styles.title}>Create a Post</Text>
 
         
-        <TextInput
-          style={styles.textInput}
-          placeholder="What's happening?"
-          multiline
-          value={contentDescription}
-          onChangeText={setContent}
-        />
-      <TouchableOpacity onPress={showTimePicker} style={styles.timeButton}>
-          <Text style={styles.timeButtonText}>
-            {selectedTime ? selectedTime.toLocaleTimeString() : 'Pick a time'}
-          </Text>
-        </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => setShowAccountList(!showAccountList)}
+        style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#rgba(0, 52, 112, 0.95)',
+                paddingHorizontal: 15,
+                paddingVertical: 12,
+                borderRadius: 5,
+              }}>
+        <Text style={{color: 'white', fontWeight: 'bold', fontSize: 18}}>Select Accounts</Text>
+      </TouchableOpacity>
+      
+          <View
+            style={{
+             marginVertical: 20,
+            }}>
+            <TouchableOpacity
+              onPress={() => {
+                console.log('Default Schedule Selected');
+                setIsDefaultSchedule(!isDefaultSchedule);
+              }}
+              style={{
+                backgroundColor: '#rgba(0, 52, 112, 0.95)',
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 15,
+                paddingVertical: 12,
+                borderRadius: 5,
+              }}>
+              {/* CHECKMARK BOX LEFT SIDE */}
+              <View
+                style={{
+                  width: 20,
+                  height: 20,
+                  marginRight: 10,
+                  borderRadius: 3,
+                  borderWidth: 1,
+                  borderColor: '#fff',
+                  backgroundColor: '#fff',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                {/* <Text style={{ color: '#rgba(0, 52, 112, 0.95)', fontWeight: 'bold', fontSize: 14 }}>âœ“</Text> */}
+                <Text
+                  style={{color: '#rgba(0, 52, 112, 0.95)', fontWeight: 'bold', fontSize: 14}}>
+                  {isDefaultSchedule ? 'âœ“' : ''}
+                </Text>
+              </View>
 
-        <DateTimePickerModal
-          isVisible={isTimePickerVisible}
-          mode="time"
-          onConfirm={handleConfirmTime}
-          onCancel={hideTimePicker}
-        />
+              <Text style={{color: 'white', fontWeight: 'bold', fontSize: 17}}>
+                Default Schedule
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-        <TouchableOpacity onPress={handlePost} style={styles.postButton}>
-          <Text style={styles.postButtonText}>Post</Text>
-        </TouchableOpacity>
+          {showError && (
+            <Text style={{color: 'red', fontSize: 20, marginBottom: 20}}>
+              {'Error: Post not published successfully.'}
+            </Text>
+          )}
 
-        {/* <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+
+          {/* if one of the accounts selected is youtube then show title and privacy */}
+
+          {selectedAccounts.some(id => {
+            const account = accounts.find(
+              acc => acc.provider_user_id.toString() === id,
+            );
+            return (
+              account &&
+              ['youtube', 'linkedin', 'instagram', 'tiktok'].includes(
+                account.provider_name.toLowerCase(),
+              ) &&
+              contentMode === 'video'
+            );
+          }) && (
+            <>
+              <Text style={{color: 'white', fontSize: 16, marginTop: 20}}>
+                Thumbnail:
+              </Text>
+
+              {/* Toggle thumbnail on/off */}
+              <TouchableOpacity
+                onPress={() => {
+                  setUseThumbnail(!useThumbnail);
+                  if (!useThumbnail) setSelectedThumbnail(null); // Clear previous thumbnail if turning off
+                }}
+                style={{marginVertical: 10}}>
+                <Text
+                  style={{
+                    color: useThumbnail ? 'cyan' : 'lightblue',
+                    fontSize: 16,
+                    fontWeight: 'bold',
+                  }}>
+                  Use Thumbnail: {useThumbnail ? 'ON' : 'OFF'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* If thumbnail is enabled, allow importing */}
+              {useThumbnail && (
+                <TouchableOpacity
+                  onPress={async () => {
+                    const files = await handleThumbnailImport();
+                    if (files && files.length > 0) {
+                      const {uri, type, name} = files[0];
+                      setSelectedThumbnail({
+                        uri,
+                        type: type ?? '',
+                        name: name ?? '',
+                      });
+                    }
+                  }}
+                  style={{paddingVertical: 10}}>
+                  <Text style={{color: 'lightblue', fontSize: 16}}>
+                    Select Thumbnail Image
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Show selected file name */}
+              {useThumbnail && selectedThumbnail?.name && (
+                <Text style={{color: 'gray', fontSize: 14, marginTop: 5}}>
+                  Selected: {selectedThumbnail.name}
+                </Text>
+              )}
+            </>
+          )}
+
+          {selectedAccounts.some(id => {
+            const account = accounts.find(
+              acc => acc.provider_user_id.toString() === id,
+            );
+            return (
+              account &&
+              ['youtube', 'tiktok'].includes(
+                account.provider_name.toLowerCase(),
+              )
+            );
+          }) && (
+            <View style={{marginBottom: 20}}>
+              {/* Title for youtube */}
+              <TextInput
+                style={styles.titleInput}
+                placeholder="Title"
+                value={youtubeTitle}
+                onChangeText={setYoutubeTitle}
+              />
+
+              {/* Privacy options for youtube */}
+              <Text style={{color: 'white', fontSize: 16, marginBottom: 10}}>
+                Privacy Settings:
+              </Text>
+              <TouchableOpacity onPress={() => setContentPrivacy('private')}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    marginTop: 0,
+                    color: contentPrivacy === 'private' ? 'cyan' : 'lightblue',
+                    fontWeight:
+                      contentPrivacy === 'private' ? 'bold' : 'normal',
+                  }}>
+                  Private
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setContentPrivacy('unlisted')}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    marginTop: 10,
+                    color: contentPrivacy === 'unlisted' ? 'cyan' : 'lightblue',
+                    fontWeight:
+                      contentPrivacy === 'unlisted' ? 'bold' : 'normal',
+                  }}>
+                  Unlisted
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setContentPrivacy('public')}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    marginTop: 10,
+                    color: contentPrivacy === 'public' ? 'cyan' : 'lightblue',
+                    fontWeight: contentPrivacy === 'public' ? 'bold' : 'normal',
+                  }}>
+                  Public
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {selectedAccounts.some(id => {
+            const account = accounts.find(
+              acc => acc.provider_user_id.toString() === id,
+            );
+            return account && account.provider_name.toLowerCase() === 'youtube';
+          }) && (
+            <View style={{marginBottom: 20}}>
+              {/* Made for kids option */}
+              <TouchableOpacity
+                onPress={() => {
+                  setIsMadeForKids(!isMadeForKids);
+                  console.log('Made for Kids:', isMadeForKids);
+                }}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    marginTop: 10,
+                    color: isMadeForKids ? 'cyan' : 'lightblue',
+                    fontWeight: 'bold',
+                  }}>
+                  Made for Kids: {isMadeForKids ? 'ON' : 'OFF'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* YouTube Category selection */}
+              <Text style={{color: 'white', fontSize: 16, marginTop: 20}}>
+                YouTube Category:
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+                style={{
+                  padding: 10,
+                  backgroundColor: '#333',
+                  borderRadius: 5,
+                  marginTop: 5,
+                }}>
+                <Text style={{color: 'white'}}>
+                  {YOUTUBE_CATEGORIES.find(c => c.id === youtubeCategory)
+                    ?.name || 'Select Category'}
+                </Text>
+              </TouchableOpacity>
+              {showCategoryPicker && (
+                <View style={{marginTop: 10}}>
+                  {YOUTUBE_CATEGORIES.map(category => (
+                    <TouchableOpacity
+                      key={category.id}
+                      onPress={() => {
+                        if (setYoutubeCategory) {
+                          setYoutubeCategory(category.id);
+                        } else {
+                          console.warn(
+                            'setYoutubeCategory function is not provided',
+                          );
+                        }
+                        setShowCategoryPicker(false);
+                      }}
+                      style={{
+                        paddingVertical: 8,
+                      }}>
+                      <Text
+                        style={{
+                          color:
+                            category.id === youtubeCategory
+                              ? 'cyan'
+                              : 'lightblue',
+                          fontWeight:
+                            category.id === youtubeCategory ? 'bold' : 'normal',
+                          fontSize: 15,
+                        }}>
+                        {category.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {/* Youtube Tags section - A single line input */}
+              <TextInput
+                style={styles.textInput}
+                placeholder="Enter YouTube Tags (comma separated)"
+                value={youtubeTags}
+                onChangeText={setYoutubeTags}
+              />
+            </View>
+          )}
+
+          {imageResizeNeeded && contentMode === 'image' && (
+            <View style={{marginBottom: 20}}>
+              <Text style={{color: 'white', fontSize: 16, marginBottom: 10}}>
+                Resize Options:
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => setImageResizeOptions('portrait')}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    marginTop: 0,
+                    color:
+                      imageResizeOptions === 'portrait' ? 'cyan' : 'lightblue',
+                    fontWeight:
+                      imageResizeOptions === 'portrait' ? 'bold' : 'normal',
+                  }}>
+                  Resize to 1080x1350 (4:5 portrait)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => setImageResizeOptions('square')}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    marginTop: 10,
+                    color:
+                      imageResizeOptions === 'square' ? 'cyan' : 'lightblue',
+                    fontWeight:
+                      imageResizeOptions === 'square' ? 'bold' : 'normal',
+                  }}>
+                  Resize to 1080x1080 (1:1 square)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setImageResizeOptions('landscape')}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    marginTop: 10,
+                    color:
+                      imageResizeOptions === 'landscape' ? 'cyan' : 'lightblue',
+                    fontWeight:
+                      imageResizeOptions === 'landscape' ? 'bold' : 'normal',
+                  }}>
+                  Resize to 1080x566 (1.91:1 landscape)
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <TextInput
+            style={styles.textInput}
+            placeholder="What's happening?"
+            multiline
+            value={contentDescription}
+            onChangeText={setContent}
+          />
+          <TouchableOpacity onPress={showTimePicker} style={styles.timeButton}>
+            <Text style={styles.timeButtonText}>
+              Time of post: {selectedTime ? selectedTime.toLocaleTimeString() : 'Pick a time'}
+            </Text>
+          </TouchableOpacity>
+
+          <DateTimePickerModal
+            isVisible={isTimePickerVisible}
+            mode="time"
+            onConfirm={handleConfirmTime}
+            onCancel={hideTimePicker}
+          />
+
+          <TouchableOpacity onPress={handlePost} style={styles.postButton}>
+            <Text style={styles.postButtonText}>Post</Text>
+          </TouchableOpacity>
+
+          {/* <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Text style={styles.closeButtonText}>Cancel</Text>
         </TouchableOpacity> */}
-      </ScrollView>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -652,11 +706,11 @@ const PostModal: React.FC<PostModalProps> = ({ isVisible,
 const styles = StyleSheet.create({
   modalContainer: {
     flexGrow: 1,
-    backgroundColor: 'rgba(15, 5, 5, 0.95)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
   },
   title: {
     fontSize: 24,
-    color: 'white',
+    color: 'black',
     marginBottom: 20,
   },
   titleInput: {
@@ -670,13 +724,16 @@ const styles = StyleSheet.create({
     minHeight: 100,
     backgroundColor: '#fff',
     borderRadius: 5,
+    borderStyle: 'solid',
+    borderWidth: 2,
+    borderColor: '#rgba(0, 0, 0, 0.95)',
     padding: 15,
     textAlignVertical: 'top', // Align text to the top-left corner
     fontSize: 16,
     marginBottom: 20,
   },
   postButton: {
-    backgroundColor: '#1DA1F2',
+    backgroundColor: '#rgba(0, 52, 112, 0.95)',
     borderRadius: 5,
     paddingVertical: 15,
     paddingHorizontal: 30,
@@ -688,7 +745,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   timeButton: {
-    backgroundColor: '#1DA1F2',
+    backgroundColor: '#rgba(0, 52, 112, 0.95)',
     borderRadius: 5,
     paddingVertical: 15,
     paddingHorizontal: 30,
@@ -709,6 +766,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
   },
+    modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    maxHeight: '80%',
+  }
 });
 
 export default PostModal;
+
+
+

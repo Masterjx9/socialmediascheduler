@@ -1,4 +1,4 @@
-import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
+import SQLite, { SQLiteDatabase, Transaction, ResultSet } from '../Compat/SQLite';
 import { fetchDbData } from '../Services/dbService';
 import { refreshDbDataForDate } from '../Services/dbService';
 export const handlePost = async (
@@ -33,7 +33,14 @@ export const handlePost = async (
         if (content_id) {
         tx.executeSql(
           `UPDATE content SET content_data = ?, description = ?, post_date = ?, user_providers = ?, published = ? WHERE content_id = ?`,
-          [content_data, contentDescription, unixTimestamp, JSON.stringify(user_providers), content_id],
+          [
+            content_data,
+            contentDescription,
+            unixTimestamp,
+            JSON.stringify(user_providers),
+            '{}',
+            content_id,
+          ],
           (_, result) => {
             console.log('Post updated in the database');
             console.log('Post ID:', result);
@@ -78,3 +85,5 @@ export const handlePost = async (
     const selectedDateStr = new Date(unixTimestamp * 1000).toISOString().split('T')[0];
     refreshDbDataForDate(selectedDateStr, setDbData);
   };
+
+

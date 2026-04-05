@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { TextInput, View, Text, TouchableOpacity, Modal, FlatList } from 'react-native';
+﻿import React, { useState, useEffect } from 'react';
+import { TextInput, View, Text, TouchableOpacity, FlatList } from 'react-native';
+import Modal from '../../lib/Compat/Modal';
 import styles from '../../styles/AppStyles';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faCamera, faPen, faUserGroup, faFileImport, faGear } from '@fortawesome/free-solid-svg-icons';
@@ -11,7 +12,7 @@ import type { SocialMediaAccount } from '../../types/SociaMedia';
 import { Alert } from 'react-native';
 
 import { fetchSocialMediaAccounts } from '../../lib/Services/dbService';
-import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
+import SQLite, { SQLiteDatabase, Transaction, ResultSet } from '../../lib/Compat/SQLite';
 
 
 
@@ -62,15 +63,15 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
   useEffect(() => {
     const useEffectAsync = async () => {
       const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
-      fetchSocialMediaAccounts(db, setAccounts);               // ← untouched
+      fetchSocialMediaAccounts(db, setAccounts);               // â† untouched
       console.log('FOOTER!!!! Social Media Accounts:', accounts);
     };
     useEffectAsync();
-  }, []);                                                      // ← no loop
+  }, []);                                                      // â† no loop
 
   /* whenever accounts state changes, update the button state */
   useEffect(() => {
-    const required = ['threads', 'twitter', 'linkedin'];
+    const required = ['threads', 'twitter', 'linkedin', 'facebook'];
     setIsPostEnabled(
       accounts.some(a => required.includes(a.provider_name?.toLowerCase()))
     );
@@ -209,3 +210,6 @@ const FooterNavBar: React.FC<FooterNavBarProps> = ({
 }
 
 export default FooterNavBar;
+
+
+

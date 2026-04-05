@@ -2,7 +2,7 @@ import DocumentPicker, { types } from 'react-native-document-picker';
 import { PermissionsAndroid, Platform, Alert, Linking } from 'react-native';
 import { NativeModules } from 'react-native';
 const { MediaMetadataRetrieverModule } = NativeModules;
-import RNFS from 'react-native-fs';
+import RNFS from '../Compat/RNFS';
 
 
 export const detectAudioCodec = async (uri: string) => {
@@ -79,3 +79,4 @@ export const handleFileImport = async () => {
   
     return 'file://' + destPath;
   }
+

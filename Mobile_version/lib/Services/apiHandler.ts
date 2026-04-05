@@ -1,4 +1,4 @@
-import {fetchContentFromBeforeCurrentTime,
+﻿import {fetchContentFromBeforeCurrentTime,
   insertThreadsAccountIntoDb,
   insertInstagramAccountIntoDb,
   insertYoutubeAccountIntoDb,
@@ -17,7 +17,10 @@ import { postToThreads,
           uploadContentToTmpFiles,
           postImageOrVideoToThreads,
           getInstagramAccessToken,
-          getThreadsAccessToken
+          getThreadsAccessToken,
+          postTextToFacebookPage,
+          postImageToFacebookPage,
+          postVideoToFacebookPage
         } from '../Apis/meta';
 import { getTikTokAccessToken,
   postMediaToTikTok
@@ -29,10 +32,11 @@ import { fetchTwitterCredentials,
         fetchThreadsCredentials,
         fetchInstagramCredentials,
         fetchYoutubeCredentials,
-        fetchTikTokCredentials
+        fetchTikTokCredentials,
+        fetchFacebookCredentials
  } from './dbService';
-import notifee from '@notifee/react-native';
-import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
+import notifee from '../Compat/Notifee';
+import SQLite, { SQLiteDatabase, Transaction, ResultSet } from '../Compat/SQLite';
 
 let isContentCheckRunning = false;
 export const contentCheck = async () => {
@@ -282,7 +286,13 @@ export const contentCheck = async () => {
             }
             try {
               if (content_type === "post") {
-              await postMediaToLinkedIn(linkedInCreds.appToken, null,{"description": description}, null);
+              await postMediaToLinkedIn(
+                linkedInCreds.appToken,
+                null,
+                { description },
+                null,
+                linkedInCreds.subId ?? providerId,
+              );
               }
               if (content_type === 'image' || content_type === 'video') {
                 const fullPath = content_data;
@@ -301,9 +311,21 @@ export const contentCheck = async () => {
                   mediaPayload['thumbnail_path'] = thumbnailPath;
                 }
                 
-                await postMediaToLinkedIn(linkedInCreds.appToken, mediaType, mediaPayload, null);
+                await postMediaToLinkedIn(
+                  linkedInCreds.appToken,
+                  mediaType,
+                  mediaPayload,
+                  null,
+                  linkedInCreds.subId ?? providerId,
+                );
               } else {
-                await postMediaToLinkedIn(linkedInCreds.appToken, null, { description }, null);
+                await postMediaToLinkedIn(
+                  linkedInCreds.appToken,
+                  null,
+                  { description },
+                  null,
+                  linkedInCreds.subId ?? providerId,
+                );
               }
 
               
@@ -398,6 +420,63 @@ export const contentCheck = async () => {
             }
             catch (error) {
               console.error(`Failed to post to Threads for ${providerId}:`, error);
+              publishedStatus[providerId] = 'failed';
+            }
+            break;
+          case 'Facebook':
+          case 'facebook':
+            console.log('Posting to Facebook...');
+            const facebookCreds = await fetchFacebookCredentials(providerId);
+            if (!facebookCreds) {
+              console.warn(`No Facebook credentials found for providerId: ${providerId}`);
+              publishedStatus[providerId] = 'failed';
+              break;
+            }
+            try {
+              const safeDescription = String(description ?? content_data ?? '');
+              if (content_type === 'post') {
+                const publishData = await postTextToFacebookPage(
+                  facebookCreds.accessToken,
+                  facebookCreds.subId,
+                  safeDescription,
+                );
+                if (publishData?.error) {
+                  throw new Error(
+                    publishData.error.message ?? `Error posting text to Facebook page: ${JSON.stringify(publishData.error)}`,
+                  );
+                }
+              } else if (content_type === 'image' || content_type === 'video') {
+                const fullPath = content_data;
+                const fileNameFromPath = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+                const extension = fileNameFromPath.substring(fileNameFromPath.lastIndexOf('.') + 1).toLowerCase();
+                const baseName = fileNameFromPath.substring(0, fileNameFromPath.lastIndexOf('.'));
+                const shortBase = baseName.length >= 5 ? baseName.slice(-5) : baseName;
+                const shortName = shortBase + '.' + extension;
+                const uploadResponse = await uploadContentToTmpFiles(fullPath, shortName);
+                const publishData =
+                  content_type === 'image'
+                    ? await postImageToFacebookPage(
+                        facebookCreds.accessToken,
+                        facebookCreds.subId,
+                        uploadResponse.real_url,
+                        safeDescription,
+                      )
+                    : await postVideoToFacebookPage(
+                        facebookCreds.accessToken,
+                        facebookCreds.subId,
+                        uploadResponse.real_url,
+                        safeDescription,
+                      );
+                if (publishData?.error) {
+                  throw new Error(
+                    publishData.error.message ??
+                      `Error posting ${content_type} to Facebook page: ${JSON.stringify(publishData.error)}`,
+                  );
+                }
+              }
+              publishedStatus[providerId] = 'success';
+            } catch (error) {
+              console.error(`Failed to post to Facebook for ${providerId}:`, error);
               publishedStatus[providerId] = 'failed';
             }
             break;
@@ -658,3 +737,6 @@ export const contentCheck = async () => {
 
 // // Send notification to the user that the content has been posted
 // await sendNotification(user_id, 'Your content has been posted successfully.');
+
+
+

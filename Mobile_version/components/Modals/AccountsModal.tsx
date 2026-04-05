@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert, ScrollView, Platform } from 'react-native';
+import Modal from '../../lib/Compat/Modal';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faLinkedin, faTwitter, faThreads, faInstagram, faYoutube, faTiktok, faBluesky } from '@fortawesome/free-brands-svg-icons';
+import { faLinkedin, faTwitter, faThreads, faInstagram, faYoutube, faTiktok, faBluesky, faFacebook } from '@fortawesome/free-brands-svg-icons';
 import TwitterLogin from './logins/TwitterLogin';
+import LinkedInLogin from './logins/LinkedInLogin';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
 import { handleNewSignUp, forceUpdateAccounts, removeAccount } from '../../lib/Services/dbService';
 import { checkIfAccountsExist } from '../../lib/Services/dbService.ts';
@@ -32,6 +34,8 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
                                                     }) => {
     // const [accounts, setAccounts] = useState<SocialMediaAccount[]>([]);
     const [isNewAccountVisible, setIsNewAccountVisible] = useState(false);
+    const [isLinkedInLoginVisible, setIsLinkedInLoginVisible] = useState(false);
+    const isWindows = Platform.OS === 'windows';
 
 
    useEffect(() => {
@@ -45,9 +49,11 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
 
     const renderAccountItem = ({ item }: { item: SocialMediaAccount }) => (
         <View style={styles.accountItem}>
-            <Text style={styles.accountText}>{item.account_name}: {item.provider_name}</Text>
+            <Text style={styles.accountText}>
+              {(item.account_name ?? 'Unknown Account')}: {(item.provider_name ?? 'Unknown Provider')}
+            </Text>
             
-            {item.account_name.toLowerCase() !== 'twitter' && (
+            {(item.provider_name ?? '').toLowerCase() !== 'twitter' && (
              <TouchableOpacity
                 style={styles.syncButton}
                 onPress={async () => {
@@ -98,16 +104,26 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
         >
             <View style={styles.modalContainer}>
                 <Text style={styles.title}>Linked Social Media Accounts</Text>
-                <FlatList
-                    data={accounts}
-                    renderItem={renderAccountItem}
-                    keyExtractor={(item) => item.provider_user_id.toString()}
-                />
+                {isWindows ? (
+                  <ScrollView style={{ width: '100%' }} contentContainerStyle={{ paddingBottom: 12 }}>
+                    {(Array.isArray(accounts) ? accounts : []).map((item, index) => (
+                      <View key={String(item?.provider_user_id ?? `account-${index}`)}>
+                        {renderAccountItem({ item })}
+                      </View>
+                    ))}
+                  </ScrollView>
+                ) : (
+                  <FlatList
+                      data={Array.isArray(accounts) ? accounts : []}
+                      renderItem={renderAccountItem}
+                      keyExtractor={(item, index) => String(item?.provider_user_id ?? `account-${index}`)}
+                  />
+                )}
                 <TouchableOpacity
                     style={styles.addButton}
                     onPress={() => setIsNewAccountVisible(true)}
                 >
-                    <Text style={styles.addButtonText}>Add Another Account (Easy Method)</Text>
+                    <Text style={styles.addButtonText}>Add Account</Text>
                 </TouchableOpacity>
 
 
@@ -119,80 +135,109 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ isVisible,
                 </TouchableOpacity>
             </View>
 
+            {isNewAccountVisible && (
+              <Modal
+              presentationStyle="fullScreen"
+              visible={isNewAccountVisible}
+              animationType="slide"
+              onRequestClose={() => setIsNewAccountVisible(false)}
+            >
+              <View style={styles.modalContainer}>
+                <Text style={styles.title}>Add an Account</Text>
+                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'YouTube',   
+                                                                                              isCalendarVisible: true,
+                                                                                              mode:'insert',
+                                                                                              setIsNewAccountVisible: setIsNewAccountVisible,
+                                                                                              setIsCalendarVisible: setIsCalendarVisible,
+                                                                                              setAccounts: setAccounts })}>
+                  <FontAwesomeIcon icon={faYoutube} size={24} /><Text style={styles.loginText}>Login with YouTube</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Instagram',   
+                                                                                                  isCalendarVisible: true,
+                                                                                                  mode:'insert',
+                                                                                              setIsNewAccountVisible: setIsNewAccountVisible,
+                                                                                              setIsCalendarVisible: setIsCalendarVisible,
+                                                                                              setAccounts: setAccounts })}>
+                  <FontAwesomeIcon icon={faInstagram} size={24} /><Text style={styles.loginText}>Login with Instagram</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Facebook', 
+                                                                                                  isCalendarVisible: true,
+                                                                                                  mode:'insert',
+                                                                                              setIsNewAccountVisible: setIsNewAccountVisible,
+                                                                                              setIsCalendarVisible: setIsCalendarVisible,
+                                                                                              setAccounts: setAccounts })}>
+                  <FontAwesomeIcon icon={faFacebook} size={24} /><Text style={styles.loginText}>Login with Facebook Pages</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Threads', 
+                                                                                                  isCalendarVisible: true,
+                                                                                                  mode:'insert',
+                                                                                              setIsNewAccountVisible: setIsNewAccountVisible,
+                                                                                              setIsCalendarVisible: setIsCalendarVisible,
+                                                                                              setAccounts: setAccounts })}>
+                  <FontAwesomeIcon icon={faThreads} size={24} /><Text style={styles.loginText}>Login with Threads</Text>
+                  </TouchableOpacity>
 
-            <Modal
-            presentationStyle="fullScreen"
-            visible={isNewAccountVisible}
-            animationType="slide"
-            onRequestClose={() => setIsNewAccountVisible(false)}
-          >
-            <View style={styles.modalContainer}>
-              <Text style={styles.title}>Add an Account</Text>
-              <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'YouTube',   
-                                                                                            isCalendarVisible: true,
-                                                                                            mode:'insert',
-                                                                                            setIsNewAccountVisible: setIsNewAccountVisible,
-                                                                                            setIsCalendarVisible: setIsCalendarVisible,
-                                                                                            setAccounts: setAccounts })}>
-                <FontAwesomeIcon icon={faYoutube} size={24} /><Text style={styles.loginText}>Login with YouTube</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Instagram',   
-                                                                                                isCalendarVisible: true,
-                                                                                                mode:'insert',
-                                                                                            setIsNewAccountVisible: setIsNewAccountVisible,
-                                                                                            setIsCalendarVisible: setIsCalendarVisible,
-                                                                                            setAccounts: setAccounts })}>
-                <FontAwesomeIcon icon={faInstagram} size={24} /><Text style={styles.loginText}>Login with Instagram</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'Threads', 
-                                                                                                isCalendarVisible: true,
-                                                                                                mode:'insert',
-                                                                                            setIsNewAccountVisible: setIsNewAccountVisible,
-                                                                                            setIsCalendarVisible: setIsCalendarVisible,
-                                                                                            setAccounts: setAccounts })}>
-                <FontAwesomeIcon icon={faThreads} size={24} /><Text style={styles.loginText}>Login with Threads</Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.loginButton}
+                    onPress={() => {
+                      setIsNewAccountVisible(false);
+                      setIsLinkedInLoginVisible(true);
+                    }}
+                  >
+                  <FontAwesomeIcon icon={faLinkedin} size={24} /><Text style={styles.loginText}>Login with LinkedIn</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.loginButton}
+                    onPress={() => {
+                      setIsNewAccountVisible(false);
+                      setIsTwitterLoginVisible(true);
+                    }}
+                  >
+                  <FontAwesomeIcon icon={faTwitter} size={24} /><Text style={styles.loginText}>Login with X/Twitter</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'TikTok',  
+                                                                                                  isCalendarVisible: true,
+                                                                                                  mode:'insert',
+                                                                                              setIsNewAccountVisible: setIsNewAccountVisible,
+                                                                                              setIsCalendarVisible: setIsCalendarVisible,
+                                                                                              setAccounts: setAccounts })}>
+                  <FontAwesomeIcon icon={faTiktok} size={24} /><Text style={styles.loginText}>Login with TikTok</Text>
+                  </TouchableOpacity>
+                  {/* <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'BlueSky',  
+                                                                                                  isCalendarVisible: true,
+                                                                                                  mode:'insert',
+                                                                                              setIsNewAccountVisible: setIsNewAccountVisible,
+                                                                                              setIsCalendarVisible: setIsCalendarVisible,
+                                                                                              setAccounts: setAccounts })}>
+                  <FontAwesomeIcon icon={faBluesky} size={24} /><Text style={styles.loginText}>Login with BlueSky</Text>
+                  </TouchableOpacity> */}
+          
 
-                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'LinkedIn',    
-                                                                                                isCalendarVisible: true,
-                                                                                                mode:'insert',
-                                                                                            setIsNewAccountVisible: setIsNewAccountVisible,
-                                                                                            setIsCalendarVisible: setIsCalendarVisible,
-                                                                                            setAccounts: setAccounts })}>
-                <FontAwesomeIcon icon={faLinkedin} size={24} /><Text style={styles.loginText}>Login with LinkedIn</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.loginButton} onPress={() => setIsTwitterLoginVisible(true)}>
-                <FontAwesomeIcon icon={faTwitter} size={24} /><Text style={styles.loginText}>Login with X/Twitter</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'TikTok',  
-                                                                                                isCalendarVisible: true,
-                                                                                                mode:'insert',
-                                                                                            setIsNewAccountVisible: setIsNewAccountVisible,
-                                                                                            setIsCalendarVisible: setIsCalendarVisible,
-                                                                                            setAccounts: setAccounts })}>
-                <FontAwesomeIcon icon={faTiktok} size={24} /><Text style={styles.loginText}>Login with TikTok</Text>
-                </TouchableOpacity>
-                {/* <TouchableOpacity style={styles.loginButton} onPress={() => handleNewSignUp({ provider: 'BlueSky',  
-                                                                                                isCalendarVisible: true,
-                                                                                                mode:'insert',
-                                                                                            setIsNewAccountVisible: setIsNewAccountVisible,
-                                                                                            setIsCalendarVisible: setIsCalendarVisible,
-                                                                                            setAccounts: setAccounts })}>
-                <FontAwesomeIcon icon={faBluesky} size={24} /><Text style={styles.loginText}>Login with BlueSky</Text>
-                </TouchableOpacity> */}
+              </View>
+            </Modal>
+            )}
         
-
-            </View>
-          </Modal>
-        
-        <TwitterLogin
-            isVisible={isTwitterLoginVisible}
-            onClose={() =>{ 
-                setIsTwitterLoginVisible(false)
-                
+        {isTwitterLoginVisible && (
+          <TwitterLogin
+              isVisible={isTwitterLoginVisible}
+              onClose={() =>{ 
+                  setIsTwitterLoginVisible(false)
+                  
+              }}
+              setAccounts={setAccounts}
+              setIsCalendarVisible={setIsCalendarVisible}
+              />
+        )}
+        {isLinkedInLoginVisible && (
+          <LinkedInLogin
+            isVisible={isLinkedInLoginVisible}
+            onClose={() => {
+              setIsLinkedInLoginVisible(false);
             }}
-            setAccounts={setAccounts} 
-            />
+            setAccounts={setAccounts}
+            setIsCalendarVisible={setIsCalendarVisible}
+          />
+        )}
 
         </Modal>
     );

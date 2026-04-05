@@ -2,7 +2,7 @@ import AccountsModal from '../Modals/AccountsModal';
 import SettingsModal from '../Modals/SettingsModal';
 import PostModal from '../Modals/PostModal';
 import { handlePost } from '../../lib/Helpers/postHelper';
-import ImageResizer from '@bam.tech/react-native-image-resizer';
+import ImageResizer from '../../lib/Compat/ImageResizer';
 import React from 'react';
 import type { SocialMediaAccount } from '../../types/SociaMedia';
 import { onDayPress } from '../../lib/Helpers/dateHelper';
@@ -98,115 +98,120 @@ interface ModalsContainerProps {
   }) => {
     return (
       <>
-          
-          <AccountsModal 
-            isVisible={isAccountsVisible} 
-            onClose={() => setIsAccountsVisible(false)} 
-            setIsLoginVisible={setIsLoginVisible} 
-            setIsAccountsVisible={setIsAccountsVisible} 
-            setIsCalendarVisible={setIsCalendarVisible} 
-            isTwitterLoginVisible={isTwitterLoginVisible}
-            setIsTwitterLoginVisible={setIsTwitterLoginVisible}
+          {isAccountsVisible && (
+            <AccountsModal 
+              isVisible={isAccountsVisible} 
+              onClose={() => setIsAccountsVisible(false)} 
+              setIsLoginVisible={setIsLoginVisible} 
+              setIsAccountsVisible={setIsAccountsVisible} 
+              setIsCalendarVisible={setIsCalendarVisible} 
+              isTwitterLoginVisible={isTwitterLoginVisible}
+              setIsTwitterLoginVisible={setIsTwitterLoginVisible}
+              accounts={accounts}
+              setAccounts={setAccounts}
+            />
+          )}
+
+        {isPostVisible && (
+          <PostModal
+          isMadeForKids={isMadeForKids}
+            setIsMadeForKids={setIsMadeForKids}
+            selectedThumbnail={selectedThumbnail}
+            setSelectedThumbnail={setSelectedThumbnail}
+            youtubeCategory={youtubeCategory}
+            setYoutubeCategory={setYoutubeCategory}
+            youtubeTags={youtubeTags}
+            setYoutubeTags={setYoutubeTags}
+            isVisible={isPostVisible}
+              onClose={() => {
+              setIsPostVisible(false);
+              setSelectedItem(null);
+            }}
+            onPost={async (contentDescription, unixTimestamp, content_id, user_providers) =>
+              {
+                console.log('onPostModal called');
+                console.log('Post content:', contentDescription);
+                console.log("content type:", contentMode);
+                console.log('Selected date (Unix timestamp):', unixTimestamp);
+                console.log('Selected item:', content_id);
+                console.log('Selected providers:', user_providers);
+                let finalFile = selectedFile;
+                if (contentMode === "image") {
+                if (imageResizeNeeded === true) {
+                  console.log('Image resize needed:', imageResizeNeeded);
+                  console.log('Image resize options:', imageResizeOptions);
+                  let resizeWidth: number;
+                  let resizeHeight: number;
+                  if (imageResizeOptions === "portrait") {
+                    console.log('Portrait mode selected');
+                    resizeWidth = 1080;
+                    resizeHeight = 1350;
+                  }
+                  else if (imageResizeOptions === "landscape") {
+                    console.log('Landscape mode selected');
+                    resizeWidth = 1350;
+                    resizeHeight = 1080;
+                  } else if (imageResizeOptions === "square") {
+                    console.log('Square mode selected');
+                    resizeWidth = 1080;
+                    resizeHeight = 1080;
+                  } else {
+                    console.log('Invalid image resize option selected');
+                    return;
+                  }
+                  const result = await ImageResizer.createResizedImage(selectedFile,
+                    resizeWidth, resizeHeight, 'JPEG', 100, 0, undefined, false, { mode: 'stretch' });
+                  console.log('Original image URI:', selectedFile);
+                  finalFile = result.uri;
+                  await setSelectedFile(result.uri);
+                  console.log('Resized image URI:', finalFile);
+                  }
+                }
+                console.log('Final file to be posted:', finalFile);
+                await handlePost(
+                  contentMode, 
+                  finalFile, 
+                  contentDescription, 
+                  unixTimestamp, 
+                  setDbData, 
+                  setIsPostVisible, 
+                  setSelectedItem, 
+                  content_id, 
+                  user_providers, 
+                  youtubeTitle, 
+                  contentPrivacy,
+                  isMadeForKids,
+                  selectedThumbnail?.uri,
+                  youtubeCategory,
+                  youtubeTags
+                );
+                onDayPress(lastDayPressed, setSelectedDate, setDbData, calendarMode);
+                
+              }
+            }
+            selectedDate={selectedDate}
+            item={selectedItem}
+            contentMode={contentMode} 
+            imageResizeNeeded={imageResizeNeeded}
+            imageResizeOptions={imageResizeOptions}
+            setImageResizeOptions={setImageResizeOptions}
+            unsupportedAudioCodec={unsupportedAudioCodec}
+            setUnsupportedAudioCodec={setUnsupportedAudioCodec}
+            youtubeTitle={youtubeTitle}
+            setYoutubeTitle={setYoutubeTitle}
+            contentPrivacy={contentPrivacy}
+            setContentPrivacy={setContentPrivacy}
             accounts={accounts}
             setAccounts={setAccounts}
           />
-
-        <PostModal
-        isMadeForKids={isMadeForKids}
-          setIsMadeForKids={setIsMadeForKids}
-          selectedThumbnail={selectedThumbnail}
-          setSelectedThumbnail={setSelectedThumbnail}
-          youtubeCategory={youtubeCategory}
-          setYoutubeCategory={setYoutubeCategory}
-          youtubeTags={youtubeTags}
-          setYoutubeTags={setYoutubeTags}
-          isVisible={isPostVisible}
-            onClose={() => {
-            setIsPostVisible(false);
-            setSelectedItem(null);
-          }}
-          onPost={async (contentDescription, unixTimestamp, content_id, user_providers) =>
-            {
-              console.log('onPostModal called');
-              console.log('Post content:', contentDescription);
-              console.log("content type:", contentMode);
-              console.log('Selected date (Unix timestamp):', unixTimestamp);
-              console.log('Selected item:', content_id);
-              console.log('Selected providers:', user_providers);
-              let finalFile = selectedFile;
-              if (contentMode === "image") {
-              if (imageResizeNeeded === true) {
-                console.log('Image resize needed:', imageResizeNeeded);
-                console.log('Image resize options:', imageResizeOptions);
-                let resizeWidth: number;
-                let resizeHeight: number;
-                if (imageResizeOptions === "portrait") {
-                  console.log('Portrait mode selected');
-                  resizeWidth = 1080;
-                  resizeHeight = 1350;
-                }
-                else if (imageResizeOptions === "landscape") {
-                  console.log('Landscape mode selected');
-                  resizeWidth = 1350;
-                  resizeHeight = 1080;
-                } else if (imageResizeOptions === "square") {
-                  console.log('Square mode selected');
-                  resizeWidth = 1080;
-                  resizeHeight = 1080;
-                } else {
-                  console.log('Invalid image resize option selected');
-                  return;
-                }
-                const result = await ImageResizer.createResizedImage(selectedFile,
-                  resizeWidth, resizeHeight, 'JPEG', 100, 0, undefined, false, { mode: 'stretch' });
-                console.log('Original image URI:', selectedFile);
-                finalFile = result.uri;
-                await setSelectedFile(result.uri);
-                console.log('Resized image URI:', finalFile);
-                }
-              }
-              console.log('Final file to be posted:', finalFile);
-              await handlePost(
-                contentMode, 
-                finalFile, 
-                contentDescription, 
-                unixTimestamp, 
-                setDbData, 
-                setIsPostVisible, 
-                setSelectedItem, 
-                content_id, 
-                user_providers, 
-                youtubeTitle, 
-                contentPrivacy,
-                isMadeForKids,
-                selectedThumbnail?.uri,
-                youtubeCategory,
-                youtubeTags
-              );
-              onDayPress(lastDayPressed, setSelectedDate, setDbData, calendarMode);
-              
-            }
-          }
-          selectedDate={selectedDate}
-          item={selectedItem}
-          contentMode={contentMode} 
-          imageResizeNeeded={imageResizeNeeded}
-          imageResizeOptions={imageResizeOptions}
-          setImageResizeOptions={setImageResizeOptions}
-          unsupportedAudioCodec={unsupportedAudioCodec}
-          setUnsupportedAudioCodec={setUnsupportedAudioCodec}
-          youtubeTitle={youtubeTitle}
-          setYoutubeTitle={setYoutubeTitle}
-          contentPrivacy={contentPrivacy}
-          setContentPrivacy={setContentPrivacy}
-          accounts={accounts}
-          setAccounts={setAccounts}
-        />
+        )}
         
-        <SettingsModal
-          isVisible={isSettingsVisible}
-          onClose={() => setIsSettingsVisible(false)}
-        />
+        {isSettingsVisible && (
+          <SettingsModal
+            isVisible={isSettingsVisible}
+            onClose={() => setIsSettingsVisible(false)}
+          />
+        )}
       </>
     );
   };

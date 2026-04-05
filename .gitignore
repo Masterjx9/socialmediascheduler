@@ -43,6 +43,7 @@ build/
 .env
 database_*
 config_*
+msbuild.binlog
 
 # node.js
 #

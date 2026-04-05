@@ -5,11 +5,12 @@ The Social Media Scheduler is an application that allows users to schedule and m
 [![Watch the video](https://img.youtube.com/vi/7JUYpHTV0q4/maxresdefault.jpg)](https://www.youtube.com/watch?v=7JUYpHTV0q4)
 
 
-- Meta/Facebook API
 - YouTube API
-- TikTok API
 - Instagram API
-- Twitter API
+- Threads API
+- LinkedIn API
+- X/Twitter API
+- TikTok API (Disabled due to TikTok not approving public API access. Sandbox mode is available for testing)
 
 ## Diagram
 ![Diagram](diagram.png)

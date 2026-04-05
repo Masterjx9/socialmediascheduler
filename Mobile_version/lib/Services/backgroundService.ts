@@ -3,9 +3,9 @@
 import BackgroundFetch from 'react-native-background-fetch';
 import BackgroundTimer from "react-native-background-timer";
 import { contentCheck } from './apiHandler';
-import { AppState } from 'react-native';
+import { Platform } from 'react-native';
 import { linkedInAccessTokenExpirationChecker } from './dbService';
-import notifee, { AndroidImportance, AndroidColor, EventType } from '@notifee/react-native';
+import notifee, { AndroidImportance, AndroidColor, EventType } from '../Compat/Notifee';
 import { insertLinkedInAccountIntoDb } from './dbService';
 import { openLinkedInLogin, getLinkedInAccessToken, getLinkedInUserInfo } from '../Apis/linkedin';
 import { Linking } from 'react-native';
@@ -69,6 +69,11 @@ notifee.onBackgroundEvent(async ({ type, detail }) => {
 });
 
 export const startForegroundService = async () => {
+  if (Platform.OS === 'windows') {
+    console.log('Skipping foreground service on Windows.');
+    return;
+  }
+
   await notifee.requestPermission();
 
   await notifee.createChannel({
@@ -87,6 +92,11 @@ export const startForegroundService = async () => {
   });
 
   // Now run your background loop here
+  if (typeof BackgroundTimer?.runBackgroundTimer !== 'function') {
+    console.log('Background timer unavailable on this platform.');
+    return;
+  }
+
   BackgroundTimer.runBackgroundTimer(async () => {
     console.log("Foreground Service running");
     const linkedInExpirationCheck = await linkedInAccessTokenExpirationChecker();
@@ -126,6 +136,7 @@ export const initializeNotifications = async () => {
     importance: AndroidImportance.HIGH,
   });
 };
+
 
 
 

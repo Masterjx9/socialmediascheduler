@@ -1,6 +1,6 @@
 import { Linking } from 'react-native';
 import { LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET } from '@env';
-import RNFS from 'react-native-fs';
+import RNFS from '../Compat/RNFS';
 import { Buffer } from 'buffer';  
 // This is linkedIn's client ID for your app
 // Replace with your actual client ID
@@ -12,15 +12,53 @@ export const clientId = LINKEDIN_CLIENT_ID;
 // Replace with your actual redirect URI
 // for now this is using the development redirect URI
 // from meetup. Any use of this redirect URI will be rate limited 
-const redirectUri = 'https://masterjx9.github.io/socialmediascheduler/redirect.html';
+const redirectUri = 'https://socialmediascheduler.pythonicit.com/redirect.html';
 
 // This is the client secret for your LinkedIn app
 // Replace with your actual client secret
 // for now this is using the development client secret
 // from meetup. Any use of this client secret will be rate limited
 export const clientSecret = LINKEDIN_CLIENT_SECRET;
-export function openLinkedInLogin() {
-  const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile%20w_member_social`;
+const LINKEDIN_REST_VERSION = '202504';
+
+export type LinkedInActorType = 'person' | 'organization';
+
+export interface LinkedInActorOption {
+  id: string;
+  urn: string;
+  name: string;
+  type: LinkedInActorType;
+}
+
+export const normalizeLinkedInActorUrn = (
+  subIdOrUrn: string | undefined | null,
+  defaultType: LinkedInActorType = 'person',
+): string | null => {
+  const value = String(subIdOrUrn ?? '').trim();
+  if (!value) {
+    return null;
+  }
+  if (value.startsWith('urn:li:')) {
+    return value;
+  }
+  return `urn:li:${defaultType}:${value}`;
+};
+
+export const linkedInActorIdFromUrn = (urnOrId: string): string => {
+  const value = String(urnOrId ?? '').trim();
+  if (!value) {
+    return '';
+  }
+  if (!value.startsWith('urn:li:')) {
+    return value;
+  }
+  const parts = value.split(':');
+  return parts[parts.length - 1] ?? value;
+};
+
+export function openLinkedInLogin(state?: string) {
+  const stateParam = state ? `&state=${encodeURIComponent(state)}` : '';
+  const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile%20r_organization_admin%20w_organization_social${stateParam}`;
   Linking.openURL(authUrl);
   }
 
@@ -77,23 +115,162 @@ export async function getLinkedInUserInfo(accessToken: string): Promise<any> {
   return response.json();
 }
 
+export async function getLinkedInOrganizationActors(
+  accessToken: string,
+): Promise<LinkedInActorOption[]> {
+  const resolveOrganizationName = (organizationData: any, fallback: string): string => {
+    const localizedName = String(organizationData?.localizedName ?? '').trim();
+    if (localizedName) {
+      return localizedName;
+    }
+
+    const preferredLocale = organizationData?.name?.preferredLocale;
+    const localizedMap = organizationData?.name?.localized;
+    if (preferredLocale?.language && preferredLocale?.country && localizedMap) {
+      const localeKey = `${preferredLocale.language}_${preferredLocale.country}`;
+      const byPreferred = String(localizedMap?.[localeKey] ?? '').trim();
+      if (byPreferred) {
+        return byPreferred;
+      }
+    }
+
+    if (localizedMap && typeof localizedMap === 'object') {
+      const firstLocalized = Object.values(localizedMap)
+        .map((value) => String(value ?? '').trim())
+        .find((value) => value.length > 0);
+      if (firstLocalized) {
+        return firstLocalized;
+      }
+    }
+
+    const vanityName = String(organizationData?.vanityName ?? '').trim();
+    if (vanityName) {
+      return vanityName;
+    }
+
+    return fallback;
+  };
+
+  const fetchOrganizationDetails = async (organizationId: string): Promise<any | null> => {
+    const lookupUrl = `https://api.linkedin.com/rest/organizations/${encodeURIComponent(
+      organizationId,
+    )}`;
+    const response = await fetch(lookupUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'X-Restli-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': LINKEDIN_REST_VERSION,
+      },
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      console.log(`LinkedIn organization lookup failed for ${organizationId}:`, payload);
+      return null;
+    }
+    return payload;
+  };
+
+  const params = new URLSearchParams({
+    q: 'roleAssignee',
+    role: 'ADMINISTRATOR',
+    state: 'APPROVED',
+  });
+  const url = `https://api.linkedin.com/rest/organizationAcls?${params.toString()}`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'X-Restli-Protocol-Version': '2.0.0',
+      'LinkedIn-Version': LINKEDIN_REST_VERSION,
+    },
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    console.log('LinkedIn organizationAcls request failed:', payload);
+    return [];
+  }
+
+  const elements = Array.isArray(payload?.elements) ? payload.elements : [];
+  const uniqueUrns = Array.from(
+    new Set(
+      elements
+        .map((element: any) => String(element?.organization ?? '').trim())
+        .filter((urn) => urn.length > 0),
+    ),
+  );
+
+  const options = await Promise.all(
+    uniqueUrns.map(async (organizationUrn) => {
+      const normalizedUrn =
+        normalizeLinkedInActorUrn(linkedInActorIdFromUrn(organizationUrn), 'organization') ??
+        organizationUrn;
+      const organizationId = linkedInActorIdFromUrn(normalizedUrn);
+      if (!organizationId) {
+        return null;
+      }
+
+      const organizationData = await fetchOrganizationDetails(organizationId);
+      const name = resolveOrganizationName(organizationData, normalizedUrn);
+
+      return {
+        id: organizationId,
+        urn: normalizedUrn,
+        name,
+        type: 'organization' as const,
+      };
+    }),
+  );
+
+  return options.filter((option): option is LinkedInActorOption => option !== null);
+}
+
+export async function getLinkedInActorOptions(
+  accessToken: string,
+): Promise<{ options: LinkedInActorOption[]; userInfo: any }> {
+  const userInfo = await getLinkedInUserInfo(accessToken);
+  const options: LinkedInActorOption[] = [];
+
+  const personId = String(userInfo?.sub ?? '').trim();
+  if (personId) {
+    const personUrn = normalizeLinkedInActorUrn(personId, 'person') as string;
+    options.push({
+      id: personId,
+      urn: personUrn,
+      name: String(userInfo?.name ?? userInfo?.localizedFirstName ?? 'My LinkedIn Profile'),
+      type: 'person',
+    });
+  }
+
+  const organizationOptions = await getLinkedInOrganizationActors(accessToken);
+  organizationOptions.forEach((option) => {
+    if (!options.some((existing) => existing.urn === option.urn)) {
+      options.push(option);
+    }
+  });
+
+  return { options, userInfo };
+}
+
 async function initializeUpload(
   accessToken: string,
   mediaType: string,
+  ownerUrn: string,
   fileSize?: number,
   wantThumbnail: boolean = false,
 ): Promise<any> {
-  const personUrn = (await getLinkedInUserInfo(accessToken)).sub;
   const url = `https://api.linkedin.com/rest/${mediaType}s?action=initializeUpload`;
   const postHeaders = {
     Authorization: `Bearer ${accessToken}`,
     'X-Restli-Protocol-Version': '2.0.0',
-    'LinkedIn-Version': '202504',
+    'LinkedIn-Version': LINKEDIN_REST_VERSION,
     'Content-Type': 'application/json',
   };
   const postBody: any = {
     initializeUploadRequest: {
-      owner: `urn:li:person:${personUrn}`,
+      owner: ownerUrn,
     },
   };
   if (mediaType === 'video') {
@@ -196,8 +373,17 @@ export async function postMediaToLinkedIn(
   mediaType: 'image' | 'video' | null,
   mediaUrl: any,
   tags: Array<string> | null = null,
+  authorIdOrUrn?: string,
 ) {
-  const personUrn = (await getLinkedInUserInfo(accessToken)).sub;
+  let authorUrn = normalizeLinkedInActorUrn(authorIdOrUrn, 'person');
+  if (!authorUrn) {
+    const userInfo = await getLinkedInUserInfo(accessToken);
+    authorUrn = normalizeLinkedInActorUrn(userInfo?.sub, 'person');
+  }
+  if (!authorUrn) {
+    throw new Error('LinkedIn author urn is missing.');
+  }
+
   let mediaUrn: string = '';
   let mediaTitle: string = '';
   let postBody: any;
@@ -206,7 +392,13 @@ export async function postMediaToLinkedIn(
     const fileSize = Number(fileStats.size);
 
 
-    const videoData = await initializeUpload(accessToken, mediaType, fileSize, mediaUrl.thumbnail_path ? true : false);
+    const videoData = await initializeUpload(
+      accessToken,
+      mediaType,
+      authorUrn,
+      fileSize,
+      mediaUrl.thumbnail_path ? true : false,
+    );
     const uploadInstructions = videoData.uploadInstructions;
     const videoUrn = videoData[mediaType];
 
@@ -243,7 +435,7 @@ export async function postMediaToLinkedIn(
     mediaTitle = 'Video Post';
   }
   if (mediaType === 'image') {
-    const imageData = await initializeUpload(accessToken, mediaType);
+    const imageData = await initializeUpload(accessToken, mediaType, authorUrn);
     console.log(imageData);
     const uploadUrl = imageData.uploadUrl;
     mediaUrn = imageData.image;
@@ -279,11 +471,11 @@ export async function postMediaToLinkedIn(
   const postHeaders = {
     Authorization: `Bearer ${accessToken}`,
     'X-Restli-Protocol-Version': '2.0.0',
-    'LinkedIn-Version': '202504',
+    'LinkedIn-Version': LINKEDIN_REST_VERSION,
     'Content-Type': 'application/json',
   };
   postBody = {
-    author: `urn:li:person:${personUrn}`,
+    author: authorUrn,
     commentary: mediaUrl['description'],
     visibility: 'PUBLIC',
     distribution: {
@@ -316,4 +508,6 @@ export async function postMediaToLinkedIn(
   console.log("response headers",response.headers);
   console.log(await response.text());
 }
+
+
 

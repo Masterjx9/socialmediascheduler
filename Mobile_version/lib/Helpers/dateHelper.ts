@@ -1,5 +1,5 @@
-import SQLite, { SQLiteDatabase, Transaction, ResultSet } from 'react-native-sqlite-storage';
-import { DateData } from 'react-native-calendars';
+﻿import SQLite, { SQLiteDatabase, Transaction, ResultSet } from '../Compat/SQLite';
+import type { DateData } from 'react-native-calendars';
 
 export const getUnixTimestampsForDay = (dateString: string) => {
   // Parse the date string as local time (YYYY-MM-DD is treated as local by Date constructor)
@@ -24,7 +24,7 @@ export const onDayPress = async (
   day: DateData,
   setSelectedDate: React.Dispatch<React.SetStateAction<string>>,
   setDbData: React.Dispatch<React.SetStateAction<any[]>>,
-  mode: 'day' | 'month' = 'day',                // ← 1) add mode param
+  mode: 'day' | 'month' = 'day',                // â† 1) add mode param
 ) => {
   setSelectedDate(day.dateString);
   console.log('Selected date: ', day.dateString);
@@ -36,29 +36,29 @@ export const onDayPress = async (
   let rangeEnd   = endOfDayUnix;
 
   if (mode === 'month') {
-    // ── first day of this month (as YYYY-MM-01) ──
+    // â”€â”€ first day of this month (as YYYY-MM-01) â”€â”€
     const d = new Date(day.dateString + 'T00:00:00');      // local
     const firstDayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 
-    // ── last day of this month (YYYY-MM-DD) ──
-    const lastDayDate  = new Date(d.getFullYear(), d.getMonth() + 1, 0); // 0 → last day
+    // â”€â”€ last day of this month (YYYY-MM-DD) â”€â”€
+    const lastDayDate  = new Date(d.getFullYear(), d.getMonth() + 1, 0); // 0 â†’ last day
     const lastDayStr   = lastDayDate.toISOString().slice(0, 10);         // keep YYYY-MM-DD
 
     // use the *same* helper for both
     rangeStart = getUnixTimestampsForDay(firstDayStr).startOfDayUnix;
     rangeEnd   = getUnixTimestampsForDay(lastDayStr).endOfDayUnix;
 
-    console.log('Month range (Unix):', rangeStart, '→', rangeEnd);
+    console.log('Month range (Unix):', rangeStart, 'â†’', rangeEnd);
   }
 
 
-  console.log('Query range (Unix):', rangeStart, '→', rangeEnd);
+  console.log('Query range (Unix):', rangeStart, 'â†’', rangeEnd);
 
   try {
     const db = await SQLite.openDatabase({ name: 'database_default.sqlite3', location: 'default' });
     db.transaction((tx: Transaction) => {
       tx.executeSql(
-        `SELECT * FROM content WHERE post_date BETWEEN ? AND ?`,   // ← 2) no published filter
+        `SELECT * FROM content WHERE post_date BETWEEN ? AND ?`,   // â† 2) no published filter
         [rangeStart, rangeEnd],
         (_, results) => {
           const data: any[] = [];
@@ -84,3 +84,5 @@ export const onDayPress = async (
     console.log('Error opening database:', error);
   }
 };
+
+

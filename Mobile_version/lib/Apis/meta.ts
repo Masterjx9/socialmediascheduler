@@ -1,28 +1,42 @@
-import RNFS from 'react-native-fs';
+import RNFS from '../Compat/RNFS';
 import { THREADS_CLIENT_ID, THREADS_CLIENT_SECRET,
-  INSTAGRAM_CLIENT_ID, INSTAGRAM_CLIENT_SECRET } from '@env';
+  INSTAGRAM_CLIENT_ID, INSTAGRAM_CLIENT_SECRET,
+  FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN } from '@env';
 import { Linking } from 'react-native';
-import { NativeModules } from 'react-native';
+
+const resolveEnv = (key: string, primary?: string): string => {
+  const fromPrimary = typeof primary === 'string' ? primary.trim() : '';
+  const fromProcess = ((globalThis as any)?.process?.env?.[key] as string | undefined)?.trim() ?? '';
+  const value = fromPrimary || fromProcess;
+
+  if (!value || value.toLowerCase() === 'undefined' || value.toLowerCase() === 'null') {
+    throw new Error(
+      `[ENV] Missing ${key}. Check .env, babel plugin (react-native-dotenv), and restart Metro with --reset-cache.`,
+    );
+  }
+
+  return value;
+};
 
 
 // This is Instagram's client ID for your app
 // Replace with your actual client ID
 // for now this is using the development client ID
 // from meetup. Any use of this client ID will be rate limited
-export const instagramClientId = INSTAGRAM_CLIENT_ID;
+export const instagramClientId = resolveEnv('INSTAGRAM_CLIENT_ID', INSTAGRAM_CLIENT_ID);
 
 // This is the redirect URI you set in your Instagrams app settings
 // Replace with your actual redirect URI
 // for now this is using the development redirect URI
 // from meetup. Any use of this redirect URI will be rate limited 
-const instagramRedirectUri = 'https://masterjx9.github.io/socialmediascheduler/redirect.html';
+const instagramRedirectUri = 'https://socialmediascheduler.pythonicit.com/redirect.html';
 
 
 // This is the client secret for your Instagrams app
 // Replace with your actual client secret
 // for now this is using the development client secret
 // from meetup. Any use of this client secret will be rate limited
-export const instagramClientSecret = INSTAGRAM_CLIENT_SECRET;
+export const instagramClientSecret = resolveEnv('INSTAGRAM_CLIENT_SECRET', INSTAGRAM_CLIENT_SECRET);
 
 
 
@@ -31,7 +45,7 @@ export const instagramClientSecret = INSTAGRAM_CLIENT_SECRET;
 // Replace with your actual client ID
 // for now this is using the development client ID
 // from meetup. Any use of this client ID will be rate limited
-export const threadsClientId = THREADS_CLIENT_ID;
+export const threadsClientId = resolveEnv('THREADS_CLIENT_ID', THREADS_CLIENT_ID);
 
 // This is the redirect URI you set in your Threads app settings
 // Replace with your actual redirect URI
@@ -44,12 +58,45 @@ const threadsRedirectUri = 'https://masterjx9.github.io/socialmediascheduler/red
 // Replace with your actual client secret
 // for now this is using the development client secret
 // from meetup. Any use of this client secret will be rate limited
-export const threadsClientSecret = THREADS_CLIENT_SECRET;
+export const threadsClientSecret = resolveEnv('THREADS_CLIENT_SECRET', THREADS_CLIENT_SECRET);
+export const facebookAppId = resolveEnv('FACEBOOK_APP_ID', FACEBOOK_APP_ID);
+export const facebookClientToken = resolveEnv('FACEBOOK_CLIENT_TOKEN', FACEBOOK_CLIENT_TOKEN);
+const facebookRedirectUri = 'https://socialmediascheduler.pythonicit.com/redirect.html';
+const facebookPageScopes = [
+  'business_management',
+  'pages_manage_posts',
+  'pages_show_list',
+  'public_profile',
+].join(',');
 
-export async function openInstagramLogin() {
-  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${instagramClientId}&redirect_uri=${encodeURIComponent(instagramRedirectUri)}&scope=instagram_business_basic,instagram_business_content_publish&response_type=code`;
+export async function openInstagramLogin(state?: string) {
+  const clientId = resolveEnv('INSTAGRAM_CLIENT_ID', instagramClientId);
+  const stateParam = state ? `&state=${encodeURIComponent(state)}` : '';
+  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(instagramRedirectUri)}&scope=instagram_business_basic,instagram_business_content_publish&response_type=code${stateParam}`;
+  console.log('[Instagram OAuth] redirectUri:', instagramRedirectUri);
+  console.log('[Instagram OAuth] clientIdPresent:', Boolean(clientId));
   console.log('authUrl', authUrl);
   Linking.openURL(authUrl);
+}
+
+export async function openFacebookLogin(state?: string) {
+  const appId = resolveEnv('FACEBOOK_APP_ID', facebookAppId);
+  const stateParam = state ? `&state=${encodeURIComponent(state)}` : '';
+  const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(facebookRedirectUri)}&scope=${encodeURIComponent(facebookPageScopes)}&response_type=token${stateParam}`;
+  console.log('[Facebook OAuth] redirectUri:', facebookRedirectUri);
+  console.log('[Facebook OAuth] appIdPresent:', Boolean(appId));
+  console.log('[Facebook OAuth] clientTokenPresent:', Boolean(facebookClientToken));
+  console.log('authUrl', authUrl);
+  Linking.openURL(authUrl);
+}
+
+export async function getFacebookPageAccounts(userAccessToken: string): Promise<any> {
+  const url = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token,perms,tasks&access_token=${encodeURIComponent(userAccessToken)}`;
+  const response = await fetch(url, {
+    method: 'GET',
+  });
+
+  return response.json();
 }
 
 export async function getInstagramUserInfo(accessToken: string): Promise<any> {
@@ -112,8 +159,9 @@ export async function getInstagramAccessToken({
   throw new Error('Invalid grant_type');
 }
 
-export async function openThreadsLogin() {
-  const authUrl = `https://threads.net/oauth/authorize?client_id=${threadsClientId}&redirect_uri=${encodeURIComponent(threadsRedirectUri)}&scope=threads_basic,threads_content_publish&response_type=code`;
+export async function openThreadsLogin(state?: string) {
+  const stateParam = state ? `&state=${encodeURIComponent(state)}` : '';
+  const authUrl = `https://threads.net/oauth/authorize?client_id=${threadsClientId}&redirect_uri=${encodeURIComponent(threadsRedirectUri)}&scope=threads_basic,threads_content_publish&response_type=code${stateParam}`;
   console.log('authUrl', authUrl);
   Linking.openURL(authUrl);
 }
@@ -190,7 +238,7 @@ export async function getAccessToken(
   appId: string,
   appSecret: string,
 ): Promise<any> {
-  const url = 'https://graph.facebook.com/v19.0/oauth/access_token"';
+  const url = 'https://graph.facebook.com/v19.0/oauth/access_token';
   const data = new URLSearchParams({
     grant_type: 'authorization_code',
     code: code,
@@ -205,6 +253,76 @@ export async function getAccessToken(
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: data.toString(),
+  });
+
+  return response.json();
+}
+
+export async function postTextToFacebookPage(
+  pageAccessToken: string,
+  pageId: string,
+  message: string,
+): Promise<any> {
+  const url = `https://graph.facebook.com/v19.0/${pageId}/feed`;
+  const payload = new URLSearchParams({
+    message: message ?? '',
+    access_token: pageAccessToken,
+  });
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: payload.toString(),
+  });
+
+  return response.json();
+}
+
+export async function postImageToFacebookPage(
+  pageAccessToken: string,
+  pageId: string,
+  imageUrl: string,
+  caption: string = '',
+): Promise<any> {
+  const url = `https://graph.facebook.com/v19.0/${pageId}/photos`;
+  const payload = new URLSearchParams({
+    url: imageUrl,
+    caption,
+    access_token: pageAccessToken,
+  });
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: payload.toString(),
+  });
+
+  return response.json();
+}
+
+export async function postVideoToFacebookPage(
+  pageAccessToken: string,
+  pageId: string,
+  videoUrl: string,
+  description: string = '',
+): Promise<any> {
+  const url = `https://graph.facebook.com/v19.0/${pageId}/videos`;
+  const payload = new URLSearchParams({
+    file_url: videoUrl,
+    description,
+    access_token: pageAccessToken,
+  });
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: payload.toString(),
   });
 
   return response.json();
@@ -634,3 +752,4 @@ export async function uploadContentToTmpFiles(
     throw error;
   }
 }
+

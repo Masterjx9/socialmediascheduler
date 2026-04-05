@@ -4,10 +4,9 @@ import {
 } from './lib/Services/backgroundService.ts';
 import type { SocialMediaAccount } from './types/SociaMedia.ts';
 
-import { View, Text, Alert, AppState } from 'react-native';
+import { View, Text, Alert, AppState, Platform } from 'react-native';
 import styles from './styles/AppStyles.ts';
-import RNFS from 'react-native-fs';
-import SQLite, { Transaction } from 'react-native-sqlite-storage';
+import SQLite, { Transaction } from './lib/Compat/SQLite';
 import ModalsContainer from './components/App/Modals.tsx';
 import CalendarModal from './components/App/Calendar.tsx';
 import AccountsModal from './components/Modals/AccountsModal';
@@ -15,35 +14,31 @@ import BackgroundFetch from 'react-native-background-fetch';
 
 import { createTables, 
           fetchDbData,
-          listDirectoryContents,
          } from './lib/Services/dbService';
 import { checkIfAccountsExist } from './lib/Services/dbService.ts';
 
 
-BackgroundFetch.configure(
-  {
-    minimumFetchInterval: 15,     
-    stopOnTerminate: false,       
-    startOnBoot: true,            
-    enableHeadless: true,         
-  },
-  async taskId => {
-    // await doWork(taskId);
-    console.log('Background fetch task:', taskId);
-  },
-  async taskId => {
-    // await doWork(taskId);         // timeout / fallback
-  },
-);
+if (Platform.OS !== 'windows' && BackgroundFetch && typeof BackgroundFetch.configure === 'function') {
+  BackgroundFetch.configure(
+    {
+      minimumFetchInterval: 15,     
+      stopOnTerminate: false,       
+      startOnBoot: true,            
+      enableHeadless: true,         
+    },
+    async taskId => {
+      console.log('Background fetch task:', taskId);
+    },
+    async taskId => {
+      // timeout / fallback
+    },
+  );
+}
 
 const App = () => {
   const [inputText, setInputText] = useState('');
-  const [isCalendarVisible, _setIsCalendarVisible] = useState(false);
-    const setIsCalendarVisible = (val: boolean) => {
-    console.trace('setIsCalendarVisible called with:', val);
-    _setIsCalendarVisible(val);
-  };
-  const [isLoginVisible, setIsLoginVisible] = useState(false);
+  const [isCalendarVisible, setIsCalendarVisible] = useState(false);
+  const [isLoginVisible, setIsLoginVisible] = useState(Platform.OS === 'windows');
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const [isAccountsVisible, setIsAccountsVisible] = useState(false);
   const [isImportVisible, setIsImportVisible] = useState(false);
@@ -54,7 +49,7 @@ const App = () => {
   const [imageResizeNeeded, setImageResizeNeeded] = useState(false);
   const [imageResizeOptions, setImageResizeOptions] = useState<"portrait" | "square" | "landscape">('portrait'); // 'portrait', 'square', 'landscape'
   const [isTwitterLoginVisible, setIsTwitterLoginVisible] = useState(false);
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [dbData, setDbData] = useState<any[]>([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isMadeForKids, setIsMadeForKids] = useState(false);
@@ -70,79 +65,29 @@ const App = () => {
 
   // In the useEffect:
   useEffect(() => {
-
-
-
-
-
       if (isCalendarVisible === false) {
-    const dbPath = '/data/data/com.socialmediaschedulerapp/databases/database_default.sqlite3';
-    // console.log('Database path:', dbPath);
-  
-
-    // Check if the database file exists
-    // listDirectoryContents('/data/data/com.socialmediaschedulerapp/databases');
-  
-    RNFS.exists(dbPath)
-      .then((exists) => {
-        if (exists) {
-          const db = SQLite.openDatabase(
-            { name: 'database_default.sqlite3', location: 'default' },
-            () => {
-              console.log('Database opened');
-              // insertFakeData(db);
-              // fetchDbData(db, setDbData);
-
-              let accountcheck = checkIfAccountsExist();
-              accountcheck.then((result) => {
-                if (result) {
-                  fetchDbData(db, setDbData);
-                  setIsCalendarVisible(true);
-                } else {
-                  setIsLoginVisible(true);
-                }
-              });
-              
-            },
-            (error) => {
-              console.log('Error opening database:', error);
+      const db = SQLite.openDatabase(
+        { name: 'database_default.sqlite3', location: 'default' },
+        () => {
+          db.transaction((tx: Transaction) => {
+            createTables(tx);
+          }, (error: any) => {
+            console.log('Transaction error:', error);
+          }, async () => {
+            const result = await checkIfAccountsExist();
+            if (result) {
+              fetchDbData(db, setDbData);
+              setIsCalendarVisible(true);
+            } else {
+              setIsLoginVisible(true);
             }
-          );
-        } else 
-        {
-          const filePath = `/data/data/com.socialmediaschedulerapp/databases/database_default.sqlite3`;
-          RNFS.writeFile(filePath, '', 'utf8')
-            .then(() => {
-              console.log('SQLite database file created:', filePath);
-              const db = SQLite.openDatabase(
-                { name: 'database_default.sqlite3', location: 'default' },
-                () => {
-                  console.log('New database created and opened');
-                  db.transaction((tx: Transaction) => {
-                    createTables(tx);
-                  }, (error: any) => {
-                    console.log('Transaction error:', error);
-                  }, () => {
-                    console.log('Tables created successfully');
-                    // insertFakeData(db);
-                    listDirectoryContents(RNFS.DocumentDirectoryPath);
-                    setIsLoginVisible(true);
-
-                  });
-                },
-                (error) => {
-                  console.log('Error creating new database:', error);
-                }
-              );
-            })
-            .catch((error) => {
-              console.error('Error creating SQLite database file:', error);
-            });
+          });
+        },
+        (error) => {
+          console.log('Error opening database:', error);
+          setIsLoginVisible(true);
         }
-      })
-      .catch((error) => {
-        console.log('Error checking if database exists:', error);
-      });
+      );
     }
 
           // Set today's date when the calendar becomes visible
@@ -150,8 +95,13 @@ const App = () => {
         const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
         setSelectedDate(today);
         // setupNotificationService();
-        if (AppState.currentState === 'active' || AppState.currentState === 'background') {
-          startForegroundService();
+        if (
+          Platform.OS !== 'windows' &&
+          (AppState.currentState === 'active' || AppState.currentState === 'background')
+        ) {
+          startForegroundService().catch((error) => {
+            console.log('Failed to start foreground service:', error);
+          });
         }
       }
 
@@ -163,53 +113,9 @@ const App = () => {
     <View style={styles.container}>
       {isCalendarVisible ? (
         <>
-          <ModalsContainer
-            isAccountsVisible={isAccountsVisible}
-            setIsAccountsVisible={setIsAccountsVisible}
-            isTwitterLoginVisible={isTwitterLoginVisible}
-            setIsTwitterLoginVisible={setIsTwitterLoginVisible}
-            isPostVisible={isPostVisible}
-            setIsPostVisible={setIsPostVisible}
-            contentMode={contentMode}
-            selectedItem={selectedItem}
-            setSelectedItem={setSelectedItem}
-            selectedDate={selectedDate}
-            isSettingsVisible={isSettingsVisible}
-            setIsSettingsVisible={setIsSettingsVisible}
-            setIsCalendarVisible={_setIsCalendarVisible}
-            setIsLoginVisible={setIsLoginVisible}
-            setDbData={setDbData}
-            selectedFile={selectedFile}
-            imageResizeNeeded={imageResizeNeeded}
-            setImageResizeNeeded={setImageResizeNeeded}
-            setSelectedFile={setSelectedFile}
-            imageResizeOptions={imageResizeOptions}
-            setImageResizeOptions={setImageResizeOptions}
-            unsupportedAudioCodec={unsupportedAudioCodec}
-            setUnsupportedAudioCodec={setUnsupportedAudioCodec}
-            youtubeTitle={youtubeTitle}
-            setYoutubeTitle={setYoutubeTitle}
-            isMadeForKids={isMadeForKids}
-            setIsMadeForKids={setIsMadeForKids}
-            contentPrivacy={contentPrivacy}
-            setContentPrivacy={setContentPrivacy}
-            accounts={accounts}
-            setAccounts={setAccounts}
-            youtubeCategory={youtubeCategory}
-            setYoutubeCategory={setYoutubeCategory}
-            selectedThumbnail={selectedThumbnail}
-            setSelectedThumbnail={setSelectedThumbnail}
-            youtubeTags={youtubeTags}
-            setYoutubeTags={setYoutubeTags}
-            calendarMode={calendarMode}
-            setCalendarMode={setCalendarMode}
-            lastDayPressed={lastDayPressed}
-            setLastDayPressed={setLastDayPressed}
-            setSelectedDate={setSelectedDate}
-            />
           <CalendarModal
             isCalendarVisible={isCalendarVisible}
-            setIsCalendarVisible={_setIsCalendarVisible}
+            setIsCalendarVisible={setIsCalendarVisible}
             setContentMode={setContentMode}
             contentMode={contentMode}
             selectedDate={selectedDate}
@@ -231,9 +137,56 @@ const App = () => {
             lastDayPressed={lastDayPressed}
             setLastDayPressed={setLastDayPressed}
           />
+          {(isAccountsVisible || isTwitterLoginVisible || isPostVisible || isSettingsVisible) && (
+            <ModalsContainer
+              isAccountsVisible={isAccountsVisible}
+              setIsAccountsVisible={setIsAccountsVisible}
+              isTwitterLoginVisible={isTwitterLoginVisible}
+              setIsTwitterLoginVisible={setIsTwitterLoginVisible}
+              isPostVisible={isPostVisible}
+              setIsPostVisible={setIsPostVisible}
+              contentMode={contentMode}
+              selectedItem={selectedItem}
+              setSelectedItem={setSelectedItem}
+              selectedDate={selectedDate}
+              isSettingsVisible={isSettingsVisible}
+              setIsSettingsVisible={setIsSettingsVisible}
+              setIsCalendarVisible={setIsCalendarVisible}
+              setIsLoginVisible={setIsLoginVisible}
+              setDbData={setDbData}
+              selectedFile={selectedFile}
+              imageResizeNeeded={imageResizeNeeded}
+              setImageResizeNeeded={setImageResizeNeeded}
+              setSelectedFile={setSelectedFile}
+              imageResizeOptions={imageResizeOptions}
+              setImageResizeOptions={setImageResizeOptions}
+              unsupportedAudioCodec={unsupportedAudioCodec}
+              setUnsupportedAudioCodec={setUnsupportedAudioCodec}
+              youtubeTitle={youtubeTitle}
+              setYoutubeTitle={setYoutubeTitle}
+              isMadeForKids={isMadeForKids}
+              setIsMadeForKids={setIsMadeForKids}
+              contentPrivacy={contentPrivacy}
+              setContentPrivacy={setContentPrivacy}
+              accounts={accounts}
+              setAccounts={setAccounts}
+              youtubeCategory={youtubeCategory}
+              setYoutubeCategory={setYoutubeCategory}
+              selectedThumbnail={selectedThumbnail}
+              setSelectedThumbnail={setSelectedThumbnail}
+              youtubeTags={youtubeTags}
+              setYoutubeTags={setYoutubeTags}
+              calendarMode={calendarMode}
+              setCalendarMode={setCalendarMode}
+              lastDayPressed={lastDayPressed}
+              setLastDayPressed={setLastDayPressed}
+              setSelectedDate={setSelectedDate}
+              />
+          )}
         </>
       ) : (
         <>
+        {!isLoginVisible && <Text style={{ color: 'white' }}>Loading...</Text>}
 
 
         <AccountsModal
@@ -267,3 +220,6 @@ const App = () => {
 
 
 export default App;
+
+
+

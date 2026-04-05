@@ -1,10 +1,123 @@
 // import { OAuth } from 'oauth';
-import { faS } from '@fortawesome/free-solid-svg-icons';
 import OAuth from 'oauth-1.0a';
 import '../../shim.js';
-import crypto from 'react-native-crypto'
-import RNFS from 'react-native-fs';
+import RNFS from '../Compat/RNFS';
+import { Linking } from 'react-native';
+import { TWITTER_CLIENT_ID, TWITTER_CLIENT_SECRET, TWITTER_REDIRECT_URI } from '@env';
+import { hmac } from '@noble/hashes/hmac';
+import { sha1 } from '@noble/hashes/sha1';
+import { sha256 } from 'js-sha256';
 import { Buffer } from 'buffer';  
+ 
+const signSha1Base64 = (baseString: string, key: string): string => {
+  const signature = hmac(sha1, Buffer.from(key, 'utf8'), Buffer.from(baseString, 'utf8'));
+  return Buffer.from(signature).toString('base64');
+};
+
+const toBase64Url = (value: ArrayBuffer | Uint8Array | Buffer): string => {
+  const buffer = Buffer.isBuffer(value)
+    ? value
+    : value instanceof Uint8Array
+    ? Buffer.from(value)
+    : Buffer.from(new Uint8Array(value));
+  return buffer
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+};
+
+const resolveEnv = (key: string, primary?: string, fallback = ''): string => {
+  const fromPrimary = typeof primary === 'string' ? primary.trim() : '';
+  const fromProcess = ((globalThis as any)?.process?.env?.[key] as string | undefined)?.trim() ?? '';
+  const value = fromPrimary || fromProcess || fallback;
+
+  if (!value || value.toLowerCase() === 'undefined' || value.toLowerCase() === 'null') {
+    throw new Error(
+      `[ENV] Missing ${key}. Check Mobile_version/.env and restart Metro with --reset-cache.`,
+    );
+  }
+
+  return value;
+};
+
+export const twitterClientId = resolveEnv('TWITTER_CLIENT_ID', TWITTER_CLIENT_ID);
+export const twitterClientSecret = resolveEnv('TWITTER_CLIENT_SECRET', TWITTER_CLIENT_SECRET);
+export const twitterRedirectUri = resolveEnv(
+  'TWITTER_REDIRECT_URI',
+  TWITTER_REDIRECT_URI,
+  'https://socialmediascheduler.pythonicit.com/redirect.html',
+);
+export const twitterOAuthScopes =
+  ((globalThis as any)?.process?.env?.TWITTER_OAUTH_SCOPES as string | undefined)?.trim() ||
+  'tweet.read users.read offline.access';
+
+export const createTwitterCodeVerifier = (): string => {
+  const bytes = new Uint8Array(48);
+  for (let i = 0; i < bytes.length; i += 1) {
+    bytes[i] = Math.floor(Math.random() * 256);
+  }
+  return toBase64Url(bytes);
+};
+
+export const createTwitterCodeChallenge = (codeVerifier: string): string => {
+  const digest = sha256.arrayBuffer(codeVerifier);
+  return toBase64Url(digest);
+};
+
+export async function openTwitterLogin(state: string, codeChallenge: string) {
+  const scope = encodeURIComponent(twitterOAuthScopes);
+  const authUrl =
+    `https://x.com/i/oauth2/authorize?response_type=code` +
+    `&client_id=${encodeURIComponent(twitterClientId)}` +
+    `&redirect_uri=${encodeURIComponent(twitterRedirectUri)}` +
+    `&scope=${scope}` +
+    `&state=${encodeURIComponent(state)}` +
+    `&code_challenge=${encodeURIComponent(codeChallenge)}` +
+    `&code_challenge_method=S256`;
+  console.log('Twitter OAuth scopes:', twitterOAuthScopes);
+  console.log('Twitter OAuth URL:', authUrl);
+  await Linking.openURL(authUrl);
+}
+
+export async function getTwitterOAuth2AccessToken({
+  code,
+  codeVerifier,
+}: {
+  code: string;
+  codeVerifier: string;
+}): Promise<any> {
+  const url = 'https://api.twitter.com/2/oauth2/token';
+  const data = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: twitterRedirectUri,
+    client_id: twitterClientId,
+    code_verifier: codeVerifier,
+  });
+
+  const basic = Buffer.from(`${twitterClientId}:${twitterClientSecret}`, 'utf8').toString('base64');
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: `Basic ${basic}`,
+    },
+    body: data.toString(),
+  });
+
+  return response.json();
+}
+
+export async function getTwitterOAuth2UserInfo(accessToken: string): Promise<any> {
+  const response = await fetch('https://api.twitter.com/2/users/me?user.fields=id,name,username', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return response.json();
+}
 
 export async function getTwitterAccessToken(
     code: string,
@@ -24,7 +137,7 @@ export async function getTwitterAccessToken(
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`, // Base64 encode clientId:clientSecret
+        'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`, 'utf8').toString('base64')}`,
       },
       body: data.toString(),
     });
@@ -38,6 +151,11 @@ export async function  getTwitterUserInfo(
     twitterAccessToken: string,
     twitterAccessTokenSecret: string
 ): Promise<any> {
+    if (!twitterConsumerKey || !twitterConsumerSecret || !twitterAccessTokenSecret) {
+        return getTwitterOAuth2UserInfo(twitterAccessToken);
+    }
+
+    try {
     const oauth = new OAuth({
         consumer: {
             key: twitterConsumerKey,
@@ -45,7 +163,7 @@ export async function  getTwitterUserInfo(
         },
         signature_method: 'HMAC-SHA1',
         hash_function(base_string, key) {
-            return crypto.createHmac('sha1', key).update(base_string).digest('base64');
+            return signSha1Base64(base_string, key);
         }
     });
     console.log("twitterConsumerKey", twitterConsumerKey);
@@ -76,14 +194,23 @@ export async function  getTwitterUserInfo(
         console.log(JSON.stringify(jsonResponse, null, 4));
         return jsonResponse;
     } else {
-        // console.log("Failed to fetch user info:", await response.text());
-        return await response.json();
+        const errorJson = await response.json();
+        if (twitterAccessToken) {
+          console.log('Twitter OAuth1 profile fetch failed; retrying with OAuth2 bearer token.');
+          const oauth2Info = await getTwitterOAuth2UserInfo(twitterAccessToken);
+          if (oauth2Info?.data?.id) {
+            return oauth2Info;
+          }
+        }
+        return errorJson;
     }
-        // return JSON.stringify(jsonResponse, null, 4);
-    // } else {
-    //     console.error("Failed to fetch user info:", await response.text());
-    //     return response        
-    // }
+    } catch (error) {
+      if (twitterAccessToken) {
+        console.log('Twitter OAuth1 profile fetch threw error; retrying with OAuth2 bearer token.');
+        return getTwitterOAuth2UserInfo(twitterAccessToken);
+      }
+      throw error;
+    }
 
 }
 
@@ -103,7 +230,7 @@ const oauth = new OAuth({
     },
     signature_method: 'HMAC-SHA1',
     hash_function(base_string, key) {
-        return crypto.createHmac('sha1', key).update(base_string).digest('base64');
+        return signSha1Base64(base_string, key);
     }
 });
 
@@ -149,7 +276,7 @@ export async function postImageToTwitter(
         },
         signature_method: 'HMAC-SHA1',
         hash_function(base_string, key) {
-            return crypto.createHmac('sha1', key).update(base_string).digest('base64');
+            return signSha1Base64(base_string, key);
         }
     });
 
@@ -245,7 +372,7 @@ export async function postVideoToTwitter(
         },
         signature_method: 'HMAC-SHA1',
         hash_function(base_string, key) {
-            return crypto.createHmac('sha1', key).update(base_string).digest('base64');
+            return signSha1Base64(base_string, key);
         }
     });
 
@@ -425,4 +552,6 @@ while (processingInfo && processingInfo.state !== 'succeeded') {
         return await response.json();
     }
 }
+
+
 
